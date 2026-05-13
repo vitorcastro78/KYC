@@ -1,0 +1,87 @@
+@page "/dashboard"
+@attribute [Authorize(Policy = "Analyst")]
+@inject IMediator Mediator
+
+<PageTitle>Dashboard</PageTitle>
+
+<h1>Dashboard KYC</h1>
+
+@if (!string.IsNullOrEmpty(_loadError))
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Base de dados indisponível ou erro ao carregar.</strong>
+        <p class="mb-0 small">@_loadError</p>
+        <p class="mb-0 small mt-2">Confirme que o PostgreSQL está a correr, que a extensão <code>vector</code> existe e execute <code>dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web</code> com a connection string correcta em <code>appsettings</code> ou <code>KYC_DB_CONNECTION</code>.</p>
+    </div>
+}
+else if (_summary is not null)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-bg-primary"><div class="card-body"><h5>Casos abertos</h5><h2>@_summary.OpenCases</h2></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-success"><div class="card-body"><h5>Aprovados hoje</h5><h2>@_summary.ApprovedToday</h2></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-warning"><div class="card-body"><h5>Em revisão</h5><h2>@_summary.UnderReview</h2></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-secondary"><div class="card-body"><h5>Taxa aprovação</h5><h2>@_summary.ApprovalRatePercent%</h2></div></div>
+        </div>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h3>Casos recentes</h3>
+    <a class="btn btn-primary" href="/cases/new">Novo caso</a>
+</div>
+
+<table class="table table-striped">
+    <thead><tr><th>NIF</th><th>Empresa</th><th>Score</th><th>Estado</th><th>Criado</th></tr></thead>
+    <tbody>
+    @foreach (var c in _recent)
+    {
+        <tr>
+            <td><a href="/cases/@c.Id">@c.Nif</a></td>
+            <td>@c.CompanyName</td>
+            <td><RiskScoreBadge Score="c.Score" /></td>
+            <td>@c.Status</td>
+            <td>@c.CreatedAt.ToLocalTime()</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<h3 class="mt-4">Alertas críticos (24h)</h3>
+<ul class="list-group">
+@foreach (var a in _alerts)
+{
+    <li class="list-group-item d-flex justify-content-between">
+        <span>@a.CompanyName — @a.SignalSummary</span>
+        <a href="/cases/@a.CaseId">Abrir</a>
+    </li>
+}
+</ul>
+
+@code {
+    private string? _loadError;
+    private DashboardSummaryDto? _summary;
+    private List<KycCaseDto> _recent = new();
+    private List<CriticalAlertDto> _alerts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _summary = await Mediator.Send(new GetDashboardSummaryQuery());
+            var list = await Mediator.Send(new ListKycCasesQuery(new KycCaseFilter(Page: 1, PageSize: 10)));
+            _recent = list.Items.ToList();
+            _alerts = (await Mediator.Send(new GetCriticalAlertsQuery())).ToList();
+        }
+        catch (Exception ex)
+        {
+            _loadError = ex.InnerException?.Message ?? ex.Message;
+        }
+    }
+}

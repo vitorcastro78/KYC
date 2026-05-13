@@ -1,0 +1,15 @@
+@using KYC.Application.Dtos
+<ul class="list-group">
+    @foreach (var e in Timeline.Entries.OrderByDescending(x => x.At))
+    {
+        <li class="list-group-item">
+            <div class="small text-muted">@e.At.ToLocalTime()</div>
+            <div><strong>@e.Title</strong> <span class="badge bg-light text-dark">@e.Severity</span></div>
+            <div class="small">@e.Description</div>
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter] public RiskTimelineDto Timeline { get; set; } = default!;
+}

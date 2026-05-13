@@ -1,0 +1,29 @@
+@page "/cases/{CaseId:guid}/report"
+@attribute [Authorize(Policy = "Analyst")]
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>Relatório</PageTitle>
+
+@if (_report is null)
+{
+    <p>Sem relatório disponível.</p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1>Relatório narrativo</h1>
+        <a class="btn btn-outline-secondary" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/report.pdf")" target="_blank">Exportar PDF</a>
+    </div>
+    <article class="border rounded p-3 bg-light" style="white-space: pre-wrap;">@_report.Markdown</article>
+}
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+    private KycReportDto? _report;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _report = await Mediator.Send(new GetKycReportQuery(CaseId));
+    }
+}

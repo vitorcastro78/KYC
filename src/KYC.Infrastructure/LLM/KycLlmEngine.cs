@@ -1,0 +1,198 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using KYC.Application.Interfaces;
+using KYC.Application.Models;
+using KYC.Domain.Entities;
+using KYC.Domain.Enums;
+using KYC.Domain.ValueObjects;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace KYC.Infrastructure.LLM;
+
+public class KycLlmEngine(
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration,
+    ILogger<KycLlmEngine> logger) : IKycLlmEngine
+{
+    private static string Sha256(string text)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(text));
+        return Convert.ToHexString(bytes);
+    }
+
+    public async Task<RiskScore> ComputeRiskScoreAsync(KycScanContext context, CancellationToken ct = default)
+    {
+        var system = "Senior KYC Risk Analyst EU. Responde APENAS JSON: {\"overall\":0-100,\"sanctions\":null,\"pep\":null,\"adverse\":null,\"financial\":null,\"judicial\":null,\"ubo\":null,\"justification\":\"pt\"}";
+        var user = JsonSerializer.Serialize(context);
+        var promptHash = Sha256(system + user);
+        logger.LogInformation("LLM scoring hash={Hash} model=local", promptHash);
+
+        var client = httpClientFactory.CreateClient("ollama");
+        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var payload = new
+        {
+            model,
+            stream = false,
+            messages = new object[]
+            {
+                new { role = "system", content = system },
+                new { role = "user", content = user }
+            }
+        };
+
+        try
+        {
+            using var response = await client.PostAsJsonAsync("/api/chat", payload, ct);
+            response.EnsureSuccessStatusCode();
+            var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            var content = doc.GetProperty("message").GetProperty("content").GetString() ?? "{}";
+            return ParseRiskScore(content);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Ollama scoring failed; using heuristic score.");
+            return new RiskScore
+            {
+                Overall = context.Signals.Count == 0 ? 25 : 55,
+                Justification = "Fallback heurístico (Ollama indisponível)."
+            };
+        }
+    }
+
+    private static RiskScore ParseRiskScore(string content)
+    {
+        try
+        {
+            var jsonStart = content.IndexOf('{');
+            var jsonEnd = content.LastIndexOf('}');
+            if (jsonStart < 0 || jsonEnd < jsonStart)
+                throw new FormatException("No JSON");
+            var slice = content[jsonStart..(jsonEnd + 1)];
+            using var doc = JsonDocument.Parse(slice);
+            var root = doc.RootElement;
+            var overall = root.TryGetProperty("overall", out var o) ? o.GetInt32() : 40;
+            return new RiskScore
+            {
+                Overall = Math.Clamp(overall, 0, 100),
+                SanctionsScore = ReadNullableInt(root, "sanctions"),
+                PepScore = ReadNullableInt(root, "pep"),
+                AdverseMediaScore = ReadNullableInt(root, "adverse"),
+                FinancialScore = ReadNullableInt(root, "financial"),
+                JudicialScore = ReadNullableInt(root, "judicial"),
+                UboStructureScore = ReadNullableInt(root, "ubo"),
+                Justification = root.TryGetProperty("justification", out var j) ? j.GetString() ?? "" : ""
+            };
+        }
+        catch
+        {
+            return new RiskScore { Overall = 45, Justification = "Resposta LLM não estruturada." };
+        }
+    }
+
+    private static int? ReadNullableInt(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.Number ? p.GetInt32() : null;
+
+    public async Task<KycReport> GenerateNarrativeReportAsync(KycScanContext context, RiskScore score, CancellationToken ct = default)
+    {
+        var mode = (configuration["LLM:Mode"] ?? "LocalOnly").Trim();
+        var localOnly = string.Equals(mode, "LocalOnly", StringComparison.OrdinalIgnoreCase);
+        var riskWarrantsCloud = score.Level is RiskLevel.High or RiskLevel.Critical;
+        var apiKey = configuration["Anthropic:ApiKey"];
+        var useCloud = !localOnly && riskWarrantsCloud && !string.IsNullOrWhiteSpace(apiKey);
+
+        var system = "Gera relatório KYC em Markdown em português com secções: Sumário, Entidade, UBO, Sinais, Timeline, Consistência, Score, Recomendação, Fontes.";
+        var user = JsonSerializer.Serialize(new { context, score });
+        var hash = Sha256(system + user);
+        logger.LogInformation(
+            "LLM narrative mode={Mode} risk={Risk} useCloud={UseCloud} hash={Hash}",
+            mode, score.Level, useCloud, hash);
+
+        if (useCloud)
+        {
+            try
+            {
+                var text = await CallAnthropicAsync(system, user, ct);
+                return KycReport.Create(context.CaseId, text, configuration["LLM:CloudModel"]);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Anthropic failed; falling back to local.");
+            }
+        }
+        else if (localOnly && riskWarrantsCloud)
+        {
+            logger.LogInformation(
+                "Offline-first mode active: High/Critical case {CaseId} will use local LLM only.",
+                context.CaseId);
+        }
+
+        var local = await CallOllamaMarkdownAsync(system, user, ct);
+        return KycReport.Create(context.CaseId, local, configuration["LLM:LocalModel"]);
+    }
+
+    private async Task<string> CallAnthropicAsync(string system, string user, CancellationToken ct)
+    {
+        var client = httpClientFactory.CreateClient("anthropic");
+        var model = configuration["LLM:CloudModel"] ?? "claude-sonnet-4-20250514";
+        var apiKey = configuration["Anthropic:ApiKey"]!;
+        using var req = new HttpRequestMessage(HttpMethod.Post, "v1/messages");
+        req.Headers.Add("x-api-key", apiKey);
+        req.Headers.Add("anthropic-version", "2023-06-01");
+        req.Content = JsonContent.Create(new
+        {
+            model,
+            max_tokens = 4000,
+            system,
+            messages = new[] { new { role = "user", content = user } }
+        });
+        using var res = await client.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+        var doc = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+        return doc.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+    }
+
+    private async Task<string> CallOllamaMarkdownAsync(string system, string user, CancellationToken ct)
+    {
+        var client = httpClientFactory.CreateClient("ollama");
+        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var payload = new
+        {
+            model,
+            stream = false,
+            messages = new object[]
+            {
+                new { role = "system", content = system },
+                new { role = "user", content = user }
+            }
+        };
+        using var response = await client.PostAsJsonAsync("/api/chat", payload, ct);
+        response.EnsureSuccessStatusCode();
+        var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+        return doc.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
+    }
+
+    public async Task<ConsistencyCheckResult> CheckConsistencyAsync(KycScanContext context, CancellationToken ct = default)
+    {
+        await Task.CompletedTask;
+        var issues = new List<string>();
+        if (context.Parties.Count(p => p.Role.Contains("Ubo", StringComparison.OrdinalIgnoreCase)) == 0)
+            issues.Add("Sem UBO declarado vs. estrutura encontrada — rever manualmente.");
+        return new ConsistencyCheckResult(issues.Count == 0, issues, issues.Count == 0 ? 90 : 60);
+    }
+
+    public async Task<bool> IsLlmHealthyAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("ollama");
+            using var res = await client.GetAsync("/api/tags", ct);
+            return res.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}

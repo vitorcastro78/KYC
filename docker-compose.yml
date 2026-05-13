@@ -1,0 +1,20 @@
+services:
+  kyc-postgres:
+    image: pgvector/pgvector:pg17
+    container_name: kyc-postgres-pgvector
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev123
+      POSTGRES_DB: kyc_dev
+    volumes:
+      - kyc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kyc_dev"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kyc_pgdata:

@@ -1,0 +1,15 @@
+@using KYC.Application.Dtos
+<div class="card mb-2">
+    <div class="card-body py-2">
+        <div class="d-flex justify-content-between">
+            <strong>@Signal.Type</strong>
+            <span class="badge bg-dark">@Signal.Severity</span>
+        </div>
+        <div class="small text-muted">@Signal.Source · @Signal.DetectedAt.ToLocalTime()</div>
+        <div>@Signal.Description</div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public RiskSignalDetailDto Signal { get; set; } = default!;
+}

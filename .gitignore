@@ -1,0 +1,18 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+.env
+.env.local
+*.log
+TestResults/
+coverage*.json
+coverage*.xml
+*.DotSettings.user
+
+# OFAC SDN descarregado pelo worker (ficheiros grandes)
+**/Data/ofac/*.xml
+**/Data/ofac/*.tmp
+**/Data/eu-fsf/*.xml
+**/Data/eu-fsf/*.tmp

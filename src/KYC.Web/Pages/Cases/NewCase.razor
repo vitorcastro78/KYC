@@ -1,0 +1,48 @@
+@page "/cases/new"
+@attribute [Authorize(Policy = "Analyst")]
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>Novo caso</PageTitle>
+<h1>Abrir caso KYC</h1>
+
+<EditForm Model="_model" OnValidSubmit="Submit">
+    <div class="mb-3">
+        <label class="form-label">NIF / NIPC ou nome da entidade</label>
+        <InputText class="form-control" @bind-Value="_model.Nif" placeholder="Ex.: 508144500 ou Acme Portugal Lda." />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Montante solicitado (EUR)</label>
+        <InputNumber class="form-control" @bind-Value="_model.Amount" />
+    </div>
+    <button class="btn btn-primary" type="submit">Iniciar</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger mt-3">@_error</div>
+}
+
+@code {
+    private readonly CaseForm _model = new();
+    private string? _error;
+
+    private async Task Submit()
+    {
+        try
+        {
+            var id = await Mediator.Send(new StartKycCaseCommand(_model.Nif, "dev-user", CreditAmount.Eur(_model.Amount)));
+            Nav.NavigateTo($"/cases/{id}", true);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private sealed class CaseForm
+    {
+        public string Nif { get; set; } = "";
+        public decimal Amount { get; set; } = 100000;
+    }
+}

@@ -1,0 +1,8 @@
+<div class="progress" style="height: 22px;">
+    <div class="progress-bar" role="progressbar" style="width: @(Percent)%">@Module @Percent%</div>
+</div>
+
+@code {
+    [Parameter] public string Module { get; set; } = "";
+    [Parameter] public int Percent { get; set; }
+}

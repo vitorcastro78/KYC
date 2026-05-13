@@ -1,0 +1,20 @@
+@if (Score is null)
+{
+    <span class="badge bg-secondary">Sem score</span>
+}
+else
+{
+    var cls = Score.Level switch
+    {
+        RiskLevel.Low => "bg-success",
+        RiskLevel.Medium => "bg-warning text-dark",
+        RiskLevel.High => "bg-warning text-dark",
+        RiskLevel.Critical => "bg-danger",
+        _ => "bg-secondary"
+    };
+    <span class="badge @cls">@Score.Overall — @Score.Level</span>
+}
+
+@code {
+    [Parameter] public RiskScore? Score { get; set; }
+}

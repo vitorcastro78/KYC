@@ -1,0 +1,20 @@
+using KYC.Application.Common;
+using KYC.Application.Dtos;
+using KYC.Application.Filtering;
+using MediatR;
+
+namespace KYC.Application.Cases;
+
+public record GetKycCaseQuery(Guid CaseId) : IRequest<KycCaseDetailDto?>;
+
+public record ListKycCasesQuery(KycCaseFilter Filter) : IRequest<PagedResult<KycCaseDto>>;
+
+public record GetUboGraphQuery(Guid CaseId) : IRequest<UboGraphDto?>;
+
+public record GetRiskTimelineQuery(Guid CaseId) : IRequest<RiskTimelineDto?>;
+
+public record GetKycReportQuery(Guid CaseId) : IRequest<KycReportDto?>;
+
+public record GetDashboardSummaryQuery : IRequest<DashboardSummaryDto>;
+
+public record GetCriticalAlertsQuery : IRequest<IReadOnlyList<CriticalAlertDto>>;

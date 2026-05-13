@@ -1,0 +1,102 @@
+using KYC.Application.Common;
+using KYC.Application.Dtos;
+using KYC.Application.Interfaces;
+using KYC.Application.Models;
+using KYC.Domain.Enums;
+using MediatR;
+
+namespace KYC.Application.Cases;
+
+public class GetKycCaseQueryHandler(IKycCaseRepository repository)
+    : IRequestHandler<GetKycCaseQuery, KycCaseDetailDto?>
+{
+    public async Task<KycCaseDetailDto?> Handle(GetKycCaseQuery request, CancellationToken cancellationToken)
+    {
+        var c = await repository.GetByIdAsync(request.CaseId, cancellationToken);
+        return KycCaseMapping.ToDetailDto(c);
+    }
+}
+
+public class ListKycCasesQueryHandler(IKycCaseRepository repository)
+    : IRequestHandler<ListKycCasesQuery, PagedResult<KycCaseDto>>
+{
+    public async Task<PagedResult<KycCaseDto>> Handle(ListKycCasesQuery request, CancellationToken cancellationToken)
+    {
+        var page = await repository.ListAsync(request.Filter, cancellationToken);
+        var dtos = page.Items.Select(KycCaseMapping.ToListDto).ToList();
+        return new PagedResult<KycCaseDto>(dtos, page.TotalCount, page.Page, page.PageSize);
+    }
+}
+
+public class GetUboGraphQueryHandler(IKycCaseRepository cases, IEntityResolutionService resolution)
+    : IRequestHandler<GetUboGraphQuery, UboGraphDto?>
+{
+    public async Task<UboGraphDto?> Handle(GetUboGraphQuery request, CancellationToken cancellationToken)
+    {
+        var kyc = await cases.GetByIdAsync(request.CaseId, cancellationToken);
+        if (kyc is null) return null;
+        var graph = await resolution.BuildUboGraphAsync(kyc.Nif, maxDepth: 5, cancellationToken);
+        return new UboGraphDto(graph);
+    }
+}
+
+public class GetRiskTimelineQueryHandler(IKycCaseRepository repository)
+    : IRequestHandler<GetRiskTimelineQuery, RiskTimelineDto?>
+{
+    public async Task<RiskTimelineDto?> Handle(GetRiskTimelineQuery request, CancellationToken cancellationToken)
+    {
+        var c = await repository.GetByIdAsync(request.CaseId, cancellationToken);
+        if (c is null) return null;
+
+        var entries = new List<RiskTimelineEntryDto>();
+        foreach (var s in c.RiskSignals.OrderBy(s => s.DetectedAt))
+        {
+            entries.Add(new RiskTimelineEntryDto(
+                s.DetectedAt,
+                s.Type.ToString(),
+                s.Description,
+                s.Severity.ToString()));
+        }
+
+        foreach (var a in c.AuditTrail.OrderBy(a => a.Timestamp))
+        {
+            entries.Add(new RiskTimelineEntryDto(
+                a.Timestamp,
+                a.Action,
+                a.Details ?? string.Empty,
+                "Info"));
+        }
+
+        entries.Sort((a, b) => a.At.CompareTo(b.At));
+        return new RiskTimelineDto(entries);
+    }
+}
+
+public class GetKycReportQueryHandler(IKycCaseRepository repository)
+    : IRequestHandler<GetKycReportQuery, KycReportDto?>
+{
+    public async Task<KycReportDto?> Handle(GetKycReportQuery request, CancellationToken cancellationToken)
+    {
+        var c = await repository.GetByIdAsync(request.CaseId, cancellationToken);
+        if (c?.FinalReport is null) return null;
+        return new KycReportDto(
+            c.Id,
+            c.FinalReport.NarrativeMarkdown,
+            c.FinalReport.ModelUsed,
+            c.FinalReport.GeneratedAt);
+    }
+}
+
+public class GetDashboardSummaryQueryHandler(IKycAnalyticsRepository analytics)
+    : IRequestHandler<GetDashboardSummaryQuery, DashboardSummaryDto>
+{
+    public Task<DashboardSummaryDto> Handle(GetDashboardSummaryQuery request, CancellationToken cancellationToken) =>
+        analytics.GetDashboardSummaryAsync(cancellationToken);
+}
+
+public class GetCriticalAlertsQueryHandler(IKycAnalyticsRepository analytics)
+    : IRequestHandler<GetCriticalAlertsQuery, IReadOnlyList<CriticalAlertDto>>
+{
+    public Task<IReadOnlyList<CriticalAlertDto>> Handle(GetCriticalAlertsQuery request, CancellationToken cancellationToken) =>
+        analytics.GetCriticalAlertsLast24hAsync(cancellationToken);
+}

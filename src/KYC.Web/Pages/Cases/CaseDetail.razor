@@ -1,0 +1,332 @@
+@page "/cases/{CaseId:guid}"
+@attribute [Authorize(Policy = "Analyst")]
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@using KYC.Domain.Enums
+@using FluentValidation
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>Caso</PageTitle>
+
+@if (_case is null)
+{
+    <p>A carregar…</p>
+}
+else
+{
+    <h1>@_case.CompanyName <small class="text-muted">@_case.Nif</small></h1>
+    <p>Estado: <strong>@_case.Status</strong> · <RiskScoreBadge Score="_case.Score" /></p>
+
+    <ScanProgressBar Module="@_scanModule" Percent="@_scanPercent" />
+
+    @if (!string.IsNullOrEmpty(_actionError))
+    {
+        <div class="alert alert-danger">@_actionError</div>
+    }
+
+    <AuthorizeView Policy="Supervisor">
+        <div class="my-3 d-flex gap-2">
+            <button class="btn btn-success" @onclick="() => _showApprove = true">Aprovar</button>
+            <button class="btn btn-danger" @onclick="() => _showReject = true">Rejeitar</button>
+            <button class="btn btn-outline-secondary" @onclick="() => _showReview = true">Pedir revisão</button>
+        </div>
+    </AuthorizeView>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="mb-0">Partes</h3>
+        @if (CanAddManualParty(_case.Status))
+        {
+            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => { ResetAddPartyForm(); _showAddParty = true; }">Adicionar parte</button>
+        }
+    </div>
+    <div class="row g-2">
+        @foreach (var p in _case.Parties)
+        {
+            <div class="col-md-4">
+                <EntityCard Party="p" ShowTriageButton="@CanScreenParty(_case.Status)" OnTriage="TriagemParteAsync" />
+            </div>
+        }
+    </div>
+
+    <h3 class="mt-4">Sinais</h3>
+    @foreach (var s in _case.Signals)
+    {
+        <SignalCard Signal="s" />
+    }
+
+    <h3 class="mt-4">Timeline</h3>
+    @if (_timeline is not null)
+    {
+        <RiskTimeline Timeline="_timeline" />
+    }
+
+    <div class="mt-3">
+        <a class="btn btn-outline-primary" href="/cases/@CaseId/report">Relatório</a>
+        <a class="btn btn-outline-secondary" href="/cases/@CaseId/ubo">Grafo UBO</a>
+        <a class="btn btn-link" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/report.pdf")" target="_blank">PDF</a>
+    </div>
+}
+
+@if (_showAddParty)
+{
+    <div class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Adicionar parte (quadro social, accionista, UBO…)</h5>
+                    <button type="button" class="btn-close" @onclick="() => _showAddParty = false"></button>
+                </div>
+                <EditForm Model="_addForm" OnValidSubmit="SubmitAddPartyAsync">
+                    <div class="modal-body">
+                        <div class="mb-2">
+                            <label class="form-label">Nome *</label>
+                            <InputText class="form-control" @bind-Value="_addForm.Name" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">NIF / identificador (opcional)</label>
+                            <InputText class="form-control" @bind-Value="_addForm.Nif" />
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Tipo</label>
+                                <InputSelect class="form-select" @bind-Value="_addForm.Type">
+                                    @foreach (var t in Enum.GetValues<EntityType>())
+                                    {
+                                        <option value="@t">@TypeLabel(t)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Papel</label>
+                                <InputSelect class="form-select" @bind-Value="_addForm.Role">
+                                    @foreach (var r in Enum.GetValues<EntityRole>())
+                                    {
+                                        <option value="@r">@RoleLabel(r)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Participação (%)</label>
+                                <InputNumber class="form-control" @bind-Value="_addForm.OwnershipPercentage" />
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Profundidade UBO</label>
+                                <InputNumber class="form-control" @bind-Value="_addForm.UboDepthLevel" />
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Nacionalidade (opcional)</label>
+                            <InputText class="form-control" @bind-Value="_addForm.Nationality" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Parte superior (opcional)</label>
+                            <InputSelect class="form-select" @bind-Value="_addForm.ParentPartyIdStr">
+                                <option value="">— Nenhuma —</option>
+                                @foreach (var p in _case!.Parties)
+                                {
+                                    <option value="@p.Id.ToString()">@p.Name (@RoleLabel(p.Role))</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="_addForm.RunScreeningAfterAdd" id="chkScreen" />
+                            <label class="form-check-label" for="chkScreen">Correr triagens (sanções, media, financeiro, judicial, ICIJ) após gravar</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showAddParty = false">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" disabled="@_addPartyBusy">Guardar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<ConfirmDialog Visible="_showApprove" Title="Aprovar caso" OnConfirm="Approve" OnCancel="() => _showApprove = false">
+    <p>Confirmar aprovação do caso?</p>
+</ConfirmDialog>
+<ConfirmDialog Visible="_showReject" Title="Rejeitar caso" OnConfirm="Reject" OnCancel="() => _showReject = false">
+    <InputTextArea class="form-control" @bind-Value="_rejectReason" placeholder="Motivo" />
+</ConfirmDialog>
+<ConfirmDialog Visible="_showReview" Title="Revisão manual" OnConfirm="Review" OnCancel="() => _showReview = false">
+    <InputTextArea class="form-control" @bind-Value="_reviewReason" placeholder="Motivo" />
+</ConfirmDialog>
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+    private KycCaseDetailDto? _case;
+    private RiskTimelineDto? _timeline;
+    private HubConnection? _hub;
+    private int _scanPercent;
+    private string _scanModule = "—";
+    private bool _showApprove, _showReject, _showReview;
+    private bool _showAddParty;
+    private bool _addPartyBusy;
+    private string _rejectReason = "";
+    private string _reviewReason = "";
+    private string? _actionError;
+    private AddPartyFormModel _addForm = new();
+
+    private sealed class AddPartyFormModel
+    {
+        public string Name { get; set; } = "";
+        public string? Nif { get; set; }
+        public EntityType Type { get; set; } = EntityType.Individual;
+        public EntityRole Role { get; set; } = EntityRole.BoardMember;
+        public decimal OwnershipPercentage { get; set; }
+        public int UboDepthLevel { get; set; }
+        public string? Nationality { get; set; }
+        public string ParentPartyIdStr { get; set; } = "";
+        public bool RunScreeningAfterAdd { get; set; } = true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+        _timeline = await Mediator.Send(new GetRiskTimelineQuery(CaseId));
+
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hubs/kyc-case"))
+            .WithAutomaticReconnect()
+            .Build();
+        _hub.On<Guid, string, int>("ScanProgressUpdated", (id, module, pct) =>
+        {
+            if (id != CaseId) return;
+            _scanModule = module;
+            _scanPercent = pct;
+            InvokeAsync(StateHasChanged);
+        });
+        await _hub.StartAsync();
+        await _hub.SendAsync("JoinCaseGroup", CaseId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+        {
+            await _hub.SendAsync("LeaveCaseGroup", CaseId);
+            await _hub.DisposeAsync();
+        }
+    }
+
+    private static bool CanAddManualParty(KYC.Domain.Enums.KycStatus status) =>
+        status is KYC.Domain.Enums.KycStatus.InProgress or KYC.Domain.Enums.KycStatus.UnderReview or KYC.Domain.Enums.KycStatus.Approved;
+
+    private static bool CanScreenParty(KYC.Domain.Enums.KycStatus status) =>
+        status is KYC.Domain.Enums.KycStatus.InProgress or KYC.Domain.Enums.KycStatus.UnderReview or KYC.Domain.Enums.KycStatus.Approved;
+
+    private void ResetAddPartyForm()
+    {
+        _addForm = new AddPartyFormModel();
+        _actionError = null;
+    }
+
+    private async Task SubmitAddPartyAsync()
+    {
+        _addPartyBusy = true;
+        _actionError = null;
+        try
+        {
+            Guid? parent = null;
+            if (!string.IsNullOrWhiteSpace(_addForm.ParentPartyIdStr) &&
+                Guid.TryParse(_addForm.ParentPartyIdStr, out var pid))
+                parent = pid;
+
+            await Mediator.Send(new AddManualCasePartyCommand(
+                CaseId,
+                "dev-user",
+                _addForm.Name,
+                string.IsNullOrWhiteSpace(_addForm.Nif) ? null : _addForm.Nif,
+                _addForm.Type,
+                _addForm.Role,
+                _addForm.OwnershipPercentage,
+                _addForm.UboDepthLevel,
+                parent,
+                string.IsNullOrWhiteSpace(_addForm.Nationality) ? null : _addForm.Nationality,
+                _addForm.RunScreeningAfterAdd));
+            _showAddParty = false;
+            await Reload();
+        }
+        catch (ValidationException vex)
+        {
+            _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+        }
+        finally
+        {
+            _addPartyBusy = false;
+        }
+    }
+
+    private async Task TriagemParteAsync(Guid partyId)
+    {
+        _actionError = null;
+        try
+        {
+            await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, "dev-user"));
+            await Reload();
+        }
+        catch (ValidationException vex)
+        {
+            _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+        }
+    }
+
+    private async Task Approve()
+    {
+        await Mediator.Send(new ApproveKycCaseCommand(CaseId, "dev-user", "Aprovado"));
+        _showApprove = false;
+        await Reload();
+    }
+
+    private async Task Reject()
+    {
+        await Mediator.Send(new RejectKycCaseCommand(CaseId, "dev-user", _rejectReason));
+        _showReject = false;
+        await Reload();
+    }
+
+    private async Task Review()
+    {
+        await Mediator.Send(new RequestManualReviewCommand(CaseId, _reviewReason));
+        _showReview = false;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _case = await Mediator.Send(new GetKycCaseQuery(CaseId));
+        _timeline = await Mediator.Send(new GetRiskTimelineQuery(CaseId));
+    }
+
+    private static string RoleLabel(EntityRole role) => role switch
+    {
+        EntityRole.Target => "Tomador",
+        EntityRole.Shareholder => "Accionista",
+        EntityRole.Ubo => "UBO",
+        EntityRole.BoardMember => "Órgão social / direcção",
+        EntityRole.Proxy => "Procurador",
+        _ => role.ToString()
+    };
+
+    private static string TypeLabel(EntityType type) => type switch
+    {
+        EntityType.Company => "Empresa",
+        EntityType.Individual => "Pessoa singular",
+        EntityType.Trust => "Trust",
+        EntityType.Foundation => "Fundação",
+        _ => type.ToString()
+    };
+}

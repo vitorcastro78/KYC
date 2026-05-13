@@ -1,0 +1,30 @@
+@page "/admin/audit"
+@attribute [Authorize(Policy = "Auditor")]
+@inject KYC.Application.Interfaces.IAuditReadRepository Audits
+
+<PageTitle>Audit trail</PageTitle>
+<h1>Audit trail (global)</h1>
+
+<table class="table table-sm">
+    <thead><tr><th>Quando</th><th>Acção</th><th>Actor</th><th>Tipo</th></tr></thead>
+    <tbody>
+    @foreach (var a in _rows)
+    {
+        <tr>
+            <td>@a.Timestamp.ToLocalTime()</td>
+            <td>@a.Action</td>
+            <td>@a.ActorId</td>
+            <td>@a.ActorType</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    private List<KYC.Domain.Entities.AuditEntry> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rows = (await Audits.ListGlobalAsync(0, 200)).ToList();
+    }
+}

@@ -1,0 +1,39 @@
+@page "/entities/{PartyId:guid}"
+@attribute [Authorize(Policy = "Analyst")]
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>Entidade</PageTitle>
+
+@if (_party is null)
+{
+    <p>Entidade não encontrada.</p>
+}
+else
+{
+    <h1>@_party.Name</h1>
+    <p class="text-muted">@_party.Role · NIF @_party.Nif</p>
+    <EntityCard Party="_party" />
+    <a class="btn btn-link" href="/cases/@_caseId">Voltar ao caso</a>
+}
+
+@code {
+    [Parameter] public Guid PartyId { get; set; }
+    private CasePartyDto? _party;
+    private Guid _caseId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var c in (await Mediator.Send(new ListKycCasesQuery(new KycCaseFilter(PageSize: 200)))).Items)
+        {
+            var detail = await Mediator.Send(new GetKycCaseQuery(c.Id));
+            var hit = detail?.Parties.FirstOrDefault(p => p.Id == PartyId);
+            if (hit is not null)
+            {
+                _party = hit;
+                _caseId = c.Id;
+                return;
+            }
+        }
+    }
+}
