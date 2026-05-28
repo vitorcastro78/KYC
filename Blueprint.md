@@ -3,7 +3,7 @@
 > **Stack:** .NET 9 · Blazor Server · PostgreSQL 16 + pgvector · Azure Service Bus · Semantic Kernel · Ollama (Qwen3.5:9b) · Anthropic API (Claude Sonnet)  
 > **Auth:** Microsoft Entra ID (OIDC)  
 > **Infra:** Azure App Service · Azure Container Registry · Azure Key Vault  
-> **Versão:** 1.0 · Maio 2026
+> **Versão:** 1.1 · Maio 2026
 
 ---
 
@@ -23,19 +23,35 @@ A plataforma KYC AI avalia o risco de crédito corporativo analisando automatica
 - A **entidade tomadora** (empresa que pede crédito)
 - Todos os **sócios, administradores e UBOs** (Beneficiários Efectivos) até N níveis
 - Cruzamento com **listas de sanções, PEP, adverse media, dados judiciais e financeiros**
+- **Ingestão de documentos da entidade** (PDF, DOCX, imagens) com extração estruturada para BD
 - Geração de **relatório narrativo de risco** via LLM (Claude API + Qwen3.5 local)
 
 ### Fluxo principal
 
 ```
 Input (NIF/NIPC) 
-  → Entity Resolution (RCBE + OpenCorporates)
+  → Entity Resolution (RCBE + GLEIF)
   → UBO Graph (recursivo N níveis)
   → Parallel Scan: [Sanctions | Adverse Media | Financial | Judicial]
+  → [Opcional] Upload Documentos → Extração → facts/parties na BD
+  → Consistency Check (documento vs. GLEIF / caso / AT)
   → LLM Synthesis (Qwen3.5 pré-triagem → Claude relatório final)
   → Risk Score (0–100) + Relatório Narrativo
   → Workflow: Auto-Approve / Revisão Humana / Rejeição
   → Audit Trail (append-only)
+```
+
+### Fluxo de ingestão de documentos (implementado)
+
+```
+Upload (UI ou API multipart)
+  → CaseDocument (Pending) + ficheiro em Data/cases/{caseId}/documents/{documentId}/
+  → DocumentIngestionHostedService (Channel assíncrono)
+  → Extração: PdfPig (PDF) | OpenXML (DOCX) | Qwen visão (JPEG/PNG/TIFF)
+  → DocumentFieldExtractor (Qwen texto → JSON intermédio)
+  → DocumentExtractionMapper → document_extracted_facts + document_extracted_parties
+  → DocumentConsistencyChecker → RiskSignal (Inconsistency)
+  → Re-triagem automática do caso (RerunKycCaseScreeningCommand)
 ```
 
 ---
@@ -157,6 +173,72 @@ public class AuditEntry
 }
 ```
 
+### 3.2 Entidades de documentos (persistência estruturada na BD)
+
+Os dados extraídos de documentos **não ficam num JSON blob** — seguem o mesmo princípio dos dados de APIs (`RiskSignal`, `CaseParty`): tabelas relacionais queryable.
+
+```csharp
+// KYC.Domain/Entities/CaseDocument.cs — metadados do ficheiro + estado de ingestão
+public class CaseDocument
+{
+    public Guid Id { get; private set; }
+    public Guid KycCaseId { get; private set; }
+    public Guid? CasePartyId { get; private set; }           // documento da empresa vs. sócio/UBO
+    public string FileName { get; private set; }
+    public string ContentType { get; private set; }
+    public long SizeBytes { get; private set; }
+    public string Sha256 { get; private set; }
+    public string StorageRelativePath { get; private set; }  // relativo a Data/cases/
+    public CaseDocumentKind DocumentKind { get; private set; } // Identity | FinancialStatement | UboDeclaration | CommercialRegistry | Other
+    public DocumentIngestionStatus IngestionStatus { get; private set; } // Pending | Processing | Completed | Failed
+    public string? ExtractedText { get; private set; }       // texto bruto (audit / revisão analista)
+    public string? RawExtractionJson { get; private set; }   // backup debug — fonte de verdade = tabelas filhas
+    public string? ExtractionModel { get; private set; }
+    public string? ExtractionPromptHash { get; private set; }
+    public string? FailureReason { get; private set; }
+    public DateTime UploadedAt { get; private set; }
+    public string UploadedBy { get; private set; }
+    public DateTime? ProcessedAt { get; private set; }
+    public ICollection<DocumentExtractedFact> ExtractedFacts { get; }
+    public ICollection<DocumentExtractedParty> ExtractedParties { get; }
+}
+
+// KYC.Domain/Entities/DocumentExtractedFact.cs — campos escalares extraídos
+public class DocumentExtractedFact
+{
+    public Guid Id { get; private set; }
+    public Guid CaseDocumentId { get; private set; }
+    public Guid KycCaseId { get; private set; }
+    public DocumentFactKey FactKey { get; private set; }    // CompanyName | Nif | Address | Cae | Iban | Revenue | Equity | DocumentDate | Summary
+    public string FactValue { get; private set; }
+    public decimal? Confidence { get; private set; }
+    public int? SourcePage { get; private set; }
+    public DateTime ExtractedAt { get; private set; }
+}
+
+// KYC.Domain/Entities/DocumentExtractedParty.cs — sócios/UBOs declarados no documento
+public class DocumentExtractedParty
+{
+    public Guid Id { get; private set; }
+    public Guid CaseDocumentId { get; private set; }
+    public Guid KycCaseId { get; private set; }
+    public string Name { get; private set; }
+    public string? Nif { get; private set; }
+    public DocumentPartyRole Role { get; private set; }      // Shareholder | Ubo | Director | Other
+    public decimal? OwnershipPercentage { get; private set; }
+    public string? Nationality { get; private set; }
+    public DateTime ExtractedAt { get; private set; }
+}
+```
+
+**Paridade API vs. Documento:**
+
+| Origem | Tabela destino | Equivalente documento |
+|--------|----------------|----------------------|
+| OpenSanctions, NewsAPI, AT | `risk_signals` | `DocumentConsistencyChecker` → `risk_signals` (`Source = "Document:{id}"`) |
+| GLEIF | `case_parties` | `document_extracted_parties` (declarado no doc) |
+| AT devedores | `risk_signals` (Financial) | fact `Nif` cruzado com índice local AT |
+
 ---
 
 ## 4. Application Layer — Use Cases & Interfaces
@@ -205,6 +287,36 @@ public interface IKycLlmEngine
     Task<bool> IsLlmHealthyAsync(CancellationToken ct = default);
 }
 
+// KYC.Application/Interfaces/ICaseDocumentStorage.cs
+public interface ICaseDocumentStorage
+{
+    Task<StoredDocumentRef> SaveAsync(Guid caseId, Guid documentId, Stream content, string fileName, CancellationToken ct = default);
+    Task<Stream> OpenReadAsync(string storageRelativePath, CancellationToken ct = default);
+}
+
+// KYC.Application/Interfaces/IDocumentIngestionService.cs
+public interface IDocumentIngestionService
+{
+    Task ProcessDocumentAsync(Guid documentId, CancellationToken ct = default);
+}
+
+// KYC.Application/Interfaces/IDocumentConsistencyChecker.cs
+public interface IDocumentConsistencyChecker
+{
+    IReadOnlyList<RiskSignal> Check(KycCase kycCase);
+}
+
+// KYC.Application/Models/KycScanContext.cs — enriquecido com dados documentais da BD
+public record KycScanContext(
+    Guid CaseId,
+    string Nif,
+    string CompanyName,
+    IReadOnlyList<PartyScanDto> Parties,
+    IReadOnlyList<RiskSignalScanDto> Signals,
+    IReadOnlyList<DocumentFactScanDto> DeclaredFacts,
+    IReadOnlyList<DocumentPartyScanDto> DeclaredParties,
+    string? DeclaredUboSummary);
+
 // KYC.Application/Interfaces/IKycCaseRepository.cs
 public interface IKycCaseRepository
 {
@@ -226,6 +338,9 @@ public record ApproveKycCaseCommand(Guid CaseId, string AnalystId, string Notes)
 public record RejectKycCaseCommand(Guid CaseId, string AnalystId, string Reason) : IRequest<Unit>;
 public record RequestManualReviewCommand(Guid CaseId, string Reason) : IRequest<Unit>;
 public record OverrideSignalCommand(Guid SignalId, string AnalystId, bool Confirm, string Notes) : IRequest<Unit>;
+public record UploadCaseDocumentCommand(
+    Guid CaseId, string ActorId, string FileName, string ContentType,
+    Stream Content, CaseDocumentKind Kind, Guid? CasePartyId) : IRequest<Guid>;
 
 // Queries
 public record GetKycCaseQuery(Guid CaseId) : IRequest<KycCaseDto>;
@@ -251,6 +366,9 @@ public class KycDbContext : DbContext
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<KycReport> KycReports => Set<KycReport>();
     public DbSet<ReportEmbedding> ReportEmbeddings => Set<ReportEmbedding>(); // pgvector
+    public DbSet<CaseDocument> CaseDocuments => Set<CaseDocument>();
+    public DbSet<DocumentExtractedFact> DocumentExtractedFacts => Set<DocumentExtractedFact>();
+    public DbSet<DocumentExtractedParty> DocumentExtractedParties => Set<DocumentExtractedParty>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -277,7 +395,66 @@ public class ReportEmbedding
 ```bash
 dotnet ef migrations add InitialCreate --project KYC.Infrastructure --startup-project KYC.Web
 dotnet ef database update --project KYC.Infrastructure --startup-project KYC.Web
+# Migration documentos: AddCaseDocumentsAndExtractions (case_documents, document_extracted_facts, document_extracted_parties)
 ```
+
+### 5.5 Ingestão de documentos — pipeline assíncrono
+
+```csharp
+// KYC.Infrastructure/Documents/
+// ├── LocalCaseDocumentStorage.cs       → filesystem Data/cases/{caseId}/documents/{documentId}/original.{ext}
+// ├── DocumentFormatDetector.cs         → PDF | DOCX | JPEG | PNG | TIFF
+// ├── DocumentTextExtractor.cs          → PdfPig + OpenXML
+// ├── DocumentVisionExtractor.cs        → OCR via Ollama qwen3.5:9b (imagens + fallback scan)
+// ├── DocumentFieldExtractor.cs         → LLM texto → JSON intermédio (+ regex NIF/IBAN/CAE)
+// ├── DocumentExtractionMapper.cs       → JSON → entidades BD normalizadas
+// ├── DocumentConsistencyChecker.cs     → compara facts/parties vs. caso/GLEIF → RiskSignal
+// ├── DocumentIngestionService.cs       → orquestrador (Pending → Processing → Completed/Failed)
+// ├── DocumentIngestionQueue.cs         → Channel<Guid> (SingleReader)
+// └── DocumentIngestionHostedService.cs → BackgroundService
+
+// Registo no DI (DependencyInjection.cs):
+services.AddSingleton<ICaseDocumentStorage, LocalCaseDocumentStorage>();
+services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
+services.AddSingleton<DocumentIngestionQueue>();
+services.AddSingleton<IDocumentIngestionQueue>(sp => sp.GetRequiredService<DocumentIngestionQueue>());
+services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
+services.AddHostedService<DocumentIngestionHostedService>();
+services.AddScoped<IDocumentConsistencyChecker, DocumentConsistencyChecker>();
+```
+
+**API endpoints (KYC.Web/Program.cs):**
+```
+POST   /api/cases/{caseId}/documents              → multipart: file, kind, casePartyId? → 202 { documentId }
+GET    /api/cases/{caseId}/documents/{id}/file    → download original
+GET    /api/cases/{caseId}/documents/{id}/text    → texto extraído (audit)
+```
+
+**Configuração:**
+```json
+{
+  "Documents": {
+    "StorageRoot": "Data/cases",
+    "MaxFileSizeBytes": 26214400,
+    "MaxPagesPerDocument": 30,
+    "AllowedExtensions": [".pdf", ".docx", ".jpg", ".jpeg", ".png", ".tif", ".tiff"]
+  },
+  "LLM": {
+    "DocumentExtractionTimeoutSeconds": 120
+  }
+}
+```
+
+**Integração com pipeline KYC:**
+- Após ingestão `Completed` → `PublishCaseRescreenAsync` (re-triagem automática)
+- `KycCasePipelineRunner.BuildContext` lê `DeclaredFacts` / `DeclaredParties` da BD
+- `DocumentConsistencyChecker` executa antes do scoring LLM e gera sinais `Inconsistency`
+- Audit: `DocumentUploaded`, `DocumentExtracted` (com `LlmPromptHash`)
+
+**Limitações MVP:**
+- PDFs digitalizados (scan) sem texto seleccionável falham — usar JPEG/PNG ou PDF nativo
+- Storage local (`Data/cases/`) — Azure Blob fica para fase 2
+- Embeddings por documento (RAG pgvector) — fase 2
 
 ### 5.2 LLM Engine — Semantic Kernel + Dual LLM
 
@@ -390,7 +567,7 @@ KYC.Web/
 │   ├── Cases/
 │   │   ├── CaseList.razor       # Lista paginada com filtros e search
 │   │   ├── NewCase.razor        # Formulário de abertura (NIF + montante)
-│   │   ├── CaseDetail.razor     # Vista completa do caso
+│   │   ├── CaseDetail.razor     # Vista completa do caso (+ secção Documentos da entidade)
 │   │   └── CaseReport.razor     # Relatório narrativo final (PDF export)
 │   ├── Entities/
 │   │   ├── EntityDetail.razor   # Perfil de uma entidade (empresa ou pessoa)
@@ -420,6 +597,7 @@ KYC.Web/
 // Eventos emitidos:
 // - ScanProgressUpdated(caseId, module, percentComplete)
 // - SignalDetected(caseId, signal)
+// - DocumentIngestionUpdated(caseId, documentId, status)   // Pending | Processing | Completed | Failed
 // - ReportReady(caseId, riskLevel)
 // - StatusChanged(caseId, newStatus)
 
@@ -526,6 +704,8 @@ builder.Configuration.AddAzureKeyVault(
 // KYC.Integration.Tests/
 // - SanctionsScreeningIntegrationTests — mock das listas externas
 // - LlmEngineIntegrationTests — smoke test com Ollama local
+// - DocumentIngestionTests — mapper, consistência NIF, UTF-8, extração heurística
+// - AtDebtorsPdfParserTests / AtDebtorsLocalIndexTests — lista pública AT devedores
 // - DatabaseIntegrationTests — usando Testcontainers (PostgreSQL)
 ```
 
@@ -585,12 +765,30 @@ builder.Configuration.AddAzureKeyVault(
 
 ```
 [ ] Adverse media (web scraping + NLP com Playwright)
-[ ] Financial health (dados AT públicos + Z-Score)
+[x] Financial health (lista pública AT devedores + índice local)
 [ ] Judicial intelligence (CITIUS)
 [ ] ICIJ Offshore Leaks integration
 [ ] Data retention job (GDPR)
 [ ] Penetration testing + DORA compliance checklist
 [ ] Documentação de conformidade regulatória
+```
+
+### Fase 5b — Ingestão de documentos (implementado · Maio 2026)
+
+```
+[x] Entidades CaseDocument + DocumentExtractedFact + DocumentExtractedParty + migration EF
+[x] Storage local Data/cases/ com escrita atómica
+[x] UploadCaseDocumentCommand + API multipart + UI CaseDetail
+[x] Extractors: PdfPig, OpenXML, Qwen visão (OCR)
+[x] DocumentExtractionMapper → facts/parties normalizados na BD
+[x] DocumentIngestionHostedService (Channel assíncrono)
+[x] DocumentConsistencyChecker → RiskSignal (Inconsistency)
+[x] Re-triagem automática após ingestão + KycScanContext enriquecido
+[x] Testes integração (mapper, consistência, UTF-8)
+[ ] Azure Blob Storage para documentos (fase 2)
+[ ] Embeddings por documento (RAG pgvector)
+[ ] OCR dedicado (Azure Document Intelligence)
+[ ] Render PDF scan → imagens (PDFtoImage) para OCR automático
 ```
 
 ---
@@ -730,4 +928,4 @@ AZURE_CLIENT_SECRET="..."      # apenas dev — em prod usar Managed Identity
 
 ---
 
-*Este documento é o artefacto principal de desenvolvimento. Todas as decisões de arquitectura, stack e compliance estão aqui fundamentadas. Versão 1.0 — Maio 2026.*
+*Este documento é o artefacto principal de desenvolvimento. Todas as decisões de arquitectura, stack e compliance estão aqui fundamentadas. Versão 1.1 — Maio 2026.*
