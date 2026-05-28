@@ -1,5 +1,184 @@
 @page "/admin/users"
 @attribute [Authorize(Policy = "Admin")]
+@using Microsoft.AspNetCore.Identity
+@using KYC.Web.Security
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
 <PageTitle>Utilizadores</PageTitle>
 <h1>Gestão de utilizadores</h1>
-<p class="text-muted">Integração Entra ID — configurar roles KYC.* no portal Azure.</p>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-success">@_message</div>
+}
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+<div class="card mb-4">
+    <div class="card-header"><strong>Novo utilizador</strong></div>
+    <div class="card-body">
+        <EditForm Model="_newUser" OnValidSubmit="CreateUserAsync">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Nome completo</label>
+                    <InputText class="form-control" @bind-Value="_newUser.FullName" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Email (login)</label>
+                    <InputText class="form-control" @bind-Value="_newUser.Email" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Password inicial</label>
+                    <InputText class="form-control" @bind-Value="_newUser.Password" type="password" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label d-block">Roles</label>
+                    @foreach (var role in _availableRoles)
+                    {
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="@($"role-{role}")" checked="@_newUser.Roles.Contains(role)" @onchange="(e) => ToggleRole(role, e.Value as bool? ?? false)" />
+                            <label class="form-check-label" for="@($"role-{role}")">@role</label>
+                        </div>
+                    }
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" type="submit">Criar utilizador</button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><strong>Utilizadores existentes</strong></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in _users)
+                {
+                    <tr>
+                        <td>@u.FullName</td>
+                        <td>@u.Email</td>
+                        <td>@string.Join(", ", u.Roles)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private readonly NewUserModel _newUser = new();
+    private readonly List<string> _availableRoles = ["KYC.Admin", "KYC.Supervisor", "KYC.Analyst", "KYC.Auditor"];
+    private readonly List<UserListItem> _users = [];
+    private string? _message;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await EnsureRolesAsync();
+        await ReloadUsersAsync();
+    }
+
+    private async Task CreateUserAsync()
+    {
+        _message = null;
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_newUser.Email) || string.IsNullOrWhiteSpace(_newUser.Password))
+        {
+            _error = "Email e password são obrigatórios.";
+            return;
+        }
+
+        var existing = await UserManager.FindByEmailAsync(_newUser.Email);
+        if (existing is not null)
+        {
+            _error = "Já existe um utilizador com este email.";
+            return;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = _newUser.Email.Trim(),
+            Email = _newUser.Email.Trim(),
+            FullName = _newUser.FullName?.Trim() ?? string.Empty,
+            EmailConfirmed = true,
+            IsActive = true
+        };
+
+        var createResult = await UserManager.CreateAsync(user, _newUser.Password);
+        if (!createResult.Succeeded)
+        {
+            _error = string.Join(" ", createResult.Errors.Select(e => e.Description));
+            return;
+        }
+
+        if (_newUser.Roles.Count > 0)
+        {
+            var roleResult = await UserManager.AddToRolesAsync(user, _newUser.Roles);
+            if (!roleResult.Succeeded)
+            {
+                _error = string.Join(" ", roleResult.Errors.Select(e => e.Description));
+                return;
+            }
+        }
+
+        _newUser.FullName = string.Empty;
+        _newUser.Email = string.Empty;
+        _newUser.Password = string.Empty;
+        _newUser.Roles.Clear();
+        _message = "Utilizador criado com sucesso.";
+        await ReloadUsersAsync();
+    }
+
+    private void ToggleRole(string role, bool selected)
+    {
+        if (selected && !_newUser.Roles.Contains(role))
+            _newUser.Roles.Add(role);
+        else if (!selected && _newUser.Roles.Contains(role))
+            _newUser.Roles.Remove(role);
+    }
+
+    private async Task EnsureRolesAsync()
+    {
+        foreach (var role in _availableRoles)
+        {
+            if (!await RoleManager.RoleExistsAsync(role))
+                await RoleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+
+    private async Task ReloadUsersAsync()
+    {
+        _users.Clear();
+        var users = UserManager.Users.OrderBy(u => u.Email).ToList();
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            _users.Add(new UserListItem(
+                string.IsNullOrWhiteSpace(user.FullName) ? user.UserName ?? "-" : user.FullName,
+                user.Email ?? "-",
+                roles.OrderBy(r => r).ToList()));
+        }
+    }
+
+    private sealed class NewUserModel
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = "Temp@1234";
+        public List<string> Roles { get; } = [];
+    }
+
+    private sealed record UserListItem(string FullName, string Email, List<string> Roles);
+}

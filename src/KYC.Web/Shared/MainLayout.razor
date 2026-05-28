@@ -16,9 +16,13 @@
                 </div>
                 <AuthorizeView>
                     <Authorized>
-                        <div class="user-pill">
-                            <span class="oi oi-person" aria-hidden="true"></span>
-                            <span>@context.User.Identity?.Name</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-pill">
+                                <span class="oi oi-person" aria-hidden="true"></span>
+                                <span>@context.User.Identity?.Name</span>
+                            </div>
+                            <a class="btn btn-sm btn-outline-secondary" href="/Identity/Account/Manage">Conta</a>
+                            <a class="btn btn-sm btn-outline-danger" href="/Identity/Account/Logout">Sair</a>
                         </div>
                     </Authorized>
                 </AuthorizeView>

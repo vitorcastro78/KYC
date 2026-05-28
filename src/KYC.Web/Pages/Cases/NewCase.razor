@@ -2,8 +2,10 @@
 @attribute [Authorize(Policy = "Analyst")]
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.SignalR.Client
+@using KYC.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Nav
+@inject KycHubConnectionFactory HubFactory
 
 <PageTitle>Novo caso</PageTitle>
 <h1>Abrir caso KYC</h1>
@@ -102,10 +104,7 @@
         if (_hub is { State: HubConnectionState.Connected })
             return;
 
-        _hub ??= new HubConnectionBuilder()
-            .WithUrl(Nav.ToAbsoluteUri("/hubs/kyc-case"))
-            .WithAutomaticReconnect()
-            .Build();
+        _hub ??= HubFactory.Create();
 
         _hub.On<Guid, string, int>("ScanProgressUpdated", (id, module, pct) =>
         {

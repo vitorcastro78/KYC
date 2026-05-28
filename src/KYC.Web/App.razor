@@ -3,7 +3,14 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    <p class="p-3">Não autorizado.</p>
+                    <AuthorizeView>
+                        <Authorized Context="authContext">
+                            <p class="p-3">Não autorizado.</p>
+                        </Authorized>
+                        <NotAuthorized Context="anonContext">
+                            <RedirectToLogin />
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />

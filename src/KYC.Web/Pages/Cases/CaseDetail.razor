@@ -5,8 +5,10 @@
 @using KYC.Domain.Enums
 @using FluentValidation
 @using Microsoft.AspNetCore.SignalR.Client
+@using KYC.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Nav
+@inject KycHubConnectionFactory HubFactory
 
 <PageTitle>Caso</PageTitle>
 
@@ -220,6 +222,7 @@ else
     private KycCaseDetailDto? _case;
     private RiskTimelineDto? _timeline;
     private HubConnection? _hub;
+    private bool _hubConnectAttempted;
     private int _scanPercent;
     private string _scanModule = "—";
     private bool _showApprove, _showReject, _showReview, _showRescreen;
@@ -249,43 +252,69 @@ else
         await Reload();
         await RefreshScanProgressAsync();
         _timeline = await Mediator.Send(new GetRiskTimelineQuery(CaseId));
+    }
 
-        _hub = new HubConnectionBuilder()
-            .WithUrl(Nav.ToAbsoluteUri("/hubs/kyc-case"))
-            .WithAutomaticReconnect()
-            .Build();
-        _hub.On<Guid, string, int>("ScanProgressUpdated", async (id, module, pct) =>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _hubConnectAttempted)
+            return;
+
+        _hubConnectAttempted = true;
+        await ConnectHubAsync();
+    }
+
+    private async Task ConnectHubAsync()
+    {
+        try
         {
-            if (id != CaseId) return;
-            _scanModule = module;
-            _scanPercent = pct;
-            if (pct >= 100)
+            _hub = HubFactory.Create();
+            _hub.On<Guid, string, int>("ScanProgressUpdated", async (id, module, pct) =>
+            {
+                if (id != CaseId) return;
+                _scanModule = module;
+                _scanPercent = pct;
+                if (pct >= 100)
+                    await Reload();
+                await InvokeAsync(StateHasChanged);
+            });
+            _hub.On<Guid, string>("StatusChanged", async (id, _) =>
+            {
+                if (id != CaseId) return;
                 await Reload();
-            await InvokeAsync(StateHasChanged);
-        });
-        _hub.On<Guid, string>("StatusChanged", async (id, _) =>
+                await InvokeAsync(StateHasChanged);
+            });
+            _hub.On<Guid, string>("ReportReady", async (id, _) =>
+            {
+                if (id != CaseId) return;
+                await Reload();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await _hub.StartAsync();
+            await _hub.SendAsync("JoinCaseGroup", CaseId);
+        }
+        catch
         {
-            if (id != CaseId) return;
-            await Reload();
-            await InvokeAsync(StateHasChanged);
-        });
-        _hub.On<Guid, string>("ReportReady", async (id, _) =>
-        {
-            if (id != CaseId) return;
-            await Reload();
-            await InvokeAsync(StateHasChanged);
-        });
-        await _hub.StartAsync();
-        await _hub.SendAsync("JoinCaseGroup", CaseId);
+            // Atualizações em tempo real indisponíveis; a página continua utilizável.
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_hub is not null)
+        if (_hub is null)
+            return;
+
+        try
         {
-            await _hub.SendAsync("LeaveCaseGroup", CaseId);
-            await _hub.DisposeAsync();
+            if (_hub.State == HubConnectionState.Connected)
+                await _hub.SendAsync("LeaveCaseGroup", CaseId);
         }
+        catch
+        {
+            // ignore on teardown
+        }
+
+        await _hub.DisposeAsync();
     }
 
     private static string StatusLabel(KycStatus status) => status switch
