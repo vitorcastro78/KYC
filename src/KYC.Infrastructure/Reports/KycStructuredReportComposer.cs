@@ -24,7 +24,7 @@ public sealed class KycStructuredReportComposer : IKycReportComposer
         body.AppendLine("<main>");
 
         AppendMetadataTable(body, request, generated);
-        AppendExecutiveSummary(body, request);
+        KycExecutiveSummaryBuilder.Append(body, request);
         AppendParties(body, request);
         AppendSignals(body, request);
         AppendRiskScore(body, request);
@@ -55,37 +55,6 @@ public sealed class KycStructuredReportComposer : IKycReportComposer
     private static void AppendMetaRow(StringBuilder body, string label, string value) =>
         body.AppendLine(
             $"<tr><th>{Enc(label)}</th><td>{Enc(value)}</td></tr>");
-
-    private static void AppendExecutiveSummary(StringBuilder body, KycReportComposeRequest request)
-    {
-        body.AppendLine("<h2>Sumário executivo</h2>");
-
-        var high = request.Signals.Count(s =>
-            s.Severity.Equals("High", StringComparison.OrdinalIgnoreCase) ||
-            s.Severity.Equals("Critical", StringComparison.OrdinalIgnoreCase));
-        var partyCount = request.Parties.Count;
-        var sanctioned = request.Parties.Count(p => p.IsSanctioned);
-
-        body.AppendLine("<p>");
-        body.Append(
-            $"Foi concluída a triagem automática sobre <strong>{partyCount}</strong> parte(s) ligada(s) ao tomador. ");
-        body.Append(
-            $"Foram registados <strong>{request.Signals.Count}</strong> sinal(is) de risco, dos quais <strong>{high}</strong> de severidade elevada ou crítica. ");
-        body.Append(
-            $"O score global de risco é <span class=\"score-global\">{request.Score.Overall}/100</span> ({Enc(RiskLevelLabel(request.Score.Level))}).");
-        body.AppendLine("</p>");
-
-        if (sanctioned > 0)
-        {
-            body.AppendLine("<div class=\"alert-warning\">");
-            body.Append(
-                $"<strong>Atenção:</strong> {sanctioned} parte(s) com indício de correspondência em listas de sanções — revisão humana obrigatória.");
-            body.AppendLine("</div>");
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Score.Justification))
-            body.AppendLine($"<p><strong>Fundamentação do score:</strong> {Enc(request.Score.Justification)}</p>");
-    }
 
     private static void AppendParties(StringBuilder body, KycReportComposeRequest request)
     {

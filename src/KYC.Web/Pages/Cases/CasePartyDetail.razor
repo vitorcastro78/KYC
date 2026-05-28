@@ -1,0 +1,131 @@
+@page "/cases/{CaseId:guid}/parties/{PartyId:guid}"
+@attribute [Authorize(Policy = "Analyst")]
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>Parte do caso</PageTitle>
+
+@if (_case is null || _party is null)
+{
+    <p>A carregar…</p>
+}
+else
+{
+    <div class="mb-3">
+        <a class="btn btn-link ps-0" href="/cases/@CaseId">← Voltar ao caso @_case.CompanyName</a>
+    </div>
+
+    <h1 class="h4 mb-1">@_party.Name</h1>
+    <p class="text-muted">
+        @RoleLabel(_party.Role) · profundidade @_party.UboDepthLevel
+        @if (!string.IsNullOrWhiteSpace(_party.Nif))
+        {
+            <span> · NIF @_party.Nif</span>
+        }
+    </p>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <EntityCard Party="_party" CaseId="CaseId" ShowTriageButton="@CanScreenParty(_case.Status)" OnTriage="TriagemParteAsync" />
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><strong>Resumo de triagem</strong></div>
+                <div class="card-body">
+                    <dl class="row small mb-0">
+                        <dt class="col-6">Participação</dt>
+                        <dd class="col-6">@_party.OwnershipPercentage%</dd>
+                        <dt class="col-6">PEP</dt>
+                        <dd class="col-6">@(_party.IsPep ? "Sim" : "Não")</dd>
+                        <dt class="col-6">Sanções</dt>
+                        <dd class="col-6">@(_party.IsSanctioned ? "Sim" : "Não")</dd>
+                        <dt class="col-6">Offshore</dt>
+                        <dd class="col-6">@(_party.IsOffshore ? "Sim" : "Não")</dd>
+                        <dt class="col-6">Sinais desta parte</dt>
+                        <dd class="col-6">@_partySignals.Count</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_actionError))
+    {
+        <div class="alert alert-danger">@_actionError</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="h6 mb-0">Sinais de risco desta entidade</h3></div>
+        <div class="card-body">
+            @if (_partySignals.Count == 0)
+            {
+                <p class="text-muted mb-0">
+                    Nenhum sinal associado a esta parte. Use <strong>Triagens</strong> para executar sanções, media, financeiro e judicial.
+                </p>
+            }
+            else
+            {
+                @foreach (var s in _partySignals.OrderByDescending(x => x.DetectedAt))
+                {
+                    <SignalCard Signal="s" />
+                }
+            }
+        </div>
+    </div>
+
+    @if (_case.Gleif is not null && _party.Role == EntityRole.Target)
+    {
+        <GleifCompanyCard Snapshot="_case.Gleif" RelatedParties="_case.GleifRelatedParties" />
+    }
+}
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+    [Parameter] public Guid PartyId { get; set; }
+
+    private KycCaseDetailDto? _case;
+    private CasePartyDto? _party;
+    private List<RiskSignalDetailDto> _partySignals = [];
+    private string? _actionError;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _case = await Mediator.Send(new GetKycCaseQuery(CaseId));
+        if (_case is null)
+            return;
+
+        _party = _case.Parties.FirstOrDefault(p => p.Id == PartyId);
+        _partySignals = _case.Signals
+            .Where(s => s.CasePartyId == PartyId)
+            .ToList();
+    }
+
+    private async Task TriagemParteAsync(Guid partyId)
+    {
+        _actionError = null;
+        try
+        {
+            await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, "dev-user"));
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+        }
+    }
+
+    private static bool CanScreenParty(KycStatus status) =>
+        status is KycStatus.InProgress or KycStatus.UnderReview or KycStatus.Approved;
+
+    private static string RoleLabel(EntityRole role) => role switch
+    {
+        EntityRole.Target => "Tomador",
+        EntityRole.Shareholder => "Accionista",
+        EntityRole.Ubo => "UBO",
+        EntityRole.BoardMember => "Órgão social / direcção",
+        EntityRole.Proxy => "Procurador",
+        _ => role.ToString()
+    };
+}

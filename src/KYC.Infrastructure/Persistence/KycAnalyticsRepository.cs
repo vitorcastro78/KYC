@@ -11,17 +11,21 @@ public class KycAnalyticsRepository(KycDbContext db) : IKycAnalyticsRepository
     {
         var today = DateTime.UtcNow.Date;
         var openStatuses = new[] { KycStatus.Pending, KycStatus.InProgress, KycStatus.UnderReview };
+        var approvalActions = new[] { "Approved", "AutoApproved" };
+
         var open = await db.KycCases.CountAsync(c => openStatuses.Contains(c.Status), ct);
-        var approvedToday = await db.KycCases.CountAsync(
-            c => c.Status == KycStatus.Approved && c.CompletedAt >= today,
-            ct);
+        var approvedToday = await db.AuditEntries
+            .Where(a => approvalActions.Contains(a.Action) && a.Timestamp >= today)
+            .Select(a => a.KycCaseId)
+            .Distinct()
+            .CountAsync(ct);
         var underReview = await db.KycCases.CountAsync(c => c.Status == KycStatus.UnderReview, ct);
-        var decided = await db.KycCases.CountAsync(
-            c => c.Status == KycStatus.Approved || c.Status == KycStatus.Rejected,
-            ct);
+
+        var total = await db.KycCases.CountAsync(ct);
         var approved = await db.KycCases.CountAsync(c => c.Status == KycStatus.Approved, ct);
-        var rate = decided == 0 ? 0 : Math.Round(100.0 * approved / decided, 1);
-        return new DashboardSummaryDto(open, approvedToday, underReview, rate);
+        var rate = total == 0 ? 0 : Math.Round(100.0 * approved / total, 1);
+
+        return new DashboardSummaryDto(total, open, approvedToday, underReview, rate);
     }
 
     public async Task<IReadOnlyList<CriticalAlertDto>> GetCriticalAlertsLast24hAsync(CancellationToken ct = default)

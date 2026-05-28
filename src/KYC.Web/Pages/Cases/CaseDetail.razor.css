@@ -18,6 +18,33 @@
 .status-warn { background: #fff1cf; color: #7f5a13; }
 .status-neutral { background: #e5ebf4; color: #3f5673; }
 
+.case-actions-card {
+    border-color: #c5d8ef;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    box-shadow: 0 10px 24px rgba(15, 39, 70, 0.08);
+}
+
+.case-actions-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem 2rem;
+    align-items: flex-end;
+}
+
+.case-actions-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.case-actions-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #5b728c;
+}
+
 :deep(.card-header h3),
 :deep(.card-header h6) {
     color: #294566;
@@ -27,5 +54,18 @@
     .case-hero {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .case-actions-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .case-actions-group .d-flex {
+        flex-direction: column;
+    }
+
+    .case-actions-group .btn {
+        width: 100%;
     }
 }

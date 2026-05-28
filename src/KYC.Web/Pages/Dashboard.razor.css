@@ -29,6 +29,7 @@
     color: #173553;
 }
 
+.kpi-info { border-left: 5px solid #3d6b8c; }
 .kpi-primary { border-left: 5px solid #1f5e9e; }
 .kpi-success { border-left: 5px solid #2f8f5b; }
 .kpi-warning { border-left: 5px solid #c98a16; }

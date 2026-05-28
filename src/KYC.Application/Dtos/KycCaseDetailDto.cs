@@ -22,7 +22,9 @@ public record RiskSignalDetailDto(
     string Description,
     string Source,
     DateTime DetectedAt,
-    bool IsConfirmed);
+    bool IsConfirmed,
+    Guid? CasePartyId = null,
+    string? PartyName = null);
 
 public record AuditEntryDto(string Action, string ActorId, string ActorType, DateTime Timestamp, string? Details);
 

@@ -32,6 +32,7 @@ internal static class KycCaseMapping
             p.IsSanctioned,
             p.IsOffshore)).ToList();
 
+        var partyNames = c.Parties.ToDictionary(p => p.Id, p => p.Name);
         var signals = c.RiskSignals.Select(s => new RiskSignalDetailDto(
             s.Id,
             s.Type,
@@ -39,7 +40,9 @@ internal static class KycCaseMapping
             s.Description,
             s.Source,
             s.DetectedAt,
-            s.IsConfirmed)).ToList();
+            s.IsConfirmed,
+            s.CasePartyId,
+            s.CasePartyId is { } pid && partyNames.TryGetValue(pid, out var name) ? name : null)).ToList();
 
         var audit = c.AuditTrail.Select(a => new AuditEntryDto(
             a.Action,

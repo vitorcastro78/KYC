@@ -1,8 +1,14 @@
 @using KYC.Application.Dtos
 <div class="card mb-2">
     <div class="card-body py-2">
-        <div class="d-flex justify-content-between">
-            <strong>@Signal.Type</strong>
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+                <strong>@Signal.Type</strong>
+                @if (!string.IsNullOrWhiteSpace(Signal.PartyName))
+                {
+                    <div class="small text-primary mt-1">Parte: @Signal.PartyName</div>
+                }
+            </div>
             <span class="badge bg-dark">@Signal.Severity</span>
         </div>
         <div class="small text-muted">@Signal.Source · @Signal.DetectedAt.ToLocalTime()</div>

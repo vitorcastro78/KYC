@@ -13,15 +13,22 @@
             @if (Party.IsOffshore) { <span class="badge bg-warning text-dark">Offshore</span> }
         </div>
         <div class="mt-2 small">Participação: @Party.OwnershipPercentage%</div>
-        @if (ShowTriageButton)
-        {
-            <button type="button" class="btn btn-sm btn-outline-primary mt-2" @onclick="() => OnTriage.InvokeAsync(Party.Id)">Triagens</button>
-        }
+        <div class="mt-2 d-flex flex-wrap gap-2">
+            @if (CaseId is { } caseId)
+            {
+                <a class="btn btn-sm btn-outline-secondary" href="/cases/@caseId/parties/@Party.Id">Detalhe</a>
+            }
+            @if (ShowTriageButton)
+            {
+                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => OnTriage.InvokeAsync(Party.Id)">Triagens</button>
+            }
+        </div>
     </div>
 </div>
 
 @code {
     [Parameter] public CasePartyDto Party { get; set; } = default!;
+    [Parameter] public Guid? CaseId { get; set; }
     [Parameter] public bool ShowTriageButton { get; set; }
     [Parameter] public EventCallback<Guid> OnTriage { get; set; }
 

@@ -1,0 +1,45 @@
+@page
+@model KYC.Web.Areas.Identity.Pages.Account.LogoutModel
+@{
+    ViewData["Title"] = "Terminar sessão";
+    Layout = "/Pages/Shared/_LayoutAuth.cshtml";
+}
+
+<div class="auth-shell">
+    <section class="auth-hero" aria-hidden="false">
+        <div class="auth-hero-content">
+            <span class="auth-badge">Banking Edition</span>
+            <h1>KYC Intelligence</h1>
+            <p>Sessão segura para analistas de risco e compliance corporativo.</p>
+            <ul class="auth-hero-list">
+                <li><span class="oi oi-lock-locked" aria-hidden="true"></span> Os seus dados de sessão serão encerrados</li>
+                <li><span class="oi oi-check" aria-hidden="true"></span> Pode voltar a entrar a qualquer momento</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-card">
+            <div class="auth-card-header">
+                <h2>Terminar sessão</h2>
+                <p>Confirme que deseja sair da plataforma KYC.</p>
+            </div>
+
+            <form method="post" class="auth-form">
+                <p class="text-muted small mb-4">
+                    Será redirecionado para o ecrã de login após confirmar.
+                </p>
+                <button type="submit" class="btn btn-primary w-100 auth-submit">
+                    Terminar sessão e sair
+                </button>
+                <a class="btn btn-outline-secondary w-100 mt-2" href="/dashboard">
+                    Cancelar
+                </a>
+            </form>
+
+            <div class="auth-footer">
+                KYC Intelligence · ambiente demo
+            </div>
+        </div>
+    </section>
+</div>

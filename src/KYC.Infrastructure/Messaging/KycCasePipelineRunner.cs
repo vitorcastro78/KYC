@@ -43,7 +43,7 @@ public class KycCasePipelineRunner(
         await SyncGleifPartiesAsync(kyc, ct);
 
         var parties = kyc.Parties.ToList();
-        var total = Math.Max(1, parties.Count) * 5;
+        var total = Math.Max(1, parties.Count);
         await progress.UpsertAsync(new KycCaseScanProgressState(caseId, total, 0, 0), ct);
 
         var signals = new List<RiskSignal>();
@@ -95,6 +95,7 @@ public class KycCasePipelineRunner(
 
         await embeddingWriter.EmbedReportTextAsync(caseId, report.NarrativeHtml, ct);
         await cases.UpdateAsync(kyc, ct);
+        await progress.UpsertAsync(new KycCaseScanProgressState(caseId, total, total, 0), ct);
         await notifier.NotifyScanProgressAsync(caseId, "Concluído", 100, ct);
         await notifier.NotifyReportReadyAsync(caseId, score.Level, ct);
         await notifier.NotifyStatusChangedAsync(caseId, kyc.Status, ct);

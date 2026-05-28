@@ -35,6 +35,9 @@ public class KycStructuredReportComposerTests
 
         Assert.Contains("Relatório KYC", html);
         Assert.Contains("Sumário executivo", html);
+        Assert.Contains("Metodologia e parâmetros utilizados", html);
+        Assert.Contains("Lógica de cálculo do score de risco", html);
+        Assert.Contains("Inventário de sinais de risco", html);
         Assert.Contains("Estrutura de partes", html);
         Assert.Contains("Sinais de risco", html);
         Assert.Contains("72", html);

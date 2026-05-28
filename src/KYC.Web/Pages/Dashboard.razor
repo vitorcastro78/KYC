@@ -22,26 +22,32 @@
 }
 else if (_summary is not null)
 {
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+        <div class="col">
+            <div class="kpi-card kpi-info">
+                <span class="kpi-label">Total de casos</span>
+                <span class="kpi-value">@_summary.TotalCases</span>
+            </div>
+        </div>
+        <div class="col">
             <div class="kpi-card kpi-primary">
                 <span class="kpi-label">Casos em curso</span>
                 <span class="kpi-value">@_summary.OpenCases</span>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="kpi-card kpi-success">
                 <span class="kpi-label">Aprovados hoje</span>
                 <span class="kpi-value">@_summary.ApprovedToday</span>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="kpi-card kpi-warning">
                 <span class="kpi-label">Em revisão humana</span>
                 <span class="kpi-value">@_summary.UnderReview</span>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="kpi-card kpi-neutral">
                 <span class="kpi-label">Taxa de aprovação</span>
                 <span class="kpi-value">@_summary.ApprovalRatePercent%</span>
