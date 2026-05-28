@@ -28,3 +28,5 @@ public record AddManualCasePartyCommand(
     bool RunScreeningAfterAdd) : IRequest<Guid>;
 
 public record ScreenCasePartyCommand(Guid CaseId, Guid PartyId, string ActorId) : IRequest<Unit>;
+
+public record RerunKycCaseScreeningCommand(Guid CaseId, string ActorId) : IRequest<Unit>;

@@ -1,4 +1,4 @@
-@page "/cases/{CaseId:guid}"
+﻿@page "/cases/{CaseId:guid}"
 @attribute [Authorize(Policy = "Analyst")]
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Forms
@@ -16,10 +16,29 @@
 }
 else
 {
-    <h1>@_case.CompanyName <small class="text-muted">@_case.Nif</small></h1>
-    <p>Estado: <strong>@_case.Status</strong> · <RiskScoreBadge Score="_case.Score" /></p>
+    <div class="case-hero mb-3">
+        <div>
+            <h1 class="mb-1">@_case.CompanyName</h1>
+            <div class="text-muted">ID Comercial: @_case.Nif</div>
+        </div>
+        <div class="text-md-end">
+            <div class="small text-muted">Estado do processo</div>
+            <span class="status-pill @StatusClass(_case.Status)">@StatusLabel(_case.Status)</span>
+            <div class="mt-2"><RiskScoreBadge Score="_case.Score" /></div>
+        </div>
+    </div>
 
-    <ScanProgressBar Module="@_scanModule" Percent="@_scanPercent" />
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h3 class="h6 mb-0">Progresso da triagem</h3>
+                <small class="text-muted">@_scanModule · @_scanPercent%</small>
+            </div>
+            <ScanProgressBar Module="@_scanModule" Percent="@_scanPercent" />
+        </div>
+    </div>
+
+    <GleifCompanyCard Snapshot="_case.Gleif" RelatedParties="_case.GleifRelatedParties" />
 
     @if (!string.IsNullOrEmpty(_actionError))
     {
@@ -27,43 +46,75 @@ else
     }
 
     <AuthorizeView Policy="Supervisor">
-        <div class="my-3 d-flex gap-2">
+        <div class="my-3 d-flex gap-2 flex-wrap">
             <button class="btn btn-success" @onclick="() => _showApprove = true">Aprovar</button>
             <button class="btn btn-danger" @onclick="() => _showReject = true">Rejeitar</button>
             <button class="btn btn-outline-secondary" @onclick="() => _showReview = true">Pedir revisão</button>
         </div>
     </AuthorizeView>
 
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h3 class="mb-0">Partes</h3>
-        @if (CanAddManualParty(_case.Status))
-        {
-            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => { ResetAddPartyForm(); _showAddParty = true; }">Adicionar parte</button>
-        }
-    </div>
-    <div class="row g-2">
-        @foreach (var p in _case.Parties)
-        {
-            <div class="col-md-4">
-                <EntityCard Party="p" ShowTriageButton="@CanScreenParty(_case.Status)" OnTriage="TriagemParteAsync" />
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h3 class="h6 mb-0">Partes associadas</h3>
+            <div class="d-flex gap-2">
+                @if (CanRerunAutomaticScreening(_case.Status))
+                {
+                    <button type="button"
+                            class="btn btn-outline-warning btn-sm"
+                            disabled="@_rescreenBusy"
+                            @onclick="() => _showRescreen = true">
+                        Refazer triagem automática
+                    </button>
+                }
+                @if (CanAddManualParty(_case.Status))
+                {
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => { ResetAddPartyForm(); _showAddParty = true; }">Adicionar parte</button>
+                }
             </div>
-        }
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                @foreach (var p in _case.Parties)
+                {
+                    <div class="col-md-4">
+                        <EntityCard Party="p" ShowTriageButton="@CanScreenParty(_case.Status)" OnTriage="TriagemParteAsync" />
+                    </div>
+                }
+            </div>
+        </div>
     </div>
 
-    <h3 class="mt-4">Sinais</h3>
-    @foreach (var s in _case.Signals)
-    {
-        <SignalCard Signal="s" />
-    }
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="h6 mb-0">Sinais de risco</h3></div>
+        <div class="card-body">
+            @if (_case.Signals.Count == 0)
+            {
+                <p class="text-muted mb-0">Sem sinais registados nesta execução.</p>
+            }
+            else
+            {
+                @foreach (var s in _case.Signals)
+                {
+                    <SignalCard Signal="s" />
+                }
+            }
+        </div>
+    </div>
 
-    <h3 class="mt-4">Timeline</h3>
-    @if (_timeline is not null)
-    {
-        <RiskTimeline Timeline="_timeline" />
-    }
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="h6 mb-0">Timeline de eventos</h3></div>
+        <div class="card-body">
+            @if (_timeline is not null)
+            {
+                <RiskTimeline Timeline="_timeline" />
+            }
+        </div>
+    </div>
 
-    <div class="mt-3">
-        <a class="btn btn-outline-primary" href="/cases/@CaseId/report">Relatório</a>
+    <div class="mt-3 d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-primary" href="/cases/@CaseId/report">
+            Relatório @if (_case.Report is null) { <span class="badge bg-secondary ms-1">pendente</span> }
+        </a>
         <a class="btn btn-outline-secondary" href="/cases/@CaseId/ubo">Grafo UBO</a>
         <a class="btn btn-link" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/report.pdf")" target="_blank">PDF</a>
     </div>
@@ -156,6 +207,13 @@ else
 <ConfirmDialog Visible="_showReview" Title="Revisão manual" OnConfirm="Review" OnCancel="() => _showReview = false">
     <InputTextArea class="form-control" @bind-Value="_reviewReason" placeholder="Motivo" />
 </ConfirmDialog>
+<ConfirmDialog Visible="_showRescreen" Title="Refazer triagem automática" OnConfirm="RerunScreeningAsync" OnCancel="() => _showRescreen = false">
+    <p>
+        Serão repetidas as triagens (sanções, media, financeiro, judicial, ICIJ) para <strong>todas as partes</strong>,
+        sincronizadas novas entidades GLEIF quando existirem, recalculado o score e regenerado o relatório.
+    </p>
+    <p class="text-muted small mb-0">Sinais ainda não confirmados pelo analista serão substituídos; os confirmados mantêm-se.</p>
+</ConfirmDialog>
 
 @code {
     [Parameter] public Guid CaseId { get; set; }
@@ -164,9 +222,10 @@ else
     private HubConnection? _hub;
     private int _scanPercent;
     private string _scanModule = "—";
-    private bool _showApprove, _showReject, _showReview;
+    private bool _showApprove, _showReject, _showReview, _showRescreen;
     private bool _showAddParty;
     private bool _addPartyBusy;
+    private bool _rescreenBusy;
     private string _rejectReason = "";
     private string _reviewReason = "";
     private string? _actionError;
@@ -188,18 +247,33 @@ else
     protected override async Task OnInitializedAsync()
     {
         await Reload();
+        await RefreshScanProgressAsync();
         _timeline = await Mediator.Send(new GetRiskTimelineQuery(CaseId));
 
         _hub = new HubConnectionBuilder()
             .WithUrl(Nav.ToAbsoluteUri("/hubs/kyc-case"))
             .WithAutomaticReconnect()
             .Build();
-        _hub.On<Guid, string, int>("ScanProgressUpdated", (id, module, pct) =>
+        _hub.On<Guid, string, int>("ScanProgressUpdated", async (id, module, pct) =>
         {
             if (id != CaseId) return;
             _scanModule = module;
             _scanPercent = pct;
-            InvokeAsync(StateHasChanged);
+            if (pct >= 100)
+                await Reload();
+            await InvokeAsync(StateHasChanged);
+        });
+        _hub.On<Guid, string>("StatusChanged", async (id, _) =>
+        {
+            if (id != CaseId) return;
+            await Reload();
+            await InvokeAsync(StateHasChanged);
+        });
+        _hub.On<Guid, string>("ReportReady", async (id, _) =>
+        {
+            if (id != CaseId) return;
+            await Reload();
+            await InvokeAsync(StateHasChanged);
         });
         await _hub.StartAsync();
         await _hub.SendAsync("JoinCaseGroup", CaseId);
@@ -214,10 +288,31 @@ else
         }
     }
 
+    private static string StatusLabel(KycStatus status) => status switch
+    {
+        KycStatus.Pending => "Pendente",
+        KycStatus.InProgress => "Em progresso",
+        KycStatus.UnderReview => "Em revisão",
+        KycStatus.Approved => "Aprovado",
+        KycStatus.Rejected => "Rejeitado",
+        _ => status.ToString()
+    };
+
+    private static string StatusClass(KycStatus status) => status switch
+    {
+        KycStatus.Approved => "status-ok",
+        KycStatus.Rejected => "status-bad",
+        KycStatus.UnderReview => "status-warn",
+        _ => "status-neutral"
+    };
+
     private static bool CanAddManualParty(KYC.Domain.Enums.KycStatus status) =>
         status is KYC.Domain.Enums.KycStatus.InProgress or KYC.Domain.Enums.KycStatus.UnderReview or KYC.Domain.Enums.KycStatus.Approved;
 
     private static bool CanScreenParty(KYC.Domain.Enums.KycStatus status) =>
+        status is KYC.Domain.Enums.KycStatus.InProgress or KYC.Domain.Enums.KycStatus.UnderReview or KYC.Domain.Enums.KycStatus.Approved;
+
+    private static bool CanRerunAutomaticScreening(KYC.Domain.Enums.KycStatus status) =>
         status is KYC.Domain.Enums.KycStatus.InProgress or KYC.Domain.Enums.KycStatus.UnderReview or KYC.Domain.Enums.KycStatus.Approved;
 
     private void ResetAddPartyForm()
@@ -266,6 +361,33 @@ else
         }
     }
 
+    private async Task RerunScreeningAsync()
+    {
+        _rescreenBusy = true;
+        _actionError = null;
+        _scanPercent = 0;
+        _scanModule = "A iniciar…";
+        try
+        {
+            await Mediator.Send(new RerunKycCaseScreeningCommand(CaseId, "dev-user"));
+            _showRescreen = false;
+        }
+        catch (ValidationException vex)
+        {
+            _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
+            _showRescreen = false;
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+            _showRescreen = false;
+        }
+        finally
+        {
+            _rescreenBusy = false;
+        }
+    }
+
     private async Task TriagemParteAsync(Guid partyId)
     {
         _actionError = null;
@@ -309,6 +431,20 @@ else
     {
         _case = await Mediator.Send(new GetKycCaseQuery(CaseId));
         _timeline = await Mediator.Send(new GetRiskTimelineQuery(CaseId));
+        await RefreshScanProgressAsync();
+    }
+
+    private async Task RefreshScanProgressAsync()
+    {
+        var state = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
+        if (state is null)
+            return;
+
+        _scanPercent = state.PercentComplete;
+        if (_scanPercent is > 0 and < 100)
+            _scanModule = "Triagem automática em curso";
+        else if (_scanPercent >= 100)
+            _scanModule = "Concluído";
     }
 
     private static string RoleLabel(EntityRole role) => role switch

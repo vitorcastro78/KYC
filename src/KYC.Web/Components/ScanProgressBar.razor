@@ -1,8 +1,17 @@
-<div class="progress" style="height: 22px;">
-    <div class="progress-bar" role="progressbar" style="width: @(Percent)%">@Module @Percent%</div>
+<div class="progress" style="height: 22px;" aria-valuenow="@Percent" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar progress-bar-striped @(_animated ? "progress-bar-animated" : null)"
+         role="progressbar"
+         style="width: @(ClampedPercent)%"
+         aria-label="@Module">
+        <span class="small">@Module — @ClampedPercent%</span>
+    </div>
 </div>
 
 @code {
     [Parameter] public string Module { get; set; } = "";
     [Parameter] public int Percent { get; set; }
+    [Parameter] public bool Animated { get; set; } = true;
+
+    private int ClampedPercent => Math.Clamp(Percent, 0, 100);
+    private bool _animated => Animated && ClampedPercent < 100;
 }

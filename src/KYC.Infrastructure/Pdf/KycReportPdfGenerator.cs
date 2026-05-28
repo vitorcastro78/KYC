@@ -1,32 +1,41 @@
 using KYC.Application.Interfaces;
 using KYC.Infrastructure.Persistence;
+using KYC.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
+using Microsoft.Extensions.Logging;
 
 namespace KYC.Infrastructure.Pdf;
 
-public class KycReportPdfGenerator(KycDbContext db) : IKycReportPdfGenerator
+public class KycReportPdfGenerator(
+    KycDbContext db,
+    IKycHtmlToPdfConverter htmlToPdf,
+    ILogger<KycReportPdfGenerator> log) : IKycReportPdfGenerator
 {
-    static KycReportPdfGenerator() => QuestPDF.Settings.License = LicenseType.Community;
-
     public async Task<byte[]> GenerateAsync(Guid caseId, CancellationToken ct = default)
     {
-        var kyc = await db.KycCases.AsNoTracking().Include(c => c.FinalReport).FirstOrDefaultAsync(c => c.Id == caseId, ct);
-        var markdown = kyc?.FinalReport?.NarrativeMarkdown ?? "Relatório indisponível.";
+        var kyc = await db.KycCases.AsNoTracking()
+            .Include(c => c.FinalReport)
+            .FirstOrDefaultAsync(c => c.Id == caseId, ct);
 
-        var doc = Document.Create(container =>
+        var html = kyc?.FinalReport?.NarrativeHtml;
+        if (string.IsNullOrWhiteSpace(html))
         {
-            container.Page(page =>
-            {
-                page.Margin(40);
-                page.Header().Text($"Relatório KYC — {caseId}").SemiBold().FontSize(18);
-                page.Content().Text(markdown).FontSize(10);
-                page.Footer().AlignRight().Text(t => t.Span("KYC AI Platform").FontSize(8));
-            });
-        });
+            var title = kyc?.CompanyName ?? caseId.ToString();
+            html = KycReportHtmlDocument.Wrap(
+                "<main><p>Relatório indisponível. Execute a triagem automática do caso para gerar o documento.</p></main>",
+                $"Relatório KYC — {title}");
+        }
 
-        return doc.GeneratePdf();
+        try
+        {
+            return await htmlToPdf.ConvertAsync(html, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Falha ao converter HTML em PDF para o caso {CaseId}.", caseId);
+            throw new InvalidOperationException(
+                "Não foi possível exportar o PDF. Verifique se o Chromium (Puppeteer) está disponível no servidor.",
+                ex);
+        }
     }
 }

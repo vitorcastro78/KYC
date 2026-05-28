@@ -15,4 +15,14 @@ public sealed class InMemoryCaseStartedQueue
     public ChannelReader<CaseStartedWork> Reader => _channel.Reader;
 }
 
-public readonly record struct CaseStartedWork(Guid CaseId, string Nif);
+public enum CasePipelineKind
+{
+    Initial,
+    Rescreen
+}
+
+public readonly record struct CaseStartedWork(
+    Guid CaseId,
+    string? Nif = null,
+    CasePipelineKind Kind = CasePipelineKind.Initial,
+    string ActorId = "System");

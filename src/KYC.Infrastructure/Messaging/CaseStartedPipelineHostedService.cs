@@ -30,7 +30,10 @@ public sealed class CaseStartedPipelineHostedService(
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var runner = scope.ServiceProvider.GetRequiredService<IKycCasePipelineRunner>();
-                await runner.RunCaseStartedAsync(work.CaseId, stoppingToken).ConfigureAwait(false);
+                if (work.Kind == CasePipelineKind.Rescreen)
+                    await runner.RunRescreenAsync(work.CaseId, work.ActorId, stoppingToken).ConfigureAwait(false);
+                else
+                    await runner.RunCaseStartedAsync(work.CaseId, stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

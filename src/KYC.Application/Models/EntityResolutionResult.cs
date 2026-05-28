@@ -7,4 +7,5 @@ public record EntityResolutionResult(
     string? RegistryId,
     bool Success,
     string? ErrorMessage,
-    bool UsedFallback = false);
+    bool UsedFallback = false,
+    GleifCompanySnapshot? Gleif = null);

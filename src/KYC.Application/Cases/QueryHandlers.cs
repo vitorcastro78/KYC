@@ -7,13 +7,20 @@ using MediatR;
 
 namespace KYC.Application.Cases;
 
-public class GetKycCaseQueryHandler(IKycCaseRepository repository)
+public class GetKycCaseQueryHandler(
+    IKycCaseRepository repository,
+    IEntityResolutionService resolution)
     : IRequestHandler<GetKycCaseQuery, KycCaseDetailDto?>
 {
     public async Task<KycCaseDetailDto?> Handle(GetKycCaseQuery request, CancellationToken cancellationToken)
     {
         var c = await repository.GetByIdAsync(request.CaseId, cancellationToken);
-        return KycCaseMapping.ToDetailDto(c);
+        var dto = KycCaseMapping.ToDetailDto(c);
+        if (dto is null)
+            return null;
+
+        var gleif = await resolution.FetchGleifEnrichmentAsync(dto.Nif, dto.CompanyName, cancellationToken);
+        return dto with { Gleif = gleif.Snapshot, GleifRelatedParties = gleif.RelatedParties };
     }
 }
 
@@ -81,9 +88,28 @@ public class GetKycReportQueryHandler(IKycCaseRepository repository)
         if (c?.FinalReport is null) return null;
         return new KycReportDto(
             c.Id,
-            c.FinalReport.NarrativeMarkdown,
+            c.FinalReport.NarrativeHtml,
             c.FinalReport.ModelUsed,
             c.FinalReport.GeneratedAt);
+    }
+}
+
+public class GetKycCaseScanProgressQueryHandler(IKycCaseScanProgressRepository progress)
+    : IRequestHandler<GetKycCaseScanProgressQuery, KycCaseScanProgressDto?>
+{
+    public async Task<KycCaseScanProgressDto?> Handle(
+        GetKycCaseScanProgressQuery request,
+        CancellationToken cancellationToken)
+    {
+        var state = await progress.GetAsync(request.CaseId, cancellationToken);
+        if (state is null)
+            return null;
+
+        return new KycCaseScanProgressDto(
+            state.KycCaseId,
+            state.TotalScans,
+            state.CompletedScans,
+            state.FailedScans);
     }
 }
 

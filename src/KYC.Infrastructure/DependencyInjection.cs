@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using KYC.Application.Interfaces;
 
 using KYC.Infrastructure.BackgroundJobs;
@@ -7,6 +7,7 @@ using KYC.Infrastructure.LLM;
 using KYC.Infrastructure.Messaging;
 using KYC.Infrastructure.Pdf;
 using KYC.Infrastructure.Persistence;
+using KYC.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,14 +38,16 @@ public static class DependencyInjection
         services.AddScoped<IJudicialIntelligenceService, JudicialIntelligenceService>();
         services.AddScoped<IIcijOffshoreService, IcijOffshoreService>();
         services.AddScoped<IKycLlmEngine, KycLlmEngine>();
+        services.AddSingleton<IKycReportComposer, KycStructuredReportComposer>();
         services.AddScoped<IReportEmbeddingWriter, ReportEmbeddingWriter>();
         services.AddScoped<IKycCasePipelineRunner, KycCasePipelineRunner>();
         services.AddScoped<ICasePartyScreener, CasePartyScreener>();
+        services.AddSingleton<IKycHtmlToPdfConverter, PuppeteerKycHtmlToPdfConverter>();
         services.AddScoped<IKycReportPdfGenerator, KycReportPdfGenerator>();
 
         RegisterMessaging(services, configuration);
 
-        // http + porta explícita: https://localhost/rcbe/ usa 443 e falha sem reverse proxy local.
+        // http + porta explÃ­cita: https://localhost/rcbe/ usa 443 e falha sem reverse proxy local.
         var rcbeBase = configuration["ExternalSources:RcbeBaseUrl"] ?? "http://localhost:5055/rcbe/";
         var rcbeBuilder = services.AddHttpClient<IRcbeClient, RcbeClient>((_, c) =>
         {
@@ -57,6 +60,9 @@ public static class DependencyInjection
         {
             var baseUrl = configuration["ExternalSources:GleifBaseUrl"] ?? "https://api.gleif.org/api/v1/";
             c.BaseAddress = new Uri(baseUrl);
+            c.Timeout = TimeSpan.FromSeconds(
+                Math.Clamp(configuration.GetValue("ExternalSources:Gleif:TimeoutSeconds", 45), 10, 120));
+            c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.api+json");
         }).AddPolicyHandler(GetRetryPolicy()).AddPolicyHandler(GetCircuitBreakerPolicy());
 
         services.AddHttpClient<IWikidataCompanyClient, WikidataCompanyClient>((sp, c) =>
@@ -87,6 +93,19 @@ public static class DependencyInjection
         }).AddPolicyHandler(GetRetryPolicy());
         if (!LocalDevEndpoint.LooksLikeLocalStub(euSanctionsBase))
             euBuilder.AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        var openSanctionsBase = configuration["ExternalSources:OpenSanctions:BaseUrl"] ?? "https://api.opensanctions.org/";
+        var openSanctionsTimeout = Math.Clamp(configuration.GetValue("ExternalSources:OpenSanctions:TimeoutSeconds", 60), 10, 300);
+        services.AddTransient<OpenSanctionsApiKeyHandler>();
+        var openSanctionsBuilder = services.AddHttpClient<IOpenSanctionsClient, OpenSanctionsClient>((_, c) =>
+            {
+                c.BaseAddress = new Uri(openSanctionsBase);
+                c.Timeout = TimeSpan.FromSeconds(openSanctionsTimeout);
+                c.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+            })
+            .AddHttpMessageHandler<OpenSanctionsApiKeyHandler>()
+            .AddPolicyHandler(GetRetryPolicy());
+        openSanctionsBuilder.AddPolicyHandler(GetCircuitBreakerPolicy());
 
         var ollama = configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434";
         var ollamaTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:RequestTimeoutSeconds", 300), 30, 3600);
@@ -129,7 +148,7 @@ public static class DependencyInjection
             && string.IsNullOrWhiteSpace(sbCs))
         {
             throw new InvalidOperationException(
-                "Messaging:Provider está definido como AzureServiceBus mas falta KYC_SERVICEBUS_CONNECTION ou ServiceBus:ConnectionString.");
+                "Messaging:Provider estÃ¡ definido como AzureServiceBus mas falta KYC_SERVICEBUS_CONNECTION ou ServiceBus:ConnectionString.");
         }
 
         if (useAzure)
@@ -156,3 +175,4 @@ public static class DependencyInjection
             .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
 
 }
+

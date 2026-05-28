@@ -85,7 +85,7 @@ public class KycCase
             return;
         }
 
-        FinalReport.UpdateContent(report.NarrativeMarkdown, report.ModelUsed);
+        FinalReport.UpdateContent(report.NarrativeHtml, report.ModelUsed);
     }
 
     public void Approve(string analystId)
@@ -130,6 +130,33 @@ public class KycCase
         EnsureStatus(KycStatus.InProgress);
         Status = KycStatus.UnderReview;
         AppendAudit(AuditEntry.Create(Id, "ScanAwaitingHumanReview", actorId, "Agent"));
+    }
+
+    /// <summary>Limpa dados de triagem e reabre o caso para nova execução completa.</summary>
+    public void PrepareForAutomaticRescreen(string actorId)
+    {
+        EnsureStatus(KycStatus.InProgress, KycStatus.UnderReview, KycStatus.Approved);
+        if (Status != KycStatus.InProgress)
+        {
+            Status = KycStatus.InProgress;
+            CompletedAt = null;
+        }
+
+        Parties.Clear();
+        RiskSignals.Clear();
+        Score = null;
+        FinalReport = null;
+        AppendAudit(AuditEntry.Create(Id, "AutomaticRescreenRequested", actorId, "User"));
+    }
+
+    public void RecordAutomaticRescreenCompleted(string actorId, int newSignalCount)
+    {
+        AppendAudit(AuditEntry.Create(
+            Id,
+            "AutomaticRescreenCompleted",
+            actorId,
+            "Agent",
+            $"{newSignalCount} sinais gerados na nova triagem."));
     }
 
     /// <summary>Adiciona uma parte manualmente (quadro social, accionistas, etc.).</summary>

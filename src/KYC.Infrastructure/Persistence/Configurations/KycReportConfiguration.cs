@@ -10,7 +10,7 @@ public class KycReportConfiguration : IEntityTypeConfiguration<KycReport>
     {
         builder.ToTable("kyc_reports");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.NarrativeMarkdown).IsRequired();
+        builder.Property(x => x.NarrativeHtml).HasColumnName("NarrativeMarkdown").IsRequired();
         builder.Property(x => x.ModelUsed).HasMaxLength(128);
         builder.HasIndex(x => x.KycCaseId).IsUnique();
     }

@@ -1,5 +1,7 @@
 @page "/cases/new"
 @attribute [Authorize(Policy = "Analyst")]
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.SignalR.Client
 @inject IMediator Mediator
 @inject NavigationManager Nav
 
@@ -7,16 +9,48 @@
 <h1>Abrir caso KYC</h1>
 
 <EditForm Model="_model" OnValidSubmit="Submit">
-    <div class="mb-3">
-        <label class="form-label">NIF / NIPC ou nome da entidade</label>
-        <InputText class="form-control" @bind-Value="_model.Nif" placeholder="Ex.: 508144500 ou Acme Portugal Lda." />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Montante solicitado (EUR)</label>
-        <InputNumber class="form-control" @bind-Value="_model.Amount" />
-    </div>
-    <button class="btn btn-primary" type="submit">Iniciar</button>
+    <fieldset disabled="@_isProcessing">
+        <div class="mb-3">
+            <label class="form-label">NIF / NIPC ou nome da entidade</label>
+            <InputText class="form-control" @bind-Value="_model.Nif" placeholder="Ex.: 508144500 ou Acme Portugal Lda." />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Montante solicitado (EUR)</label>
+            <InputNumber class="form-control" @bind-Value="_model.Amount" />
+        </div>
+        <button class="btn btn-primary" type="submit" disabled="@_isProcessing">
+            @if (_isProcessing)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>A processar…</span>
+            }
+            else
+            {
+                <span>Iniciar</span>
+            }
+        </button>
+    </fieldset>
 </EditForm>
+
+@if (_isProcessing)
+{
+    <div class="card mt-4 border-primary">
+        <div class="card-body">
+            <h2 class="h6 mb-3">Triagem automática em curso</h2>
+            <p class="text-muted small mb-2">
+                @if (_pendingCaseId is null)
+                {
+                    <span>A criar o caso e a resolver a entidade…</span>
+                }
+                else
+                {
+                    <span>Será redireccionado para o caso quando o processo terminar.</span>
+                }
+            </p>
+            <ScanProgressBar Module="@ModuleLabel(_scanModule)" Percent="@_scanPercent" />
+        </div>
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(_error))
 {
@@ -26,19 +60,102 @@
 @code {
     private readonly CaseForm _model = new();
     private string? _error;
+    private bool _isProcessing;
+    private Guid? _pendingCaseId;
+    private int _scanPercent;
+    private string _scanModule = "A iniciar";
+    private HubConnection? _hub;
 
     private async Task Submit()
     {
+        if (_isProcessing)
+            return;
+
+        _error = null;
+        _isProcessing = true;
+        _scanPercent = 0;
+        _scanModule = "A iniciar";
+        _pendingCaseId = null;
+
         try
         {
+            await EnsureHubAsync();
+
             var id = await Mediator.Send(new StartKycCaseCommand(_model.Nif, "dev-user", CreditAmount.Eur(_model.Amount)));
-            Nav.NavigateTo($"/cases/{id}", true);
+            _pendingCaseId = id;
+            _scanModule = "EntityResolution";
+            _scanPercent = 5;
+
+            if (_hub is not null)
+                await _hub.SendAsync("JoinCaseGroup", id);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
+            _isProcessing = false;
+            _pendingCaseId = null;
         }
     }
+
+    private async Task EnsureHubAsync()
+    {
+        if (_hub is { State: HubConnectionState.Connected })
+            return;
+
+        _hub ??= new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/hubs/kyc-case"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hub.On<Guid, string, int>("ScanProgressUpdated", (id, module, pct) =>
+        {
+            if (_pendingCaseId is null || id != _pendingCaseId)
+                return;
+            _scanModule = module;
+            _scanPercent = pct;
+            InvokeAsync(StateHasChanged);
+        });
+
+        _hub.On<Guid, string>("ReportReady", (id, _) =>
+        {
+            if (_pendingCaseId is null || id != _pendingCaseId)
+                return;
+            Nav.NavigateTo($"/cases/{id}", true);
+        });
+
+        if (_hub.State == HubConnectionState.Disconnected)
+            await _hub.StartAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is null)
+            return;
+
+        if (_pendingCaseId is { } caseId)
+        {
+            try
+            {
+                await _hub.SendAsync("LeaveCaseGroup", caseId);
+            }
+            catch
+            {
+                // ignore on teardown
+            }
+        }
+
+        await _hub.DisposeAsync();
+    }
+
+    private static string ModuleLabel(string module) => module switch
+    {
+        "EntityResolution" => "Resolução de entidade",
+        "Sanctions" => "Sanções e fontes",
+        "LLM" => "Score e relatório",
+        "Concluído" => "Concluído",
+        "A iniciar" => "A iniciar",
+        _ => module
+    };
 
     private sealed class CaseForm
     {

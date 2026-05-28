@@ -1,6 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/dashboard">KYC AI</a>
+﻿<div class="top-row ps-3 navbar navbar-dark brand-bar">
+    <div class="container-fluid px-2">
+        <a class="navbar-brand d-flex flex-column" href="/dashboard">
+            <span class="brand-title">KYC Intelligence</span>
+            <small class="brand-subtitle">Banking Edition</small>
+        </a>
         <button title="Menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -8,33 +11,50 @@
 </div>
 
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
+    <nav class="flex-column nav-menu-body">
+        <div class="nav-section-label px-3">Operações</div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="/dashboard" Match="NavLinkMatch.All">
-                <span class="oi oi-dashboard" aria-hidden="true"></span> Dashboard
+                <span class="oi oi-dashboard" aria-hidden="true"></span>
+                <span class="nav-label">Dashboard</span>
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="/cases">
-                <span class="oi oi-folder" aria-hidden="true"></span> Casos
+                <span class="oi oi-folder" aria-hidden="true"></span>
+                <span class="nav-label">Casos KYC</span>
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="/cases/new">
-                <span class="oi oi-plus" aria-hidden="true"></span> Novo caso
+                <span class="oi oi-plus" aria-hidden="true"></span>
+                <span class="nav-label">Novo caso</span>
             </NavLink>
         </div>
+
         <AuthorizeView Policy="Admin">
+            <div class="nav-section-label px-3 mt-3">Administração</div>
             <div class="nav-item px-3">
-                <NavLink class="nav-link" href="/admin/users">Admin · Users</NavLink>
+                <NavLink class="nav-link" href="/admin/users">
+                    <span class="oi oi-people" aria-hidden="true"></span>
+                    <span class="nav-label">Utilizadores</span>
+                </NavLink>
             </div>
             <div class="nav-item px-3">
-                <NavLink class="nav-link" href="/admin/settings">Admin · Settings</NavLink>
+                <NavLink class="nav-link" href="/admin/settings">
+                    <span class="oi oi-cog" aria-hidden="true"></span>
+                    <span class="nav-label">Configurações</span>
+                </NavLink>
             </div>
         </AuthorizeView>
+
         <AuthorizeView Policy="Auditor">
+            <div class="nav-section-label px-3 mt-3">Auditoria</div>
             <div class="nav-item px-3">
-                <NavLink class="nav-link" href="/admin/audit">Audit log</NavLink>
+                <NavLink class="nav-link" href="/admin/audit">
+                    <span class="oi oi-document" aria-hidden="true"></span>
+                    <span class="nav-label">Audit log</span>
+                </NavLink>
             </div>
         </AuthorizeView>
     </nav>

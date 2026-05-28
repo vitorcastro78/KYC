@@ -1,3 +1,4 @@
+using KYC.Application.Models;
 using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
 
@@ -37,4 +38,6 @@ public record KycCaseDetailDto(
     IReadOnlyList<CasePartyDto> Parties,
     IReadOnlyList<RiskSignalDetailDto> Signals,
     IReadOnlyList<AuditEntryDto> AuditTrail,
-    KycReportDto? Report);
+    KycReportDto? Report,
+    GleifCompanySnapshot? Gleif = null,
+    IReadOnlyList<GleifRelatedParty>? GleifRelatedParties = null);

@@ -4,7 +4,7 @@ public class KycReport
 {
     public Guid Id { get; private set; }
     public Guid KycCaseId { get; private set; }
-    public string NarrativeMarkdown { get; private set; } = string.Empty;
+    public string NarrativeHtml { get; private set; } = string.Empty;
     public string? ModelUsed { get; private set; }
     public DateTime GeneratedAt { get; private set; }
 
@@ -12,22 +12,22 @@ public class KycReport
     {
     }
 
-    public static KycReport Create(Guid kycCaseId, string narrativeMarkdown, string? modelUsed)
+    public static KycReport Create(Guid kycCaseId, string narrativeHtml, string? modelUsed)
     {
         return new KycReport
         {
             Id = Guid.NewGuid(),
             KycCaseId = kycCaseId,
-            NarrativeMarkdown = narrativeMarkdown,
+            NarrativeHtml = narrativeHtml,
             ModelUsed = modelUsed,
             GeneratedAt = DateTime.UtcNow
         };
     }
 
-    /// <summary>Actualiza o relatÃ³rio existente (mesmo Id) â€” evita substituir a navegaÃ§Ã£o 1:1 e estados incorrectos no EF.</summary>
-    public void UpdateContent(string narrativeMarkdown, string? modelUsed)
+    /// <summary>Actualiza o relatório existente (mesmo Id) — evita substituir a navegação 1:1 e estados incorrectos no EF.</summary>
+    public void UpdateContent(string narrativeHtml, string? modelUsed)
     {
-        NarrativeMarkdown = narrativeMarkdown;
+        NarrativeHtml = narrativeHtml;
         ModelUsed = modelUsed;
         GeneratedAt = DateTime.UtcNow;
     }

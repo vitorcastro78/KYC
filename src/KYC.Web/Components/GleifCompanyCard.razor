@@ -1,0 +1,185 @@
+@using KYC.Application.Models
+
+@if (Snapshot is null)
+{
+    <div class="card mb-3 border-secondary">
+        <div class="card-header bg-light">
+            <strong>GLEIF</strong>
+            <span class="text-muted small ms-2">Identificador legal (LEI)</span>
+        </div>
+        <div class="card-body py-3">
+            <p class="text-muted small mb-0">
+                Nenhum registo LEI encontrado para este identificador ou denominação na
+                <a href="https://www.gleif.org/en/lei-data/gleif-api/" target="_blank" rel="noopener">API GLEIF</a>.
+                É habitual em PME portuguesas sem LEI.
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <strong>GLEIF</strong>
+                <span class="text-muted small ms-2">@Snapshot.LegalName</span>
+            </div>
+            <a class="btn btn-sm btn-outline-primary"
+               href="https://search.gleif.org/#/record/@Snapshot.Lei"
+               target="_blank"
+               rel="noopener">Ver no GLEIF</a>
+        </div>
+        <div class="card-body">
+            <dl class="row small mb-0 gleif-dl">
+                <dt class="col-sm-3">LEI</dt>
+                <dd class="col-sm-9"><code>@Snapshot.Lei</code></dd>
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.RegisteredAs))
+                {
+                    <dt class="col-sm-3">Registo comercial</dt>
+                    <dd class="col-sm-9">@Snapshot.RegisteredAs</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.Jurisdiction) || !string.IsNullOrWhiteSpace(Snapshot.LegalAddressCountry))
+                {
+                    <dt class="col-sm-3">Jurisdição / país</dt>
+                    <dd class="col-sm-9">@(Snapshot.Jurisdiction ?? Snapshot.LegalAddressCountry)</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.EntityStatus) || !string.IsNullOrWhiteSpace(Snapshot.RegistrationStatus))
+                {
+                    <dt class="col-sm-3">Estado</dt>
+                    <dd class="col-sm-9">
+                        @if (!string.IsNullOrWhiteSpace(Snapshot.EntityStatus))
+                        {
+                            <span>Entidade: @Snapshot.EntityStatus</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Snapshot.RegistrationStatus))
+                        {
+                            <span class="ms-2">LEI: @Snapshot.RegistrationStatus</span>
+                        }
+                    </dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.LegalFormId))
+                {
+                    <dt class="col-sm-3">Forma jurídica</dt>
+                    <dd class="col-sm-9">@Snapshot.LegalFormId</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.LegalAddressSummary))
+                {
+                    <dt class="col-sm-3">Morada legal</dt>
+                    <dd class="col-sm-9">@Snapshot.LegalAddressSummary</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.HeadquartersAddressSummary)
+                     && Snapshot.HeadquartersAddressSummary != Snapshot.LegalAddressSummary)
+                {
+                    <dt class="col-sm-3">Sede</dt>
+                    <dd class="col-sm-9">@Snapshot.HeadquartersAddressSummary</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.Ocid))
+                {
+                    <dt class="col-sm-3">OCID</dt>
+                    <dd class="col-sm-9">@Snapshot.Ocid</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.Bic))
+                {
+                    <dt class="col-sm-3">BIC</dt>
+                    <dd class="col-sm-9">@Snapshot.Bic</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.ConformityFlag))
+                {
+                    <dt class="col-sm-3">Conformidade</dt>
+                    <dd class="col-sm-9">@Snapshot.ConformityFlag</dd>
+                }
+
+                @if (Snapshot.InitialRegistrationDate is not null || Snapshot.LastUpdateDate is not null)
+                {
+                    <dt class="col-sm-3">Datas LEI</dt>
+                    <dd class="col-sm-9">
+                        @if (Snapshot.InitialRegistrationDate is { } ir)
+                        {
+                            <span>Registo: @ir.ToLocalTime().ToString("yyyy-MM-dd")</span>
+                        }
+                        @if (Snapshot.LastUpdateDate is { } lu)
+                        {
+                            <span class="ms-2">Actualização: @lu.ToLocalTime().ToString("yyyy-MM-dd")</span>
+                        }
+                    </dd>
+                }
+
+                @if (Snapshot.PreviousNames.Count > 0)
+                {
+                    <dt class="col-sm-3">Nomes anteriores</dt>
+                    <dd class="col-sm-9">
+                        <ul class="mb-0 ps-3">
+                            @foreach (var name in Snapshot.PreviousNames)
+                            {
+                                <li>@name</li>
+                            }
+                        </ul>
+                    </dd>
+                }
+            </dl>
+
+            @if (RelatedParties is { Count: > 0 })
+            {
+                <hr class="my-3" />
+                <h6 class="mb-2">Rede corporativa GLEIF (triagem automática)</h6>
+                <p class="text-muted small">
+                    Estas entidades são adicionadas como partes do caso e passam por sanções, media, financeiro e judicial no pipeline.
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                        <tr>
+                            <th>Relação</th>
+                            <th>Denominação</th>
+                            <th>LEI</th>
+                            <th>Registo</th>
+                            <th>País</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var p in RelatedParties)
+                        {
+                            <tr>
+                                <td><span class="badge bg-secondary">@RelationshipLabel(p.RelationshipKind)</span></td>
+                                <td>@p.LegalName</td>
+                                <td><code class="small">@p.Lei</code></td>
+                                <td>@(p.RegisteredAs ?? "—")</td>
+                                <td>@(p.CountryIso2 ?? "—")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else if (Snapshot is not null)
+            {
+                <p class="text-muted small mb-0 mt-3">
+                    Sem pais ou filhas reportados na GLEIF para este LEI (excepção de reporte ou grupo não declarado).
+                </p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public GleifCompanySnapshot? Snapshot { get; set; }
+    [Parameter] public IReadOnlyList<GleifRelatedParty>? RelatedParties { get; set; }
+
+    private static string RelationshipLabel(string kind) => kind switch
+    {
+        "DirectParent" => "Mãe directa",
+        "UltimateParent" => "Grupo ultimate",
+        "DirectChild" => "Filha directa",
+        "UltimateChild" => "Filha ultimate",
+        _ => kind
+    };
+}

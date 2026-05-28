@@ -1,0 +1,30 @@
+﻿.cases-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.table-corporate tbody tr:hover {
+    background: #f7fbff;
+}
+
+.status-pill {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.status-ok { background: #d8f0e2; color: #17663d; }
+.status-bad { background: #f8d8de; color: #842029; }
+.status-warn { background: #fff1cf; color: #7f5a13; }
+.status-neutral { background: #e5ebf4; color: #3f5673; }
+
+@media (max-width: 768px) {
+    .cases-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -6,6 +6,7 @@ using KYC.Application.Models;
 using KYC.Domain.Entities;
 using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
+using KYC.Infrastructure.Reports;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +15,7 @@ namespace KYC.Infrastructure.LLM;
 public class KycLlmEngine(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
+    IKycReportComposer reportComposer,
     ILogger<KycLlmEngine> logger) : IKycLlmEngine
 {
     private static string Sha256(string text)
@@ -56,7 +58,7 @@ public class KycLlmEngine(
             return new RiskScore
             {
                 Overall = context.Signals.Count == 0 ? 25 : 55,
-                Justification = "Fallback heurÃ­stico (Ollama indisponÃ­vel)."
+                Justification = "Fallback heurístico (Ollama indisponível)."
             };
         }
     }
@@ -87,26 +89,37 @@ public class KycLlmEngine(
         }
         catch
         {
-            return new RiskScore { Overall = 45, Justification = "Resposta LLM nÃ£o estruturada." };
+            return new RiskScore { Overall = 45, Justification = "Resposta LLM não estruturada." };
         }
     }
 
     private static int? ReadNullableInt(JsonElement root, string name) =>
         root.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.Number ? p.GetInt32() : null;
 
-    public async Task<KycReport> GenerateNarrativeReportAsync(KycScanContext context, RiskScore score, CancellationToken ct = default)
+    public async Task<KycReport> GenerateNarrativeReportAsync(
+        KycScanContext context,
+        RiskScore score,
+        KycReportComposeRequest? composeRequest = null,
+        CancellationToken ct = default)
     {
+        var request = composeRequest ?? ToComposeRequest(context, score);
+        var baselineHtml = reportComposer.ComposeHtml(request);
+        const string templateModel = "KYC.StructuredReportHtml/v1";
+
+        var tryLlm = configuration.GetValue("LLM:EnrichReportsWithLlm", true);
+        if (!tryLlm)
+            return KycReport.Create(context.CaseId, baselineHtml, templateModel);
+
         var mode = (configuration["LLM:Mode"] ?? "LocalOnly").Trim();
         var localOnly = string.Equals(mode, "LocalOnly", StringComparison.OrdinalIgnoreCase);
         var riskWarrantsCloud = score.Level is RiskLevel.High or RiskLevel.Critical;
         var apiKey = configuration["Anthropic:ApiKey"];
         var useCloud = !localOnly && riskWarrantsCloud && !string.IsNullOrWhiteSpace(apiKey);
 
-        var system = "Gera relatÃ³rio KYC em Markdown em portuguÃªs com secÃ§Ãµes: SumÃ¡rio, Entidade, UBO, Sinais, Timeline, ConsistÃªncia, Score, RecomendaÃ§Ã£o, Fontes.";
+        var system = "Fornece APENAS o conteúdo interno HTML de <section class=\"ai-summary\"> com 1-3 parágrafos curtos para analista KYC.";
         var user = JsonSerializer.Serialize(new { context, score });
         var hash = Sha256(system + user);
-        logger.LogInformation(
-            "LLM narrative mode={Mode} risk={Risk} useCloud={UseCloud} hash={Hash}",
+        logger.LogInformation("LLM report enrich mode={Mode} risk={Risk} useCloud={UseCloud} hash={Hash}",
             mode, score.Level, useCloud, hash);
 
         if (useCloud)
@@ -114,22 +127,63 @@ public class KycLlmEngine(
             try
             {
                 var text = await CallAnthropicAsync(system, user, ct);
-                return KycReport.Create(context.CaseId, text, configuration["LLM:CloudModel"]);
+                if (IsUsefulLlmSection(text))
+                {
+                    var model = configuration["LLM:CloudModel"];
+                    return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, text),
+                        $"{templateModel}+{model}");
+                }
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Anthropic failed; falling back to local.");
+                logger.LogWarning(ex, "Anthropic report enrich failed; trying local or template only.");
             }
         }
-        else if (localOnly && riskWarrantsCloud)
+
+        try
         {
-            logger.LogInformation(
-                "Offline-first mode active: High/Critical case {CaseId} will use local LLM only.",
-                context.CaseId);
+            var local = await CallOllamaHtmlAsync(system, user, ct);
+            if (IsUsefulLlmSection(local))
+            {
+                var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+                return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, local),
+                    $"{templateModel}+{model}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Ollama report enrich failed; using structured template only.");
         }
 
-        var local = await CallOllamaMarkdownAsync(system, user, ct);
-        return KycReport.Create(context.CaseId, local, configuration["LLM:LocalModel"]);
+        return KycReport.Create(context.CaseId, baselineHtml, templateModel);
+    }
+
+    private static KycReportComposeRequest ToComposeRequest(KycScanContext context, RiskScore score) =>
+        new(
+            context.CaseId,
+            context.Nif,
+            context.CompanyName,
+            KycStatus.InProgress,
+            0,
+            "EUR",
+            DateTime.UtcNow,
+            context.Parties,
+            context.Signals,
+            score,
+            DateTime.UtcNow);
+
+    private static bool IsUsefulLlmSection(string? text) =>
+        !string.IsNullOrWhiteSpace(text) && text.Trim().Length >= 80;
+
+    private static string AppendLlmHtmlSection(string baselineHtml, string llmHtml)
+    {
+        var trimmed = llmHtml.Trim();
+        if (!trimmed.StartsWith("<section", StringComparison.OrdinalIgnoreCase))
+        {
+            trimmed = $"<section class=\"ai-summary\"><h2>Síntese assistida por IA</h2>{trimmed}</section>";
+        }
+
+        return baselineHtml.Replace("</main>", trimmed + "\n</main>", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<string> CallAnthropicAsync(string system, string user, CancellationToken ct)
@@ -143,7 +197,7 @@ public class KycLlmEngine(
         req.Content = JsonContent.Create(new
         {
             model,
-            max_tokens = 4000,
+            max_tokens = 2000,
             system,
             messages = new[] { new { role = "user", content = user } }
         });
@@ -153,7 +207,7 @@ public class KycLlmEngine(
         return doc.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
     }
 
-    private async Task<string> CallOllamaMarkdownAsync(string system, string user, CancellationToken ct)
+    private async Task<string> CallOllamaHtmlAsync(string system, string user, CancellationToken ct)
     {
         var client = httpClientFactory.CreateClient("ollama");
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
@@ -178,7 +232,7 @@ public class KycLlmEngine(
         await Task.CompletedTask;
         var issues = new List<string>();
         if (context.Parties.Count(p => p.Role.Contains("Ubo", StringComparison.OrdinalIgnoreCase)) == 0)
-            issues.Add("Sem UBO declarado vs. estrutura encontrada â€” rever manualmente.");
+            issues.Add("Sem UBO declarado vs. estrutura encontrada — rever manualmente.");
         return new ConsistencyCheckResult(issues.Count == 0, issues, issues.Count == 0 ? 90 : 60);
     }
 

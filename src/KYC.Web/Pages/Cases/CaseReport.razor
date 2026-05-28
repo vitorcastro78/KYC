@@ -3,27 +3,56 @@
 @inject IMediator Mediator
 @inject NavigationManager Nav
 
-<PageTitle>RelatÃ³rio</PageTitle>
+<PageTitle>Relatório KYC</PageTitle>
 
-@if (_report is null)
+@if (_loading)
 {
-    <p>Sem relatÃ³rio disponÃ­vel.</p>
+    <p>A carregar relatório…</p>
+}
+else if (_report is null)
+{
+    <div class="alert alert-warning">
+        <strong>Sem relatório disponível.</strong>
+        <p class="mb-0 mt-2">
+            O relatório é gerado automaticamente quando a triagem do caso termina.
+            Se o caso acabou de ser criado, aguarde a conclusão do pipeline ou use
+            <a href="/cases/@CaseId">Refazer triagem automática</a> no detalhe do caso.
+        </p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/cases/@CaseId">Voltar ao caso</a>
 }
 else
 {
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h1>RelatÃ³rio narrativo</h1>
-        <a class="btn btn-outline-secondary" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/report.pdf")" target="_blank">Exportar PDF</a>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="mb-1">Relatório KYC</h1>
+            <p class="text-muted small mb-0">
+                Gerado em @_report.GeneratedAt.ToLocalTime():dd/MM/yyyy HH:mm
+                @if (!string.IsNullOrWhiteSpace(_report.ModelUsed))
+                {
+                    <span> · Motor: @_report.ModelUsed</span>
+                }
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="/cases/@CaseId">Caso</a>
+            <a class="btn btn-primary" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/report.pdf")" target="_blank">Exportar PDF</a>
+        </div>
     </div>
-    <article class="border rounded p-3 bg-light" style="white-space: pre-wrap;">@_report.Markdown</article>
+
+    <article class="kyc-report border rounded p-4 bg-white shadow-sm">
+        @((MarkupString)_report.Html)
+    </article>
 }
 
 @code {
     [Parameter] public Guid CaseId { get; set; }
     private KycReportDto? _report;
+    private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
         _report = await Mediator.Send(new GetKycReportQuery(CaseId));
+        _loading = false;
     }
 }

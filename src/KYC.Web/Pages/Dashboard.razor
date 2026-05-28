@@ -1,68 +1,109 @@
-@page "/dashboard"
+﻿@page "/dashboard"
 @attribute [Authorize(Policy = "Analyst")]
 @inject IMediator Mediator
 
 <PageTitle>Dashboard</PageTitle>
 
-<h1>Dashboard KYC</h1>
+<div class="dashboard-hero mb-4">
+    <div>
+        <h1 class="mb-1">Executive KYC Dashboard</h1>
+        <p class="text-muted mb-0">Monitorização operacional de risco, compliance e decisão de crédito corporativo.</p>
+    </div>
+    <a class="btn btn-primary" href="/cases/new">Novo caso</a>
+</div>
 
 @if (!string.IsNullOrEmpty(_loadError))
 {
     <div class="alert alert-warning" role="alert">
         <strong>Base de dados indisponível ou erro ao carregar.</strong>
         <p class="mb-0 small">@_loadError</p>
-        <p class="mb-0 small mt-2">Confirme que o PostgreSQL está a correr, que a extensão <code>vector</code> existe e execute <code>dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web</code> com a connection string correcta em <code>appsettings</code> ou <code>KYC_DB_CONNECTION</code>.</p>
+        <p class="mb-0 small mt-2">Confirme que o PostgreSQL está a correr, que a extensão <code>vector</code> existe e execute <code>dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web</code> com a connection string correta.</p>
     </div>
 }
 else if (_summary is not null)
 {
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card text-bg-primary"><div class="card-body"><h5>Casos abertos</h5><h2>@_summary.OpenCases</h2></div></div>
+            <div class="kpi-card kpi-primary">
+                <span class="kpi-label">Casos em curso</span>
+                <span class="kpi-value">@_summary.OpenCases</span>
+            </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-success"><div class="card-body"><h5>Aprovados hoje</h5><h2>@_summary.ApprovedToday</h2></div></div>
+            <div class="kpi-card kpi-success">
+                <span class="kpi-label">Aprovados hoje</span>
+                <span class="kpi-value">@_summary.ApprovedToday</span>
+            </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-warning"><div class="card-body"><h5>Em revisão</h5><h2>@_summary.UnderReview</h2></div></div>
+            <div class="kpi-card kpi-warning">
+                <span class="kpi-label">Em revisão humana</span>
+                <span class="kpi-value">@_summary.UnderReview</span>
+            </div>
         </div>
         <div class="col-md-3">
-            <div class="card text-bg-secondary"><div class="card-body"><h5>Taxa aprovação</h5><h2>@_summary.ApprovalRatePercent%</h2></div></div>
+            <div class="kpi-card kpi-neutral">
+                <span class="kpi-label">Taxa de aprovação</span>
+                <span class="kpi-value">@_summary.ApprovalRatePercent%</span>
+            </div>
         </div>
     </div>
 }
 
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <h3>Casos recentes</h3>
-    <a class="btn btn-primary" href="/cases/new">Novo caso</a>
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="h5 mb-0">Casos recentes</h3>
+        <a class="btn btn-outline-primary btn-sm" href="/cases">Ver carteira completa</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-corporate mb-0">
+                <thead>
+                <tr><th>Identificador</th><th>Empresa</th><th>Score</th><th>Estado</th><th>Criado</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var c in _recent)
+                {
+                    <tr>
+                        <td><a class="fw-semibold" href="/cases/@c.Id">@c.Nif</a></td>
+                        <td>@c.CompanyName</td>
+                        <td><RiskScoreBadge Score="c.Score" /></td>
+                        <td><span class="status-pill @StatusClass(c.Status)">@StatusLabel(c.Status)</span></td>
+                        <td>@c.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<table class="table table-striped">
-    <thead><tr><th>NIF</th><th>Empresa</th><th>Score</th><th>Estado</th><th>Criado</th></tr></thead>
-    <tbody>
-    @foreach (var c in _recent)
-    {
-        <tr>
-            <td><a href="/cases/@c.Id">@c.Nif</a></td>
-            <td>@c.CompanyName</td>
-            <td><RiskScoreBadge Score="c.Score" /></td>
-            <td>@c.Status</td>
-            <td>@c.CreatedAt.ToLocalTime()</td>
-        </tr>
-    }
-    </tbody>
-</table>
-
-<h3 class="mt-4">Alertas críticos (24h)</h3>
-<ul class="list-group">
-@foreach (var a in _alerts)
-{
-    <li class="list-group-item d-flex justify-content-between">
-        <span>@a.CompanyName — @a.SignalSummary</span>
-        <a href="/cases/@a.CaseId">Abrir</a>
-    </li>
-}
-</ul>
+<div class="card">
+    <div class="card-header">
+        <h3 class="h5 mb-0">Alertas críticos (últimas 24h)</h3>
+    </div>
+    <div class="card-body p-0">
+        @if (_alerts.Count == 0)
+        {
+            <p class="text-muted p-3 mb-0">Sem alertas críticos nas últimas 24 horas.</p>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush">
+                @foreach (var a in _alerts)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <div class="fw-semibold">@a.CompanyName</div>
+                            <div class="text-muted small">@a.SignalSummary</div>
+                        </div>
+                        <a class="btn btn-sm btn-outline-danger" href="/cases/@a.CaseId">Analisar</a>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>
 
 @code {
     private string? _loadError;
@@ -84,4 +125,22 @@ else if (_summary is not null)
             _loadError = ex.InnerException?.Message ?? ex.Message;
         }
     }
+
+    private static string StatusLabel(KycStatus status) => status switch
+    {
+        KycStatus.Pending => "Pendente",
+        KycStatus.InProgress => "Em progresso",
+        KycStatus.UnderReview => "Em revisão",
+        KycStatus.Approved => "Aprovado",
+        KycStatus.Rejected => "Rejeitado",
+        _ => status.ToString()
+    };
+
+    private static string StatusClass(KycStatus status) => status switch
+    {
+        KycStatus.Approved => "status-ok",
+        KycStatus.Rejected => "status-bad",
+        KycStatus.UnderReview => "status-warn",
+        _ => "status-neutral"
+    };
 }

@@ -50,7 +50,7 @@ internal static class KycCaseMapping
 
         var report = c.FinalReport is null
             ? null
-            : new KycReportDto(c.Id, c.FinalReport.NarrativeMarkdown, c.FinalReport.ModelUsed, c.FinalReport.GeneratedAt);
+            : new KycReportDto(c.Id, c.FinalReport.NarrativeHtml, c.FinalReport.ModelUsed, c.FinalReport.GeneratedAt);
 
         return new KycCaseDetailDto(
             c.Id,

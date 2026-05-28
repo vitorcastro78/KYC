@@ -14,6 +14,13 @@ public sealed class InMemoryKycCaseMessageBus(
         return Task.CompletedTask;
     }
 
+    public Task PublishCaseRescreenAsync(Guid caseId, string actorId, CancellationToken ct = default)
+    {
+        if (!queue.Writer.TryWrite(new CaseStartedWork(caseId, Kind: CasePipelineKind.Rescreen, ActorId: actorId)))
+            log.LogWarning("Fila in-memory de casos iniciados fechada ou cheia; re-triagem ignorada para {CaseId}", caseId);
+        return Task.CompletedTask;
+    }
+
     public Task PublishEntityScanAsync(Guid caseId, Guid partyId, CancellationToken ct = default) =>
         Task.CompletedTask;
 

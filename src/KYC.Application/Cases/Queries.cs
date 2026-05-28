@@ -15,6 +15,8 @@ public record GetRiskTimelineQuery(Guid CaseId) : IRequest<RiskTimelineDto?>;
 
 public record GetKycReportQuery(Guid CaseId) : IRequest<KycReportDto?>;
 
+public record GetKycCaseScanProgressQuery(Guid CaseId) : IRequest<KycCaseScanProgressDto?>;
+
 public record GetDashboardSummaryQuery : IRequest<DashboardSummaryDto>;
 
 public record GetCriticalAlertsQuery : IRequest<IReadOnlyList<CriticalAlertDto>>;

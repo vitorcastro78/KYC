@@ -41,6 +41,19 @@ public class AzureServiceBusKycCaseMessageBus : IKycCaseMessageBus, IAsyncDispos
         await sender.SendMessageAsync(new ServiceBusMessage(body), ct);
     }
 
+    public async Task PublishCaseRescreenAsync(Guid caseId, string actorId, CancellationToken ct = default)
+    {
+        if (_client is null)
+        {
+            _log.LogWarning("Service Bus not configured; skipping publish kyc-case-rescreen.");
+            return;
+        }
+
+        await using var sender = _client.CreateSender(CaseStartedQueue);
+        var body = JsonSerializer.Serialize(new { caseId, kind = "rescreen", actorId });
+        await sender.SendMessageAsync(new ServiceBusMessage(body), ct);
+    }
+
     public async Task PublishLlmSynthesisAsync(Guid caseId, CancellationToken ct = default)
     {
         if (_client is null) return;

@@ -35,7 +35,7 @@ public sealed class KycServiceBusWorker(
             try
             {
                 var json = args.Message.Body.ToString();
-                var msg = JsonSerializer.Deserialize<CaseStartedMessage>(json,
+                var msg = JsonSerializer.Deserialize<CasePipelineMessage>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (msg is null || msg.CaseId == Guid.Empty)
                 {
@@ -45,7 +45,10 @@ public sealed class KycServiceBusWorker(
 
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var runner = scope.ServiceProvider.GetRequiredService<IKycCasePipelineRunner>();
-                await runner.RunCaseStartedAsync(msg.CaseId, args.CancellationToken);
+                if (string.Equals(msg.Kind, "rescreen", StringComparison.OrdinalIgnoreCase))
+                    await runner.RunRescreenAsync(msg.CaseId, msg.ActorId ?? "System", args.CancellationToken);
+                else
+                    await runner.RunCaseStartedAsync(msg.CaseId, args.CancellationToken);
                 await args.CompleteMessageAsync(args.Message, args.CancellationToken);
             }
             catch (Exception ex)
@@ -73,5 +76,5 @@ public sealed class KycServiceBusWorker(
         }
     }
 
-    private sealed record CaseStartedMessage(Guid CaseId, string? Nif);
+    private sealed record CasePipelineMessage(Guid CaseId, string? Nif, string? Kind, string? ActorId);
 }
