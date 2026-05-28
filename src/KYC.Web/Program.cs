@@ -1,8 +1,11 @@
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using KYC.Application;
+using KYC.Application.Cases;
 using KYC.Application.Interfaces;
+using KYC.Domain.Enums;
 using KYC.Infrastructure;
+using MediatR;
 using KYC.Web.Hubs;
 using KYC.Web.Security;
 using KYC.Web.Services;
@@ -158,6 +161,72 @@ app.MapGet("/api/cases/{caseId:guid}/report.pdf", async (
 {
     var bytes = await pdf.GenerateAsync(caseId, ct);
     return Results.File(bytes, "application/pdf", $"kyc-report-{caseId}.pdf");
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
+
+app.MapPost("/api/cases/{caseId:guid}/documents", async (
+    Guid caseId,
+    HttpRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    if (!request.HasFormContentType)
+        return Results.BadRequest("multipart/form-data required");
+
+    var form = await request.ReadFormAsync(ct);
+    var file = form.Files.GetFile("file");
+    if (file is null || file.Length == 0)
+        return Results.BadRequest("Ficheiro em falta.");
+
+    if (!Enum.TryParse<CaseDocumentKind>(form["kind"], ignoreCase: true, out var kind))
+        kind = CaseDocumentKind.Other;
+
+    Guid? casePartyId = null;
+    if (Guid.TryParse(form["casePartyId"], out var pid))
+        casePartyId = pid;
+
+    var actorId = request.HttpContext.User.Identity?.Name ?? "System";
+    await using var stream = file.OpenReadStream();
+    var documentId = await mediator.Send(new UploadCaseDocumentCommand(
+        caseId,
+        actorId,
+        file.FileName,
+        file.ContentType,
+        stream,
+        kind,
+        casePartyId), ct);
+
+    return Results.Accepted($"/api/cases/{caseId}/documents/{documentId}", new { documentId });
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
+
+app.MapGet("/api/cases/{caseId:guid}/documents/{documentId:guid}/file", async (
+    Guid caseId,
+    Guid documentId,
+    IKycCaseRepository cases,
+    ICaseDocumentStorage storage,
+    CancellationToken ct) =>
+{
+    var kyc = await cases.GetByIdAsync(caseId, ct);
+    var doc = kyc?.Documents.FirstOrDefault(d => d.Id == documentId);
+    if (doc is null)
+        return Results.NotFound();
+
+    await using var stream = await storage.OpenReadAsync(doc.StorageRelativePath, ct);
+    using var ms = new MemoryStream();
+    await stream.CopyToAsync(ms, ct);
+    return Results.File(ms.ToArray(), doc.ContentType, doc.FileName);
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
+
+app.MapGet("/api/cases/{caseId:guid}/documents/{documentId:guid}/text", async (
+    Guid caseId,
+    Guid documentId,
+    IKycCaseRepository cases,
+    CancellationToken ct) =>
+{
+    var kyc = await cases.GetByIdAsync(caseId, ct);
+    var doc = kyc?.Documents.FirstOrDefault(d => d.Id == documentId);
+    if (doc is null || string.IsNullOrWhiteSpace(doc.ExtractedText))
+        return Results.NotFound();
+    return Results.Text(doc.ExtractedText, "text/plain; charset=utf-8");
 }).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
 
 app.Run();

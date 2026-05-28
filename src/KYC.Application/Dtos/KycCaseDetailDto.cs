@@ -41,5 +41,6 @@ public record KycCaseDetailDto(
     IReadOnlyList<RiskSignalDetailDto> Signals,
     IReadOnlyList<AuditEntryDto> AuditTrail,
     KycReportDto? Report,
+    IReadOnlyList<CaseDocumentDto> Documents,
     GleifCompanySnapshot? Gleif = null,
     IReadOnlyList<GleifRelatedParty>? GleifRelatedParties = null);

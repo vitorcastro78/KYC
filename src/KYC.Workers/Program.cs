@@ -31,6 +31,17 @@ builder.Services.AddHttpClient("eu-fsf-export", client =>
 });
 builder.Services.AddHostedService<EuFsfXmlDailyDownloadHostedService>();
 
+builder.Services.Configure<AtDebtorsDailyDownloadOptions>(
+    builder.Configuration.GetSection(AtDebtorsDailyDownloadOptions.SectionKey));
+builder.Services.AddHttpClient("at-devedores-export", client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(30);
+    client.DefaultRequestHeaders.TryAddWithoutValidation(
+        "User-Agent",
+        "KYC-Workers/1.0 (+https://example.com; AT devedores daily sync)");
+});
+builder.Services.AddHostedService<AtDebtorsDailyDownloadHostedService>();
+
 var provider = (builder.Configuration["Messaging:Provider"] ?? "InMemory").Trim();
 var sbCs = builder.Configuration["KYC_SERVICEBUS_CONNECTION"] ?? builder.Configuration["ServiceBus:ConnectionString"];
 if (string.Equals(provider, "AzureServiceBus", StringComparison.OrdinalIgnoreCase)

@@ -20,6 +20,7 @@ public class KycCase
     public ICollection<CaseParty> Parties { get; } = new List<CaseParty>();
     public ICollection<RiskSignal> RiskSignals { get; } = new List<RiskSignal>();
     public ICollection<AuditEntry> AuditTrail { get; } = new List<AuditEntry>();
+    public ICollection<CaseDocument> Documents { get; } = new List<CaseDocument>();
     public KycReport? FinalReport { get; private set; }
 
     private KycCase()
@@ -158,6 +159,19 @@ public class KycCase
             actorId,
             "Agent",
             $"{newSignalCount} sinais gerados na nova triagem."));
+    }
+
+    public void AddDocument(CaseDocument document, string actorId)
+    {
+        if (document.KycCaseId != Id)
+            throw new InvalidOperationException("Document belongs to another case.");
+        Documents.Add(document);
+        AppendAudit(AuditEntry.Create(
+            Id,
+            "DocumentUploaded",
+            actorId,
+            "User",
+            $"{document.FileName} ({document.DocumentKind})"));
     }
 
     /// <summary>Adiciona uma parte manualmente (quadro social, accionistas, etc.).</summary>

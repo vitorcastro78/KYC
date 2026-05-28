@@ -29,4 +29,13 @@ public record AddManualCasePartyCommand(
 
 public record ScreenCasePartyCommand(Guid CaseId, Guid PartyId, string ActorId) : IRequest<Unit>;
 
+public record UploadCaseDocumentCommand(
+    Guid CaseId,
+    string ActorId,
+    string FileName,
+    string ContentType,
+    Stream Content,
+    CaseDocumentKind Kind,
+    Guid? CasePartyId) : IRequest<Guid>;
+
 public record RerunKycCaseScreeningCommand(Guid CaseId, string ActorId) : IRequest<Unit>;

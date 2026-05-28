@@ -16,3 +16,7 @@ coverage*.xml
 **/Data/ofac/*.tmp
 **/Data/eu-fsf/*.xml
 **/Data/eu-fsf/*.tmp
+**/Data/AT/Devedores/**/*.pdf
+**/Data/AT/Devedores/**/*.json
+**/Data/AT/Devedores/**/*.tmp
+**/Data/cases/**

@@ -22,4 +22,12 @@ public class HubKycCaseRealtimeNotifier(IHubContext<KycCaseHub> hub) : IKycCaseR
     public Task NotifyStatusChangedAsync(Guid caseId, KycStatus newStatus, CancellationToken ct = default) =>
         hub.Clients.Group(KycCaseHub.CaseGroup(caseId))
             .SendAsync("StatusChanged", caseId, newStatus.ToString(), ct);
+
+    public Task NotifyDocumentIngestionUpdatedAsync(
+        Guid caseId,
+        Guid documentId,
+        DocumentIngestionStatus status,
+        CancellationToken ct = default) =>
+        hub.Clients.Group(KycCaseHub.CaseGroup(caseId))
+            .SendAsync("DocumentIngestionUpdated", caseId, documentId, status.ToString(), ct);
 }

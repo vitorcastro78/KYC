@@ -304,7 +304,21 @@ public class KycLlmEngine(
         await Task.CompletedTask;
         var issues = new List<string>();
         if (context.Parties.Count(p => p.Role.Contains("Ubo", StringComparison.OrdinalIgnoreCase)) == 0)
-            issues.Add("Sem UBO declarado vs. estrutura encontrada  rever manualmente.");
+            issues.Add("Sem UBO declarado vs. estrutura encontrada ? rever manualmente.");
+
+        var docNif = context.DeclaredFacts
+            .FirstOrDefault(f => f.Key.Equals("Nif", StringComparison.OrdinalIgnoreCase))?.Value;
+        if (!string.IsNullOrWhiteSpace(docNif) && !string.IsNullOrWhiteSpace(context.Nif))
+        {
+            var normalizedDoc = new string(docNif.Where(char.IsDigit).ToArray());
+            var normalizedCase = new string(context.Nif.Where(char.IsDigit).ToArray());
+            if (normalizedDoc.Length == 9 && normalizedCase.Length == 9 &&
+                !string.Equals(normalizedDoc, normalizedCase, StringComparison.Ordinal))
+            {
+                issues.Add($"NIF documental ({docNif}) difere do NIF do caso ({context.Nif}).");
+            }
+        }
+
         return new ConsistencyCheckResult(issues.Count == 0, issues, issues.Count == 0 ? 90 : 60);
     }
 

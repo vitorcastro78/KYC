@@ -48,5 +48,10 @@ public class KycCaseConfiguration : IEntityTypeConfiguration<KycCase>
             .WithOne()
             .HasForeignKey<KycReport>(r => r.KycCaseId)
             .IsRequired(false);
+
+        builder.HasMany(x => x.Documents)
+            .WithOne()
+            .HasForeignKey(d => d.KycCaseId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

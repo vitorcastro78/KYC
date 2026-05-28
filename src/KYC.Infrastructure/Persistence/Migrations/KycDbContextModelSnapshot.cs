@@ -66,6 +66,85 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_entries", (string)null);
                 });
 
+            modelBuilder.Entity("KYC.Domain.Entities.CaseDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CasePartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int>("DocumentKind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ExtractedText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExtractionModel")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ExtractionPromptHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<int>("IngestionStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("KycCaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RawExtractionJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageRelativePath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UploadedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KycCaseId");
+
+                    b.HasIndex("KycCaseId", "IngestionStatus");
+
+                    b.ToTable("case_documents", (string)null);
+                });
+
             modelBuilder.Entity("KYC.Domain.Entities.CaseParty", b =>
                 {
                     b.Property<Guid>("Id")
@@ -122,6 +201,89 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.HasIndex("KycCaseId", "Nif");
 
                     b.ToTable("case_parties", (string)null);
+                });
+
+            modelBuilder.Entity("KYC.Domain.Entities.DocumentExtractedFact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaseDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("Confidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)");
+
+                    b.Property<DateTime>("ExtractedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FactKey")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FactValue")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid>("KycCaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("SourcePage")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseDocumentId");
+
+                    b.HasIndex("KycCaseId", "FactKey");
+
+                    b.ToTable("document_extracted_facts", (string)null);
+                });
+
+            modelBuilder.Entity("KYC.Domain.Entities.DocumentExtractedParty", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaseDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExtractedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("KycCaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Nationality")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Nif")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal?>("OwnershipPercentage")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseDocumentId");
+
+                    b.HasIndex("KycCaseId");
+
+                    b.ToTable("document_extracted_parties", (string)null);
                 });
 
             modelBuilder.Entity("KYC.Domain.Entities.KycCase", b =>
@@ -186,9 +348,10 @@ namespace KYC.Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<string>("NarrativeMarkdown")
+                    b.Property<string>("NarrativeHtml")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("NarrativeMarkdown");
 
                     b.HasKey("Id");
 
@@ -303,6 +466,15 @@ namespace KYC.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("KYC.Domain.Entities.CaseDocument", b =>
+                {
+                    b.HasOne("KYC.Domain.Entities.KycCase", null)
+                        .WithMany("Documents")
+                        .HasForeignKey("KycCaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("KYC.Domain.Entities.CaseParty", b =>
                 {
                     b.HasOne("KYC.Domain.Entities.KycCase", null)
@@ -359,6 +531,24 @@ namespace KYC.Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("PartyScore");
+                });
+
+            modelBuilder.Entity("KYC.Domain.Entities.DocumentExtractedFact", b =>
+                {
+                    b.HasOne("KYC.Domain.Entities.CaseDocument", null)
+                        .WithMany("ExtractedFacts")
+                        .HasForeignKey("CaseDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KYC.Domain.Entities.DocumentExtractedParty", b =>
+                {
+                    b.HasOne("KYC.Domain.Entities.CaseDocument", null)
+                        .WithMany("ExtractedParties")
+                        .HasForeignKey("CaseDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("KYC.Domain.Entities.KycCase", b =>
@@ -429,9 +619,18 @@ namespace KYC.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("KYC.Domain.Entities.CaseDocument", b =>
+                {
+                    b.Navigation("ExtractedFacts");
+
+                    b.Navigation("ExtractedParties");
+                });
+
             modelBuilder.Entity("KYC.Domain.Entities.KycCase", b =>
                 {
                     b.Navigation("AuditTrail");
+
+                    b.Navigation("Documents");
 
                     b.Navigation("FinalReport");
 

@@ -2,7 +2,9 @@
 using KYC.Application.Interfaces;
 
 using KYC.Infrastructure.BackgroundJobs;
+using KYC.Infrastructure.Documents;
 using KYC.Infrastructure.ExternalSources;
+using KYC.Infrastructure.ExternalSources.At;
 using KYC.Infrastructure.LLM;
 using KYC.Infrastructure.Messaging;
 using KYC.Infrastructure.Pdf;
@@ -37,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IEntityResolutionService, EntityResolutionService>();
         services.AddScoped<ISanctionsScreeningService, SanctionsScreeningService>();
         services.AddScoped<IAdverseMediaService, AdverseMediaService>();
+        services.AddSingleton<IAtDebtorsLocalIndex, AtDebtorsLocalIndex>();
         services.AddScoped<IFinancialHealthService, FinancialHealthService>();
         services.AddScoped<IJudicialIntelligenceService, JudicialIntelligenceService>();
         services.AddScoped<IIcijOffshoreService, IcijOffshoreService>();
@@ -47,6 +50,16 @@ public static class DependencyInjection
         services.AddScoped<ICasePartyScreener, CasePartyScreener>();
         services.AddSingleton<IKycHtmlToPdfConverter, PuppeteerKycHtmlToPdfConverter>();
         services.AddScoped<IKycReportPdfGenerator, KycReportPdfGenerator>();
+
+        services.AddSingleton<ICaseDocumentStorage, LocalCaseDocumentStorage>();
+        services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
+        services.AddSingleton<DocumentIngestionQueue>();
+        services.AddSingleton<IDocumentIngestionQueue>(sp => sp.GetRequiredService<DocumentIngestionQueue>());
+        services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
+        services.AddSingleton<DocumentVisionExtractor>();
+        services.AddSingleton<DocumentFieldExtractor>();
+        services.AddScoped<IDocumentConsistencyChecker, DocumentConsistencyChecker>();
+        services.AddHostedService<DocumentIngestionHostedService>();
 
         RegisterMessaging(services, configuration);
 

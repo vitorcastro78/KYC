@@ -19,6 +19,7 @@ public class KycCasePipelineRunner(
     IKycCaseScanProgressRepository progress,
     IKycCaseRealtimeNotifier notifier,
     IReportEmbeddingWriter embeddingWriter,
+    IDocumentConsistencyChecker documentConsistency,
     ILogger<KycCasePipelineRunner> log) : IKycCasePipelineRunner
 {
     public Task RunCaseStartedAsync(Guid caseId, CancellationToken ct = default) =>
@@ -63,6 +64,11 @@ public class KycCasePipelineRunner(
 
         foreach (var sig in signals)
             kyc.AddRiskSignal(sig);
+
+        foreach (var docSignal in documentConsistency.Check(kyc))
+            kyc.AddRiskSignal(docSignal);
+
+        await notifier.NotifyScanProgressAsync(caseId, "Documents", 91, ct);
 
         await notifier.NotifyScanProgressAsync(caseId, "LLM", 92, ct);
 
@@ -210,6 +216,38 @@ public class KycCasePipelineRunner(
             s.Severity.ToString(),
             s.Description,
             s.Source)).ToList();
-        return new KycScanContext(kyc.Id, kyc.Nif, kyc.CompanyName, parties, sigs, null);
+
+        var declaredFacts = kyc.Documents
+            .Where(d => d.IngestionStatus == DocumentIngestionStatus.Completed)
+            .SelectMany(d => d.ExtractedFacts.Select(f => new DocumentFactScanDto(
+                d.Id,
+                f.FactKey.ToString(),
+                f.FactValue)))
+            .ToList();
+
+        var declaredParties = kyc.Documents
+            .Where(d => d.IngestionStatus == DocumentIngestionStatus.Completed)
+            .SelectMany(d => d.ExtractedParties.Select(p => new DocumentPartyScanDto(
+                d.Id,
+                p.Name,
+                p.Nif,
+                p.Role.ToString(),
+                p.OwnershipPercentage)))
+            .ToList();
+
+        var uboSummary = declaredParties.Count == 0
+            ? null
+            : string.Join("; ", declaredParties.Select(p =>
+                $"{p.Name} ({p.Role}){(p.OwnershipPercentage is { } pct ? $" {pct}%" : string.Empty)}"));
+
+        return new KycScanContext(
+            kyc.Id,
+            kyc.Nif,
+            kyc.CompanyName,
+            parties,
+            sigs,
+            declaredFacts,
+            declaredParties,
+            uboSummary);
     }
 }

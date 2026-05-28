@@ -55,6 +55,11 @@ internal static class KycCaseMapping
             ? null
             : new KycReportDto(c.Id, c.FinalReport.NarrativeHtml, c.FinalReport.ModelUsed, c.FinalReport.GeneratedAt);
 
+        var documents = c.Documents
+            .OrderByDescending(d => d.UploadedAt)
+            .Select(ToDocumentDto)
+            .ToList();
+
         return new KycCaseDetailDto(
             c.Id,
             c.Nif,
@@ -67,6 +72,34 @@ internal static class KycCaseMapping
             parties,
             signals,
             audit,
-            report);
+            report,
+            documents);
+    }
+
+    public static CaseDocumentDto ToDocumentDto(CaseDocument d)
+    {
+        var facts = d.ExtractedFacts
+            .Select(f => new DocumentExtractedFactDto(f.FactKey, f.FactValue, f.Confidence, f.SourcePage))
+            .ToList();
+        var parties = d.ExtractedParties
+            .Select(p => new DocumentExtractedPartyDto(
+                p.Name, p.Nif, p.Role, p.OwnershipPercentage, p.Nationality))
+            .ToList();
+        return new CaseDocumentDto(
+            d.Id,
+            d.KycCaseId,
+            d.CasePartyId,
+            d.FileName,
+            d.ContentType,
+            d.SizeBytes,
+            d.DocumentKind,
+            d.IngestionStatus,
+            d.FailureReason,
+            d.UploadedAt,
+            d.UploadedBy,
+            d.ProcessedAt,
+            facts,
+            parties,
+            !string.IsNullOrWhiteSpace(d.ExtractedText));
     }
 }

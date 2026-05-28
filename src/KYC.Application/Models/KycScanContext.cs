@@ -11,10 +11,24 @@ public record PartyScanDto(
 
 public record RiskSignalScanDto(string Type, string Severity, string Description, string Source);
 
+public record DocumentFactScanDto(
+    Guid DocumentId,
+    string Key,
+    string Value);
+
+public record DocumentPartyScanDto(
+    Guid DocumentId,
+    string Name,
+    string? Nif,
+    string Role,
+    decimal? OwnershipPercentage);
+
 public record KycScanContext(
     Guid CaseId,
     string Nif,
     string CompanyName,
     IReadOnlyList<PartyScanDto> Parties,
     IReadOnlyList<RiskSignalScanDto> Signals,
+    IReadOnlyList<DocumentFactScanDto> DeclaredFacts,
+    IReadOnlyList<DocumentPartyScanDto> DeclaredParties,
     string? DeclaredUboSummary);

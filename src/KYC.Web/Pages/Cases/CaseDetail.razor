@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = "Analyst")]
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Forms
+@using KYC.Application.Cases
 @using KYC.Domain.Enums
 @using FluentValidation
 @using Microsoft.AspNetCore.SignalR.Client
@@ -109,6 +110,80 @@ else
                     </div>
                 }
             </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h3 class="h6 mb-0">Documentos da entidade</h3>
+            @if (_case.Status is not KycStatus.Rejected)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => _showUploadDocument = true">
+                    Carregar documento
+                </button>
+            }
+        </div>
+        <div class="card-body">
+            @if (_case.Documents.Count == 0)
+            {
+                <p class="text-muted mb-0">Nenhum documento carregado.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Ficheiro</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Data</th>
+                                <th>Dados extraídos</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in _case.Documents)
+                            {
+                                <tr>
+                                    <td>@doc.FileName</td>
+                                    <td>@DocumentKindLabel(doc.DocumentKind)</td>
+                                    <td><span class="badge @DocumentStatusBadge(doc.IngestionStatus)">@DocumentStatusLabel(doc.IngestionStatus)</span></td>
+                                    <td class="text-nowrap small">@doc.UploadedAt.ToLocalTime().ToString("g")</td>
+                                    <td class="small">
+                                        @if (doc.Facts.Count > 0 || doc.Parties.Count > 0)
+                                        {
+                                            @foreach (var f in doc.Facts.Take(4))
+                                            {
+                                                <div><strong>@f.FactKey:</strong> @f.FactValue</div>
+                                            }
+                                            @if (doc.Parties.Count > 0)
+                                            {
+                                                <div class="text-muted">@doc.Parties.Count parte(s) declarada(s)</div>
+                                            }
+                                        }
+                                        else if (doc.IngestionStatus == DocumentIngestionStatus.Failed)
+                                        {
+                                            <span class="text-danger">@doc.FailureReason</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <a class="btn btn-link btn-sm p-0 me-2" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/documents/{doc.Id}/file")" target="_blank">Original</a>
+                                        @if (doc.HasExtractedText)
+                                        {
+                                            <a class="btn btn-link btn-sm p-0" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/documents/{doc.Id}/text")" target="_blank">Texto</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
     </div>
 
@@ -241,6 +316,49 @@ else
     <p class="text-muted small mb-0">Sinais ainda não confirmados pelo analista serão substituídos; os confirmados mantêm-se.</p>
 </ConfirmDialog>
 
+@if (_showUploadDocument)
+{
+    <div class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Carregar documento</h5>
+                    <button type="button" class="btn-close" @onclick="() => _showUploadDocument = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label">Ficheiro *</label>
+                        <InputFile class="form-control" OnChange="OnDocumentFileSelected" accept=".pdf,.docx,.jpg,.jpeg,.png,.tif,.tiff" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Tipo de documento</label>
+                        <InputSelect class="form-select" @bind-Value="_uploadForm.Kind">
+                            @foreach (var k in Enum.GetValues<CaseDocumentKind>())
+                            {
+                                <option value="@k">@DocumentKindLabel(k)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Associar a parte (opcional)</label>
+                        <InputSelect class="form-select" @bind-Value="_uploadForm.CasePartyIdStr">
+                            <option value="">— Entidade do caso —</option>
+                            @foreach (var p in _case!.Parties)
+                            {
+                                <option value="@p.Id.ToString()">@p.Name (@RoleLabel(p.Role))</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showUploadDocument = false">Cancelar</button>
+                    <button type="button" class="btn btn-primary" disabled="@(_uploadBusy || _uploadFile is null)" @onclick="SubmitUploadDocumentAsync">Enviar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public Guid CaseId { get; set; }
     private KycCaseDetailDto? _case;
@@ -252,8 +370,12 @@ else
     private bool _disposed;
     private bool _showApprove, _showReject, _showReview, _showRescreen;
     private bool _showAddParty;
+    private bool _showUploadDocument;
     private bool _addPartyBusy;
+    private bool _uploadBusy;
     private bool _rescreenBusy;
+    private IBrowserFile? _uploadFile;
+    private UploadDocumentFormModel _uploadForm = new();
     private string _rejectReason = "";
     private string _reviewReason = "";
     private string? _actionError;
@@ -270,6 +392,12 @@ else
         public string? Nationality { get; set; }
         public string ParentPartyIdStr { get; set; } = "";
         public bool RunScreeningAfterAdd { get; set; } = true;
+    }
+
+    private sealed class UploadDocumentFormModel
+    {
+        public CaseDocumentKind Kind { get; set; } = CaseDocumentKind.Other;
+        public string CasePartyIdStr { get; set; } = "";
     }
 
     protected override async Task OnInitializedAsync() =>
@@ -322,6 +450,15 @@ else
                 });
             });
             _hub.On<Guid, string>("ReportReady", (id, status) =>
+            {
+                if (id != CaseId || _disposed) return;
+                _ = InvokeAsync(async () =>
+                {
+                    if (_disposed) return;
+                    await RunDataAsync(ReloadCoreAsync);
+                });
+            });
+            _hub.On<Guid, Guid, string>("DocumentIngestionUpdated", (id, documentId, status) =>
             {
                 if (id != CaseId || _disposed) return;
                 _ = InvokeAsync(async () =>
@@ -432,6 +569,78 @@ else
             _addPartyBusy = false;
         }
     }
+
+    private async Task SubmitUploadDocumentAsync()
+    {
+        if (_uploadFile is null)
+            return;
+
+        _uploadBusy = true;
+        _actionError = null;
+        try
+        {
+            Guid? partyId = null;
+            if (Guid.TryParse(_uploadForm.CasePartyIdStr, out var pid))
+                partyId = pid;
+
+            const long maxBytes = 26_214_400;
+            await using var stream = _uploadFile.OpenReadStream(maxBytes);
+            await Mediator.Send(new UploadCaseDocumentCommand(
+                CaseId,
+                "dev-user",
+                _uploadFile.Name,
+                _uploadFile.ContentType,
+                stream,
+                _uploadForm.Kind,
+                partyId));
+
+            _showUploadDocument = false;
+            _uploadFile = null;
+            _uploadForm = new UploadDocumentFormModel();
+            await Reload();
+        }
+        catch (ValidationException vex)
+        {
+            _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+        }
+        finally
+        {
+            _uploadBusy = false;
+        }
+    }
+
+    private void OnDocumentFileSelected(InputFileChangeEventArgs e) =>
+        _uploadFile = e.File;
+
+    private static string DocumentKindLabel(CaseDocumentKind kind) => kind switch
+    {
+        CaseDocumentKind.Identity => "Identificação",
+        CaseDocumentKind.FinancialStatement => "Demonstração financeira",
+        CaseDocumentKind.UboDeclaration => "Declaração UBO",
+        CaseDocumentKind.CommercialRegistry => "Registo comercial",
+        _ => "Outro"
+    };
+
+    private static string DocumentStatusLabel(DocumentIngestionStatus status) => status switch
+    {
+        DocumentIngestionStatus.Pending => "Pendente",
+        DocumentIngestionStatus.Processing => "A processar",
+        DocumentIngestionStatus.Completed => "Concluído",
+        DocumentIngestionStatus.Failed => "Falhou",
+        _ => status.ToString()
+    };
+
+    private static string DocumentStatusBadge(DocumentIngestionStatus status) => status switch
+    {
+        DocumentIngestionStatus.Completed => "bg-success",
+        DocumentIngestionStatus.Processing => "bg-info text-dark",
+        DocumentIngestionStatus.Failed => "bg-danger",
+        _ => "bg-secondary"
+    };
 
     private async Task RerunScreeningAsync()
     {

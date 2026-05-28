@@ -22,6 +22,10 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
             .Include(c => c.RiskSignals)
             .Include(c => c.AuditTrail)
             .Include(c => c.FinalReport)
+            .Include(c => c.Documents)
+                .ThenInclude(d => d.ExtractedFacts)
+            .Include(c => c.Documents)
+                .ThenInclude(d => d.ExtractedParties)
             .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
@@ -103,6 +107,21 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
         await PromoteIfMissingAsync(
             db.ChangeTracker.Entries<ReportEmbedding>().Where(e => e.State == EntityState.Modified),
             ids => db.ReportEmbeddings.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
+            e => e.Id,
+            ct);
+        await PromoteIfMissingAsync(
+            db.ChangeTracker.Entries<CaseDocument>().Where(e => e.State == EntityState.Modified),
+            ids => db.CaseDocuments.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
+            e => e.Id,
+            ct);
+        await PromoteIfMissingAsync(
+            db.ChangeTracker.Entries<DocumentExtractedFact>().Where(e => e.State == EntityState.Modified),
+            ids => db.DocumentExtractedFacts.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
+            e => e.Id,
+            ct);
+        await PromoteIfMissingAsync(
+            db.ChangeTracker.Entries<DocumentExtractedParty>().Where(e => e.State == EntityState.Modified),
+            ids => db.DocumentExtractedParties.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
             e => e.Id,
             ct);
     }

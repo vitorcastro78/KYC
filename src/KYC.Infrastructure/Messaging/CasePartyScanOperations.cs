@@ -48,13 +48,14 @@ internal static class CasePartyScanOperations
         if (party.Nif is not null)
         {
             var fin = await financial.AnalyseAsync(party.Nif, ct);
+            var severity = fin.IsAtPublicDebtor ? SignalSeverity.High : SignalSeverity.Low;
             signals.Add(RiskSignal.Create(
                 kyc.Id,
                 party.Id,
                 SignalType.Financial,
-                SignalSeverity.Low,
+                severity,
                 fin.Summary,
-                "Financial"));
+                fin.IsAtPublicDebtor ? "AT-Devedores" : "Financial"));
         }
 
         var jud = await judicial.SearchAsync(party.Nif ?? kyc.Nif, party.Name, ct);
