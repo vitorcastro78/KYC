@@ -49,7 +49,7 @@
                     <span>Será redireccionado para o caso quando o processo terminar.</span>
                 }
             </p>
-            <ScanProgressBar Module="@_scan.DisplayModule" Percent="@_scan.Percent" />
+            <ScanProgressBar Module="@_scan.DisplayModule" Percent="@_scan.Percent" Animated="true" />
         </div>
     </div>
 }
@@ -64,8 +64,11 @@
     private readonly ScanProgressTracker _scan = new();
     private string? _error;
     private bool _isProcessing;
+    private bool _disposed;
     private Guid? _pendingCaseId;
     private HubConnection? _hub;
+    private bool _hubHandlersRegistered;
+    private CancellationTokenSource? _pollCts;
 
     private async Task Submit()
     {
@@ -76,17 +79,16 @@
         _isProcessing = true;
         _pendingCaseId = null;
         _scan.BeginNewCaseFlow();
+        StopPolling();
 
         try
         {
-            await EnsureHubAsync();
-
             var id = await Mediator.Send(new StartKycCaseCommand(_model.Nif, "dev-user", CreditAmount.Eur(_model.Amount)));
             _pendingCaseId = id;
             _scan.ApplyNewCaseCreatedHint();
 
-            if (_hub is not null)
-                await _hub.SendAsync("JoinCaseGroup", id);
+            await TryConnectHubAsync(id);
+            StartPolling(id);
         }
         catch (Exception ex)
         {
@@ -94,38 +96,171 @@
             _isProcessing = false;
             _pendingCaseId = null;
             _scan.ResetAfterFailure();
+            StopPolling();
         }
     }
 
-    private async Task EnsureHubAsync()
+    private void StartPolling(Guid caseId)
     {
-        if (_hub is { State: HubConnectionState.Connected })
+        StopPolling();
+        _pollCts = new CancellationTokenSource();
+        _ = PollProgressLoopAsync(caseId, _pollCts.Token);
+    }
+
+    private void StopPolling()
+    {
+        try
+        {
+            _pollCts?.Cancel();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _pollCts?.Dispose();
+        _pollCts = null;
+    }
+
+    private async Task PollProgressLoopAsync(Guid caseId, CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested && !_disposed)
+            {
+                await RefreshProgressFromDatabaseAsync(caseId);
+
+                if (await TryCompleteAndNavigateAsync(caseId))
+                    return;
+
+                await Task.Delay(2000, ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // encerramento normal
+        }
+    }
+
+    private async Task RefreshProgressFromDatabaseAsync(Guid caseId)
+    {
+        if (_disposed)
             return;
 
-        _hub ??= HubFactory.Create();
+        var hubConnected = _hub?.State == HubConnectionState.Connected;
+        if (hubConnected)
+            return;
+
+        var active = await Mediator.Send(new GetKycCaseScanProgressQuery(caseId));
+        var pct = active?.PercentComplete ?? 0;
+
+        await InvokeAsync(() =>
+        {
+            if (_disposed)
+                return Task.CompletedTask;
+
+            _scan.TryApplyDatabaseFallback(pct, hubConnected: false);
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task<bool> TryCompleteAndNavigateAsync(Guid caseId)
+    {
+        if (_disposed)
+            return true;
+
+        var kyc = await Mediator.Send(new GetKycCaseQuery(caseId));
+        if (kyc?.Report is null)
+            return false;
+
+        StopPolling();
+        await InvokeAsync(() =>
+        {
+            if (_disposed)
+                return Task.CompletedTask;
+
+            _scan.ApplyCompletedCaseView();
+            Nav.NavigateTo($"/cases/{caseId}", true);
+            return Task.CompletedTask;
+        });
+
+        return true;
+    }
+
+    private async Task TryConnectHubAsync(Guid caseId)
+    {
+        try
+        {
+            _hub ??= HubFactory.Create();
+            RegisterHubHandlers();
+
+            if (_hub.State == HubConnectionState.Disconnected)
+                await _hub.StartAsync();
+
+            if (_hub.State == HubConnectionState.Connected)
+                await _hub.SendAsync("JoinCaseGroup", caseId);
+        }
+        catch
+        {
+            // SignalR opcional; polling à BD cobre progresso e conclusão.
+        }
+    }
+
+    private void RegisterHubHandlers()
+    {
+        if (_hub is null || _hubHandlersRegistered)
+            return;
+
+        _hubHandlersRegistered = true;
 
         _hub.On<Guid, string, int>("ScanProgressUpdated", (id, module, pct) =>
         {
-            if (_pendingCaseId is null || id != _pendingCaseId)
+            if (_pendingCaseId is null || id != _pendingCaseId || _disposed)
                 return;
 
-            _scan.ApplyHubUpdate(module, pct);
-            InvokeAsync(StateHasChanged);
+            _ = InvokeAsync(() =>
+            {
+                var result = _scan.ApplyHubUpdate(module, pct);
+                if (result == ScanProgressHubResult.Failed)
+                {
+                    _error = "A triagem automática falhou. Consulte os logs do servidor ou abra o caso na lista.";
+                    _isProcessing = false;
+                    _pendingCaseId = null;
+                    _scan.ResetAfterFailure();
+                    StopPolling();
+                }
+
+                StateHasChanged();
+                return Task.CompletedTask;
+            });
         });
 
-        _hub.On<Guid, string>("ReportReady", (id, _) =>
-        {
-            if (_pendingCaseId is null || id != _pendingCaseId)
-                return;
-            Nav.NavigateTo($"/cases/{id}", true);
-        });
+        _hub.On<Guid, string>("ReportReady", OnReportReady);
+    }
 
-        if (_hub.State == HubConnectionState.Disconnected)
-            await _hub.StartAsync();
+    private void OnReportReady(Guid id, string status)
+    {
+        if (_pendingCaseId is null || id != _pendingCaseId || _disposed)
+            return;
+
+        _ = InvokeAsync(HandleReportReadyAsync);
+    }
+
+    private async Task HandleReportReadyAsync()
+    {
+        if (_pendingCaseId is not { } caseId || _disposed)
+            return;
+
+        StopPolling();
+        await TryCompleteAndNavigateAsync(caseId);
     }
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+        StopPolling();
+
         if (_hub is null)
             return;
 
@@ -133,7 +268,8 @@
         {
             try
             {
-                await _hub.SendAsync("LeaveCaseGroup", caseId);
+                if (_hub.State == HubConnectionState.Connected)
+                    await _hub.SendAsync("LeaveCaseGroup", caseId);
             }
             catch
             {
