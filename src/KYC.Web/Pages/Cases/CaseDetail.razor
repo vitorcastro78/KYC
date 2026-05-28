@@ -34,9 +34,9 @@ else
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h3 class="h6 mb-0">Progresso da triagem</h3>
-                <small class="text-muted">@_scanModule · @_scanPercent%</small>
+                <small class="text-muted">@_scan.DisplayModule · @_scan.Percent%</small>
             </div>
-            <ScanProgressBar Module="@_scanModule" Percent="@_scanPercent" Animated="@(_scanInProgress || _case.Status is KycStatus.InProgress)" />
+            <ScanProgressBar Module="@_scan.DisplayModule" Percent="@_scan.Percent" Animated="@(_scan.InProgress || _case.Status is KycStatus.InProgress)" />
         </div>
     </div>
 
@@ -248,12 +248,7 @@ else
     private HubConnection? _hub;
     private bool _hubConnectAttempted;
     private readonly SemaphoreSlim _dataGate = new(1, 1);
-    private int _scanPercent;
-    private string _scanModule = "—";
-    private bool _scanInProgress;
-    /// <summary>Ignora 100% residual da triagem anterior até o pipeline reportar progresso novo.</summary>
-    private bool _awaitingFreshProgress;
-    private CancellationTokenSource? _scanPollCts;
+    private readonly ScanProgressTracker _scan = new();
     private bool _disposed;
     private bool _showApprove, _showReject, _showReview, _showRescreen;
     private bool _showAddParty;
@@ -300,32 +295,19 @@ else
                 _ = InvokeAsync(async () =>
                 {
                     if (_disposed) return;
-                    if (string.Equals(module, "Erro na triagem", StringComparison.OrdinalIgnoreCase))
+                    var result = _scan.ApplyHubUpdate(module, pct);
+                    if (result == ScanProgressHubResult.Failed)
                     {
                         _actionError = "A triagem automática falhou. Consulte os logs do servidor ou tente novamente.";
-                        _scanInProgress = false;
-                        _awaitingFreshProgress = false;
-                        StopScanPolling();
                         await RunDataAsync(ReloadCoreAsync);
                         return;
                     }
 
-                    _scanModule = module;
-                    _scanPercent = Math.Clamp(pct, 0, 100);
-                    if (pct is 0 or (> 0 and < 100))
-                    {
-                        _scanInProgress = true;
-                        if (pct > 0)
-                            _awaitingFreshProgress = false;
-                    }
+                    if (result == ScanProgressHubResult.IgnoredStale)
+                        return;
 
-                    if (pct >= 100)
-                    {
-                        _scanInProgress = false;
-                        _awaitingFreshProgress = false;
-                        StopScanPolling();
+                    if (result == ScanProgressHubResult.Completed)
                         await RunDataAsync(ReloadCoreAsync);
-                    }
 
                     StateHasChanged();
                 });
@@ -361,7 +343,6 @@ else
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
-        StopScanPolling();
 
         if (_hub is not null)
         {
@@ -456,11 +437,7 @@ else
     {
         _rescreenBusy = true;
         _actionError = null;
-        _scanInProgress = true;
-        _awaitingFreshProgress = true;
-        _scanPercent = 0;
-        _scanModule = "A iniciar…";
-        StartScanPolling();
+        _scan.BeginRescreen();
         try
         {
             await Mediator.Send(new RerunKycCaseScreeningCommand(CaseId, "dev-user"));
@@ -471,17 +448,13 @@ else
         {
             _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
             _showRescreen = false;
-            _scanInProgress = false;
-            _awaitingFreshProgress = false;
-            StopScanPolling();
+            _scan.ResetAfterFailure();
         }
         catch (Exception ex)
         {
             _actionError = ex.Message;
             _showRescreen = false;
-            _scanInProgress = false;
-            _awaitingFreshProgress = false;
-            StopScanPolling();
+            _scan.ResetAfterFailure();
         }
         finally
         {
@@ -578,127 +551,50 @@ else
         if (_case is null)
             return;
 
-        if (_scanInProgress || _case.Status is KycStatus.InProgress)
+        var hubConnected = _hub?.State == HubConnectionState.Connected;
+
+        if (_scan.InProgress)
         {
-            var active = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
-            var percent = active?.PercentComplete ?? 0;
-
-            if (_awaitingFreshProgress)
+            if (!hubConnected)
             {
-                if (_case.Status is KycStatus.InProgress && percent is > 0 and < 100)
-                    _awaitingFreshProgress = false;
-                else if (percent is 0)
-                {
-                    _scanPercent = 0;
-                    _scanModule = "A iniciar…";
-                    return;
-                }
-                else if (percent >= 100)
-                {
-                    _scanPercent = 0;
-                    _scanModule = "A iniciar…";
-                    return;
-                }
-            }
-
-            _scanPercent = percent;
-            _scanModule = _scanPercent switch
-            {
-                >= 100 => "Concluído",
-                > 0 => "Triagem automática em curso",
-                _ => "A iniciar…"
-            };
-
-            if (_scanPercent >= 100 && _case.Status is not KycStatus.InProgress)
-            {
-                _scanInProgress = false;
-                _awaitingFreshProgress = false;
-                StopScanPolling();
+                var active = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
+                _scan.TryApplyDatabaseFallback(active?.PercentComplete ?? 0, hubConnected: false);
             }
 
             return;
         }
 
-        if (_scanInProgress)
-            return;
-
         if (IsScanFinished(_case.Status))
         {
-            _scanPercent = 100;
-            _scanModule = "Concluído";
+            _scan.ApplyCompletedCaseView();
+            return;
+        }
+
+        if (_case.Status is KycStatus.InProgress)
+        {
+            var active = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
+            var percent = active?.PercentComplete ?? 0;
+            if (percent is > 0 and < 100)
+                _scan.TryApplyDatabaseFallback(percent, hubConnected);
+            else if (percent >= 100 && !hubConnected)
+                _scan.ApplyCompletedCaseView();
+            return;
+        }
+
+        if (_case.Status is KycStatus.Pending)
+        {
+            _scan.ApplyIdleView();
             return;
         }
 
         var state = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
         if (state is null)
         {
-            if (_case.Status is KycStatus.Pending)
-            {
-                _scanPercent = 0;
-                _scanModule = "—";
-            }
+            _scan.ApplyIdleView();
             return;
         }
 
-        _scanPercent = state.PercentComplete;
-        _scanModule = _scanPercent switch
-        {
-            >= 100 => "Concluído",
-            > 0 => "Triagem automática em curso",
-            _ => "—"
-        };
-    }
-
-    private void StartScanPolling()
-    {
-        StopScanPolling();
-        _scanPollCts = new CancellationTokenSource();
-        var ct = _scanPollCts.Token;
-        _ = PollScanProgressLoopAsync(ct);
-    }
-
-    private void StopScanPolling()
-    {
-        if (_scanPollCts is null)
-            return;
-
-        try
-        {
-            _scanPollCts.Cancel();
-        }
-        catch
-        {
-            // ignore
-        }
-
-        _scanPollCts.Dispose();
-        _scanPollCts = null;
-    }
-
-    private async Task PollScanProgressLoopAsync(CancellationToken ct)
-    {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
-        try
-        {
-            while (await timer.WaitForNextTickAsync(ct))
-            {
-                if (!_scanInProgress || _disposed)
-                    break;
-
-                await InvokeAsync(async () =>
-                {
-                    if (_disposed)
-                        return;
-
-                    await RunDataAsync(ReloadCoreAsync);
-                    StateHasChanged();
-                });
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // polling stopped
-        }
+        _scan.ApplyStoredProgressView(state.PercentComplete);
     }
 
     private static bool IsScanFinished(KycStatus status) =>

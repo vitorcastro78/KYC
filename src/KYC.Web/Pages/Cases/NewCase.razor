@@ -49,7 +49,7 @@
                     <span>Será redireccionado para o caso quando o processo terminar.</span>
                 }
             </p>
-            <ScanProgressBar Module="@ModuleLabel(_scanModule)" Percent="@_scanPercent" />
+            <ScanProgressBar Module="@_scan.DisplayModule" Percent="@_scan.Percent" />
         </div>
     </div>
 }
@@ -61,11 +61,10 @@
 
 @code {
     private readonly CaseForm _model = new();
+    private readonly ScanProgressTracker _scan = new();
     private string? _error;
     private bool _isProcessing;
     private Guid? _pendingCaseId;
-    private int _scanPercent;
-    private string _scanModule = "A iniciar";
     private HubConnection? _hub;
 
     private async Task Submit()
@@ -75,9 +74,8 @@
 
         _error = null;
         _isProcessing = true;
-        _scanPercent = 0;
-        _scanModule = "A iniciar";
         _pendingCaseId = null;
+        _scan.BeginNewCaseFlow();
 
         try
         {
@@ -85,8 +83,7 @@
 
             var id = await Mediator.Send(new StartKycCaseCommand(_model.Nif, "dev-user", CreditAmount.Eur(_model.Amount)));
             _pendingCaseId = id;
-            _scanModule = "EntityResolution";
-            _scanPercent = 5;
+            _scan.ApplyNewCaseCreatedHint();
 
             if (_hub is not null)
                 await _hub.SendAsync("JoinCaseGroup", id);
@@ -96,6 +93,7 @@
             _error = ex.Message;
             _isProcessing = false;
             _pendingCaseId = null;
+            _scan.ResetAfterFailure();
         }
     }
 
@@ -110,8 +108,8 @@
         {
             if (_pendingCaseId is null || id != _pendingCaseId)
                 return;
-            _scanModule = module;
-            _scanPercent = pct;
+
+            _scan.ApplyHubUpdate(module, pct);
             InvokeAsync(StateHasChanged);
         });
 
@@ -145,16 +143,6 @@
 
         await _hub.DisposeAsync();
     }
-
-    private static string ModuleLabel(string module) => module switch
-    {
-        "EntityResolution" => "Resolução de entidade",
-        "Sanctions" => "Sanções e fontes",
-        "LLM" => "Score e relatório",
-        "Concluído" => "Concluído",
-        "A iniciar" => "A iniciar",
-        _ => module
-    };
 
     private sealed class CaseForm
     {

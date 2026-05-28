@@ -145,7 +145,8 @@ public class KycCase
         Parties.Clear();
         RiskSignals.Clear();
         Score = null;
-        FinalReport = null;
+        // Não atribuir FinalReport = null: o FK KycCaseId no relatório é obrigatório e o EF falha ao
+        // desassociar a navegação 1:1. O pipeline substitui o conteúdo via SetFinalReport/UpdateContent.
         AppendAudit(AuditEntry.Create(Id, "AutomaticRescreenRequested", actorId, "User"));
     }
 
