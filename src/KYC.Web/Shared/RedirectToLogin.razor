@@ -1,10 +1,21 @@
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
 
 @code {
-    protected override void OnInitialized()
-    {
-        var path = new Uri(Nav.Uri).AbsolutePath;
+    private bool _redirected;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _redirected)
+            return;
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            return;
+
+        _redirected = true;
+
+        var path = new Uri(Nav.Uri).AbsolutePath;
         if (path.Contains("/Identity/Account/Login", StringComparison.OrdinalIgnoreCase))
         {
             Nav.NavigateTo("/Identity/Account/Login", forceLoad: true);
@@ -12,14 +23,9 @@
         }
 
         var relativePath = Nav.ToBaseRelativePath(Nav.Uri);
-        if (string.IsNullOrWhiteSpace(relativePath) ||
-            relativePath.StartsWith("Identity/Account/Login", StringComparison.OrdinalIgnoreCase))
-        {
-            Nav.NavigateTo("/Identity/Account/Login", forceLoad: true);
-            return;
-        }
+        var returnUrl = ReturnUrlNormalizer.Normalize(
+            "/" + (string.IsNullOrWhiteSpace(relativePath) ? "dashboard" : relativePath.TrimStart('/')));
 
-        var returnUrl = ReturnUrlNormalizer.Normalize("/" + relativePath.TrimStart('/'));
         Nav.NavigateTo($"/Identity/Account/Login?returnUrl={Uri.EscapeDataString(returnUrl)}", forceLoad: true);
     }
 }

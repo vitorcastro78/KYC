@@ -6,6 +6,8 @@ namespace KYC.Application.Cases;
 
 public class RerunKycCaseScreeningCommandHandler(
     IKycCaseRepository repository,
+    IKycCaseScanProgressRepository progress,
+    IKycCaseRealtimeNotifier notifier,
     IKycCaseMessageBus messageBus) : IRequestHandler<RerunKycCaseScreeningCommand, Unit>
 {
     public async Task<Unit> Handle(RerunKycCaseScreeningCommand request, CancellationToken cancellationToken)
@@ -18,6 +20,10 @@ public class RerunKycCaseScreeningCommandHandler(
             throw new InvalidOperationException(
                 "A re-triagem automática só está disponível para casos em análise ou já concluídos (aprovados).");
         }
+
+        // Zera progresso antigo (ex.: 100% da triagem anterior) antes do worker arrancar.
+        await progress.UpsertAsync(new KycCaseScanProgressState(request.CaseId, 1, 0, 0), cancellationToken);
+        await notifier.NotifyScanProgressAsync(request.CaseId, "A iniciar", 0, cancellationToken);
 
         await messageBus.PublishCaseRescreenAsync(request.CaseId, request.ActorId, cancellationToken);
         return Unit.Value;

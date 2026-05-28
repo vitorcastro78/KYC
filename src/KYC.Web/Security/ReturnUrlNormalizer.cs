@@ -9,7 +9,9 @@ public static class ReturnUrlNormalizer
         "/Identity/Account/AccessDenied"
     ];
 
-    public static string Normalize(string? returnUrl, string fallback = "/")
+    public const string DefaultLandingPath = "/dashboard";
+
+    public static string Normalize(string? returnUrl, string fallback = DefaultLandingPath)
     {
         if (string.IsNullOrWhiteSpace(returnUrl))
             return fallback;
@@ -18,6 +20,9 @@ public static class ReturnUrlNormalizer
             return fallback;
 
         var path = returnUrl.Split('?', '#')[0];
+        if (path is "/" or "")
+            return DefaultLandingPath;
+
         if (BlockedPathSegments.Any(blocked =>
                 path.Contains(blocked, StringComparison.OrdinalIgnoreCase)))
             return fallback;

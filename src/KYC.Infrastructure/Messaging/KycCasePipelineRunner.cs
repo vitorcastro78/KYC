@@ -36,6 +36,8 @@ public class KycCasePipelineRunner(
             kyc.PrepareForAutomaticRescreen(actorId);
             EnsureTargetPartyExists(kyc);
             await cases.UpdateAsync(kyc, ct);
+            await progress.UpsertAsync(new KycCaseScanProgressState(caseId, 1, 0, 0), ct);
+            await notifier.NotifyScanProgressAsync(caseId, "A iniciar", 0, ct);
         }
 
         await notifier.NotifyScanProgressAsync(caseId, "EntityResolution", 5, ct);

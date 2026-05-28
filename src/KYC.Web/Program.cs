@@ -6,10 +6,10 @@ using KYC.Infrastructure;
 using KYC.Web.Hubs;
 using KYC.Web.Security;
 using KYC.Web.Services;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
@@ -24,8 +24,11 @@ if (!string.IsNullOrWhiteSpace(kvName))
         new DefaultAzureCredential());
 }
 
+var behindProxy = builder.Configuration.IsBehindReverseProxy(builder.Environment);
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddKycProductionHosting(builder.Configuration, builder.Environment, builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<IKycCaseRealtimeNotifier, HubKycCaseRealtimeNotifier>();
 builder.Services.AddScoped<KYC.Web.Services.KycHubConnectionFactory>();
 
@@ -69,6 +72,12 @@ else
         options.AccessDeniedPath = "/Identity/Account/AccessDenied";
         options.SlidingExpiration = true;
         options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        // Proxy TLS (nginx): Kestrel vê HTTP; forçar Secure para o browser em https://
+        options.Cookie.SecurePolicy = behindProxy
+            ? CookieSecurePolicy.Always
+            : CookieSecurePolicy.SameAsRequest;
         options.Events.OnRedirectToLogin = context =>
         {
             var path = context.Request.Path.Value ?? string.Empty;
@@ -104,13 +113,15 @@ if (useEntra)
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSignalR();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<AuthenticationStateProvider, KYC.Web.Security.HttpContextAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ApplicationUser>>();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 var hasHttpsEndpointConfigured =
     !string.IsNullOrWhiteSpace(builder.Configuration["Kestrel:Endpoints:Https:Url"]) ||
     !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORT"));
+
+app.UseKycProductionHosting();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -127,6 +138,12 @@ app.UseAuthorization();
 
 if (!useEntra)
     await SeedIdentityAsync(app.Services, app.Configuration);
+
+app.MapGet("/", (HttpContext ctx) =>
+    ctx.User.Identity?.IsAuthenticated == true
+        ? Results.Redirect("/dashboard")
+        : Results.Redirect("/Identity/Account/Login?returnUrl=%2Fdashboard"))
+    .AllowAnonymous();
 
 app.MapBlazorHub();
 app.MapHub<KycCaseHub>("/hubs/kyc-case");

@@ -38,6 +38,20 @@ public sealed class CaseStartedPipelineHostedService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Falha ao executar o pipeline para o caso {CaseId}", work.CaseId);
+                try
+                {
+                    await using var errorScope = scopeFactory.CreateAsyncScope();
+                    var notifier = errorScope.ServiceProvider.GetRequiredService<IKycCaseRealtimeNotifier>();
+                    await notifier.NotifyScanProgressAsync(
+                        work.CaseId,
+                        "Erro na triagem",
+                        0,
+                        stoppingToken).ConfigureAwait(false);
+                }
+                catch (Exception notifyEx)
+                {
+                    logger.LogWarning(notifyEx, "Não foi possível notificar erro de triagem para o caso {CaseId}", work.CaseId);
+                }
             }
         }
     }

@@ -26,17 +26,31 @@ public class KycLlmEngine(
 
     public async Task<RiskScore> ComputeRiskScoreAsync(KycScanContext context, CancellationToken ct = default)
     {
+        if (!configuration.GetValue("LLM:UseOllamaForScoring", false))
+        {
+            logger.LogDebug("LLM scoring via Ollama desactivado; score heurùstico.");
+            return ComputeHeuristicRiskScore(context);
+        }
+
+        if (!await IsOllamaReachableAsync(ct).ConfigureAwait(false))
+        {
+            logger.LogWarning("Ollama indisponùvel em {Endpoint}; score heurùstico.",
+                configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434");
+            return ComputeHeuristicRiskScore(context);
+        }
+
         var system = "Senior KYC Risk Analyst EU. Responde APENAS JSON: {\"overall\":0-100,\"sanctions\":null,\"pep\":null,\"adverse\":null,\"financial\":null,\"judicial\":null,\"ubo\":null,\"justification\":\"pt\"}";
-        var user = JsonSerializer.Serialize(context);
+        var user = JsonSerializer.Serialize(BuildScoringPayload(context));
         var promptHash = Sha256(system + user);
         logger.LogInformation("LLM scoring hash={Hash} model=local", promptHash);
 
-        var client = httpClientFactory.CreateClient("ollama");
+        var client = httpClientFactory.CreateClient("ollama-scoring");
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
         var payload = new
         {
             model,
             stream = false,
+            options = new { num_predict = 256, temperature = 0.1 },
             messages = new object[]
             {
                 new { role = "system", content = system },
@@ -46,20 +60,78 @@ public class KycLlmEngine(
 
         try
         {
-            using var response = await client.PostAsJsonAsync("/api/chat", payload, ct);
+            using var response = await client.PostAsJsonAsync("/api/chat", payload, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
-            var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct).ConfigureAwait(false);
             var content = doc.GetProperty("message").GetProperty("content").GetString() ?? "{}";
             return ParseRiskScore(content);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Ollama scoring failed; using heuristic score.");
+            return ComputeHeuristicRiskScore(context);
+        }
+    }
+
+    private static object BuildScoringPayload(KycScanContext context) =>
+        new
+        {
+            context.CompanyName,
+            context.Nif,
+            partyCount = context.Parties.Count,
+            signals = context.Signals
+                .Take(25)
+                .Select(s => new { s.Type, s.Severity, description = Truncate(s.Description, 200) })
+        };
+
+    private static string Truncate(string text, int max) =>
+        text.Length <= max ? text : text[..max] + "ù";
+
+    private static RiskScore ComputeHeuristicRiskScore(KycScanContext context)
+    {
+        if (context.Signals.Count == 0)
+        {
             return new RiskScore
             {
-                Overall = context.Signals.Count == 0 ? 25 : 55,
-                Justification = "Fallback heurÌstico (Ollama indisponÌvel)."
+                Overall = 25,
+                Justification = "Sem sinais automùticos detetados (score heurùstico)."
             };
+        }
+
+        var maxSeverity = context.Signals
+            .Select(s => Enum.TryParse<SignalSeverity>(s.Severity, ignoreCase: true, out var sev)
+                ? sev
+                : SignalSeverity.Medium)
+            .Max();
+
+        var overall = maxSeverity switch
+        {
+            SignalSeverity.Critical => 88,
+            SignalSeverity.High => 72,
+            SignalSeverity.Medium => 55,
+            _ => 38
+        };
+        overall = Math.Clamp(overall + Math.Min(12, context.Signals.Count * 2), 0, 100);
+
+        return new RiskScore
+        {
+            Overall = overall,
+            Justification =
+                $"Score heurùstico: {context.Signals.Count} sinais, severidade mùxima {maxSeverity}."
+        };
+    }
+
+    private async Task<bool> IsOllamaReachableAsync(CancellationToken ct)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("ollama-health");
+            using var res = await client.GetAsync("/api/tags", ct).ConfigureAwait(false);
+            return res.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -89,7 +161,7 @@ public class KycLlmEngine(
         }
         catch
         {
-            return new RiskScore { Overall = 45, Justification = "Resposta LLM n„o estruturada." };
+            return new RiskScore { Overall = 45, Justification = "Resposta LLM nùo estruturada." };
         }
     }
 
@@ -116,7 +188,7 @@ public class KycLlmEngine(
         var apiKey = configuration["Anthropic:ApiKey"];
         var useCloud = !localOnly && riskWarrantsCloud && !string.IsNullOrWhiteSpace(apiKey);
 
-        var system = "Fornece APENAS o conte˙do interno HTML de <section class=\"ai-summary\"> com 1-3 par·grafos curtos para analista KYC.";
+        var system = "Fornece APENAS o conteùdo interno HTML de <section class=\"ai-summary\"> com 1-3 parùgrafos curtos para analista KYC.";
         var user = JsonSerializer.Serialize(new { context, score });
         var hash = Sha256(system + user);
         logger.LogInformation("LLM report enrich mode={Mode} risk={Risk} useCloud={UseCloud} hash={Hash}",
@@ -180,7 +252,7 @@ public class KycLlmEngine(
         var trimmed = llmHtml.Trim();
         if (!trimmed.StartsWith("<section", StringComparison.OrdinalIgnoreCase))
         {
-            trimmed = $"<section class=\"ai-summary\"><h2>SÌntese assistida por IA</h2>{trimmed}</section>";
+            trimmed = $"<section class=\"ai-summary\"><h2>Sùntese assistida por IA</h2>{trimmed}</section>";
         }
 
         return baselineHtml.Replace("</main>", trimmed + "\n</main>", StringComparison.OrdinalIgnoreCase);
@@ -232,21 +304,10 @@ public class KycLlmEngine(
         await Task.CompletedTask;
         var issues = new List<string>();
         if (context.Parties.Count(p => p.Role.Contains("Ubo", StringComparison.OrdinalIgnoreCase)) == 0)
-            issues.Add("Sem UBO declarado vs. estrutura encontrada ó rever manualmente.");
+            issues.Add("Sem UBO declarado vs. estrutura encontrada ù rever manualmente.");
         return new ConsistencyCheckResult(issues.Count == 0, issues, issues.Count == 0 ? 90 : 60);
     }
 
-    public async Task<bool> IsLlmHealthyAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            var client = httpClientFactory.CreateClient("ollama");
-            using var res = await client.GetAsync("/api/tags", ct);
-            return res.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    public Task<bool> IsLlmHealthyAsync(CancellationToken ct = default) =>
+        IsOllamaReachableAsync(ct);
 }

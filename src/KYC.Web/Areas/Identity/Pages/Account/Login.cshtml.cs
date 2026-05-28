@@ -44,18 +44,23 @@ public class LoginModel : PageModel
         public bool RememberMe { get; set; }
     }
 
-    public async Task OnGetAsync(string? returnUrl = null)
+    public async Task<IActionResult> OnGetAsync(string? returnUrl = null)
     {
         if (!string.IsNullOrEmpty(ErrorMessage))
             ModelState.AddModelError(string.Empty, ErrorMessage);
 
-        ReturnUrl = ReturnUrlNormalizer.Normalize(returnUrl, Url.Content("~/"));
+        ReturnUrl = ReturnUrlNormalizer.Normalize(returnUrl, ReturnUrlNormalizer.DefaultLandingPath);
+
+        if (_signInManager.IsSignedIn(User))
+            return LocalRedirect(ReturnUrl);
+
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
-        returnUrl = ReturnUrlNormalizer.Normalize(returnUrl, Url.Content("~/"));
+        returnUrl = ReturnUrlNormalizer.Normalize(returnUrl, ReturnUrlNormalizer.DefaultLandingPath);
         if (!ModelState.IsValid)
             return Page();
 

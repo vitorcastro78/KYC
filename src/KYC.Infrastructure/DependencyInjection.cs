@@ -109,11 +109,23 @@ public static class DependencyInjection
 
         var ollama = configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434";
         var ollamaTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:RequestTimeoutSeconds", 300), 30, 3600);
+        var scoringTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:ScoringTimeoutSeconds", 45), 5, 300);
         services.AddHttpClient("ollama", c =>
         {
             c.BaseAddress = new Uri(ollama);
             c.Timeout = TimeSpan.FromSeconds(ollamaTimeoutSeconds);
         }).AddPolicyHandler(GetRetryPolicy());
+        // Scoring: timeout curto, sem retry — evita bloquear o pipeline 5+ minutos.
+        services.AddHttpClient("ollama-scoring", c =>
+        {
+            c.BaseAddress = new Uri(ollama);
+            c.Timeout = TimeSpan.FromSeconds(scoringTimeoutSeconds);
+        });
+        services.AddHttpClient("ollama-health", c =>
+        {
+            c.BaseAddress = new Uri(ollama);
+            c.Timeout = TimeSpan.FromSeconds(5);
+        });
 
         services.AddHttpClient("anthropic", c =>
         {

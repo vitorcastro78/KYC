@@ -5,7 +5,14 @@
                 <NotAuthorized>
                     <AuthorizeView>
                         <Authorized Context="authContext">
-                            <p class="p-3">Não autorizado.</p>
+                            <div class="p-4">
+                                <h2 class="h5">Sem permissão</h2>
+                                <p class="text-muted mb-3">
+                                    A sessão está activa (@authContext.User.Identity?.Name), mas esta página exige perfil de analista ou superior.
+                                </p>
+                                <a class="btn btn-primary me-2" href="/Identity/Account/AccessDenied">Detalhes</a>
+                                <a class="btn btn-outline-secondary" href="/Identity/Account/Logout">Terminar sessão</a>
+                            </div>
                         </Authorized>
                         <NotAuthorized Context="anonContext">
                             <RedirectToLogin />
