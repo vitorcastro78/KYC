@@ -11,6 +11,7 @@ using KYC.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Polly;
 using Polly.Extensions.Http;
 
@@ -24,8 +25,10 @@ public static class DependencyInjection
                  ?? configuration["KYC_DB_CONNECTION"]
                  ?? throw new InvalidOperationException("Connection string KycDatabase or KYC_DB_CONNECTION required.");
 
-        services.AddDbContext<KycDbContext>(options =>
-            options.UseNpgsql(cs, npgsql => npgsql.UseVector()));
+        // NpgsqlDataSource com UseVector() é necessário para serializar HalfVector/halfvec (EF Core 9 + pgvector 0.3).
+        services.AddSingleton(_ => KycNpgsqlDataSource.Create(cs));
+        services.AddDbContext<KycDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.UseVector()));
 
         services.AddScoped<IKycCaseRepository, KycCaseRepository>();
         services.AddScoped<IKycAnalyticsRepository, KycAnalyticsRepository>();
