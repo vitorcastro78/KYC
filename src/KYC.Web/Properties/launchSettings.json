@@ -33,7 +33,7 @@
       "applicationUrl": "http://localhost:5272",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__KycDatabase": "Host=localhost;Port=5433;Database=kyc_dev;Username=postgres;Password=dev123"
+        "ConnectionStrings__KycDatabase": "Host=195.179.193.136;Port=5433;Database=azureopsagent;Username=kycdb;Password=lara2308"
       }
     },
     "IIS Express": {
