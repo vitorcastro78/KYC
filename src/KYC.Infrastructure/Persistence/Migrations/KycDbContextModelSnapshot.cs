@@ -24,6 +24,105 @@ namespace KYC.Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("KYC.Domain.Entities.AmlComplianceReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AiModelsUsed")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("AssetFreezeNotifications")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BdpReferenceNumber")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int>("CasesCriticalRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CasesEnhancedDd")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CasesHighRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CasesLowRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CasesMediumRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CasesSimplifiedDd")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CasesStandardDd")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GeneratedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("PepMatches")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PeriodicReviewsCompleted")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PeriodicReviewsOverdue")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PlatformVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("ReportingYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SanctionMatches")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SarsSubmitted")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TotalAmlAnalysts")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalCasesApproved")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalCasesProcessed")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalCasesRejected")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalCasesUnderReview")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalRiskSignalsDetected")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("aml_compliance_reports", (string)null);
+                });
+
             modelBuilder.Entity("KYC.Domain.Entities.AuditEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -151,6 +250,11 @@ namespace KYC.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DataCollectionBasis")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<bool>("IsOffshore")
                         .HasColumnType("boolean");
 
@@ -187,6 +291,18 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("ParentPartyId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("RcbeDiscrepancyDetected")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("RcbeDiscrepancyReported")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("RcbeDiscrepancyReportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RcbeVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
@@ -196,11 +312,96 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.Property<int>("UboDepthLevel")
                         .HasColumnType("integer");
 
+                    b.Property<int>("VerificationMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VerificationSessionId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("VerificationStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.HasIndex("KycCaseId", "Nif");
 
                     b.ToTable("case_parties", (string)null);
+                });
+
+            modelBuilder.Entity("KYC.Domain.Entities.CustomerAcceptancePolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("BlockOffshoreAboveThreshold")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("BlockShellCompanies")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("EnhancedDdThreshold")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("HighRiskJurisdictionsJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("OccasionalThreshold")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("OffshoreBlockThreshold")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ProhibitedCaeActivitiesJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ProhibitedJurisdictionsJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("ReviewDaysCriticalRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReviewDaysHighRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReviewDaysLowRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReviewDaysMediumRisk")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("customer_acceptance_policies", (string)null);
                 });
 
             modelBuilder.Entity("KYC.Domain.Entities.DocumentExtractedFact", b =>
@@ -286,11 +487,66 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.ToTable("document_extracted_parties", (string)null);
                 });
 
+            modelBuilder.Entity("KYC.Domain.Entities.DpiaRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ApprovedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("DocumentStoragePath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MitigationMeasuresJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("NextReviewDue")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProcessingActivitiesJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("dpia_records", (string)null);
+                });
+
             modelBuilder.Entity("KYC.Domain.Entities.KycCase", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovedByAnalystId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("AssetFreezeNotified")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("AssetFreezeNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("AssignedAnalystId")
                         .HasColumnType("text");
@@ -306,10 +562,42 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DueDiligenceJustification")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("DueDiligenceLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FundsOriginDescription")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("FundsOriginDocumentId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("FundsOriginVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LegalBasisRef")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("NextReviewDue")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Nif")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<int>("RelationshipType")
+                        .HasColumnType("integer");
 
                     b.Property<string>("RequestedBy")
                         .IsRequired()
@@ -323,6 +611,28 @@ namespace KYC.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)");
+
+                    b.Property<string>("SarReferenceNumber")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int>("SarStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SarSubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ScoringEngineVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ScoringModelSnapshot")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<string>("SecondApproverId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -409,6 +719,63 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.HasIndex("KycCaseId");
 
                     b.ToTable("risk_signals", (string)null);
+                });
+
+            modelBuilder.Entity("KYC.Domain.Entities.ScoringEngineConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ActiveFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ActiveTo")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ApprovedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("CloudModelName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LocalModelName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("LocalModelVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SystemPromptHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("WeightsJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("scoring_engine_configs", (string)null);
                 });
 
             modelBuilder.Entity("KYC.Infrastructure.Persistence.Entities.KycCaseScanProgressRow", b =>

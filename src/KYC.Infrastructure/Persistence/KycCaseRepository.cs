@@ -170,4 +170,28 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
         var signal = kyc.RiskSignals.FirstOrDefault(s => s.Id == signalId);
         return signal is null ? null : (kyc, signal);
     }
+
+    public async Task<IReadOnlyList<KycCase>> GetCasesDueForReviewAsync(DateTime dueBy, CancellationToken ct = default) =>
+        await db.KycCases
+            .Where(c => c.Status == Domain.Enums.KycStatus.Approved
+                        && c.NextReviewDue != null
+                        && c.NextReviewDue <= dueBy)
+            .ToListAsync(ct);
+
+    public async Task<(KycCase Case, CaseParty Party)?> GetCaseWithPartyAsync(Guid partyId, CancellationToken ct = default)
+    {
+        var row = await db.CaseParties.AsNoTracking()
+            .Where(p => p.Id == partyId)
+            .Select(p => new { p.KycCaseId })
+            .FirstOrDefaultAsync(ct);
+        if (row is null)
+            return null;
+
+        var kyc = await GetByIdAsync(row.KycCaseId, ct);
+        if (kyc is null)
+            return null;
+
+        var party = kyc.Parties.FirstOrDefault(p => p.Id == partyId);
+        return party is null ? null : (kyc, party);
+    }
 }

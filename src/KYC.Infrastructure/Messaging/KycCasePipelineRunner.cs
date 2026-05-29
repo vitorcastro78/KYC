@@ -1,5 +1,6 @@
 using KYC.Application.Interfaces;
 using KYC.Application.Models;
+using KYC.Application.Services;
 using KYC.Domain.Entities;
 using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
@@ -20,6 +21,11 @@ public class KycCasePipelineRunner(
     IKycCaseRealtimeNotifier notifier,
     IReportEmbeddingWriter embeddingWriter,
     IDocumentConsistencyChecker documentConsistency,
+    ICustomerAcceptancePolicyRepository policyRepo,
+    IScoringEngineConfigRepository scoringRepo,
+    DueDiligenceLevelEvaluator ddEvaluator,
+    PolicyComplianceValidator policyValidator,
+    SarEligibilityEvaluator sarEvaluator,
     ILogger<KycCasePipelineRunner> log) : IKycCasePipelineRunner
 {
     public Task RunCaseStartedAsync(Guid caseId, CancellationToken ct = default) =>
@@ -44,6 +50,39 @@ public class KycCasePipelineRunner(
         await notifier.NotifyScanProgressAsync(caseId, "EntityResolution", 5, ct);
 
         await SyncGleifPartiesAsync(kyc, ct);
+
+        var policy = await policyRepo.GetActiveAsync(ct)
+                     ?? CustomerAcceptancePolicy.CreateV1("System");
+        var policyResult = policyValidator.Validate(kyc.Parties.ToList(), caeCode: null, policy);
+        if (policyResult.AutoRejected)
+        {
+            kyc.RejectByPolicy(string.Join("; ", policyResult.Violations));
+            await cases.UpdateAsync(kyc, ct);
+            await notifier.NotifyStatusChangedAsync(kyc.Id, kyc.Status, ct);
+            log.LogWarning("Caso {CaseId} auto-rejeitado pela PAC: {Violations}", caseId, string.Join("; ", policyResult.Violations));
+            return;
+        }
+
+        var dd = ddEvaluator.Evaluate(
+            kyc.RequestedCreditAmount,
+            kyc.RelationshipType,
+            kyc.Parties.ToList(),
+            policy);
+        kyc.SetDueDiligenceLevel(dd.Level, dd.Justification);
+
+        var scoringConfig = await scoringRepo.GetActiveAsync(ct);
+        if (scoringConfig is not null)
+        {
+            kyc.SetScoringEngineSnapshot(
+                scoringConfig.Version,
+                System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    scoringConfig.LocalModelName,
+                    scoringConfig.CloudModelName,
+                    scoringConfig.SystemPromptHash,
+                    scoringConfig.WeightsJson
+                }));
+        }
 
         var parties = kyc.Parties.ToList();
         var total = Math.Max(1, parties.Count);
@@ -97,6 +136,9 @@ public class KycCasePipelineRunner(
             kyc.AutoApproveLowRisk(actorId);
         else
             kyc.MarkHumanReviewAfterScan(actorId);
+
+        if (sarEvaluator.ShouldSuggestSar(kyc) && kyc.SarStatus == SarStatus.None)
+            kyc.AppendAudit(AuditEntry.Create(kyc.Id, "SarSuggested", "System", "Agent", "Condições SAR detectadas"));
 
         if (isRescreen)
             kyc.RecordAutomaticRescreenCompleted(actorId, signals.Count);

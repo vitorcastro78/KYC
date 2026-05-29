@@ -1,0 +1,34 @@
+@page "/admin/scoring-config"
+@attribute [Authorize(Policy = "Admin")]
+@inject IScoringEngineConfigRepository Repo
+
+<PageTitle>Motor de scoring</PageTitle>
+<h1>Versões do motor de scoring</h1>
+
+@if (_active is not null)
+{
+    <div class="alert alert-success">
+        Versão activa: <strong>@_active.Version</strong> — @(_active.LocalModelName) / @(_active.CloudModelName)
+    </div>
+}
+
+<table class="table table-sm">
+    <thead><tr><th>Versão</th><th>Activo desde</th><th>Modelo local</th><th>Hash prompt</th></tr></thead>
+    <tbody>
+    @foreach (var c in _configs)
+    {
+        <tr><td>@c.Version</td><td>@c.ActiveFrom.ToLocalTime()</td><td>@c.LocalModelName</td><td class="small font-monospace">@c.SystemPromptHash[..Math.Min(16, c.SystemPromptHash.Length)]…</td></tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    private IReadOnlyList<KYC.Domain.Entities.ScoringEngineConfig> _configs = [];
+    private KYC.Domain.Entities.ScoringEngineConfig? _active;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _configs = await Repo.ListAsync();
+        _active = await Repo.GetActiveAsync();
+    }
+}

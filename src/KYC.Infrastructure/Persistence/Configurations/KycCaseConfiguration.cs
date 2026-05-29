@@ -14,6 +14,15 @@ public class KycCaseConfiguration : IEntityTypeConfiguration<KycCase>
         builder.Property(x => x.CompanyName).HasMaxLength(512).IsRequired();
         builder.Property(x => x.RequestedBy).HasMaxLength(256).IsRequired();
         builder.Property(x => x.RequestedCreditCurrency).HasMaxLength(8).IsRequired();
+        builder.Property(x => x.DueDiligenceJustification).HasMaxLength(4000);
+        builder.Property(x => x.SarReferenceNumber).HasMaxLength(128);
+        builder.Property(x => x.ScoringEngineVersion).HasMaxLength(32);
+        builder.Property(x => x.ScoringModelSnapshot).HasMaxLength(8000);
+        builder.Property(x => x.LegalBasisRef).HasMaxLength(64).IsRequired();
+        builder.Property(x => x.FundsOriginDescription).HasMaxLength(4000);
+        builder.Property(x => x.FundsOriginDocumentId).HasMaxLength(128);
+        builder.Property(x => x.ApprovedByAnalystId).HasMaxLength(256);
+        builder.Property(x => x.SecondApproverId).HasMaxLength(256);
 
         builder.OwnsOne(x => x.Score, owned =>
         {

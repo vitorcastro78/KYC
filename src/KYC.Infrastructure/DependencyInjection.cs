@@ -2,8 +2,13 @@
 using KYC.Application.Interfaces;
 
 using KYC.Infrastructure.BackgroundJobs;
+using KYC.Infrastructure.Compliance;
+using KYC.Infrastructure.Compliance.AssetFreeze;
+using KYC.Infrastructure.Compliance.Uif;
 using KYC.Infrastructure.Documents;
 using KYC.Infrastructure.ExternalSources;
+using KYC.Infrastructure.Health;
+using KYC.Infrastructure.Identity;
 using KYC.Infrastructure.ExternalSources.At;
 using KYC.Infrastructure.LLM;
 using KYC.Infrastructure.Messaging;
@@ -41,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IAdverseMediaService, AdverseMediaService>();
         services.AddSingleton<IAtDebtorsLocalIndex, AtDebtorsLocalIndex>();
         services.AddScoped<IFinancialHealthService, FinancialHealthService>();
+        services.AddScoped<ICitiusClient, CitiusClient>();
         services.AddScoped<IJudicialIntelligenceService, JudicialIntelligenceService>();
         services.AddScoped<IIcijOffshoreService, IcijOffshoreService>();
         services.AddScoped<IKycLlmEngine, KycLlmEngine>();
@@ -50,6 +56,20 @@ public static class DependencyInjection
         services.AddScoped<ICasePartyScreener, CasePartyScreener>();
         services.AddSingleton<IKycHtmlToPdfConverter, PuppeteerKycHtmlToPdfConverter>();
         services.AddScoped<IKycReportPdfGenerator, KycReportPdfGenerator>();
+
+        services.AddScoped<ICustomerAcceptancePolicyRepository, CustomerAcceptancePolicyRepository>();
+        services.AddScoped<IScoringEngineConfigRepository, ScoringEngineConfigRepository>();
+        services.AddScoped<IDpiaRecordRepository, DpiaRecordRepository>();
+        services.AddScoped<IAmlComplianceReportRepository, AmlComplianceReportRepository>();
+        services.AddScoped<IAmlComplianceReportService, AmlComplianceReportService>();
+        services.AddScoped<IIdentityVerificationService, DigitalSignIdentityVerificationService>();
+        services.AddScoped<IUifReportingService, UifReportingService>();
+        services.AddScoped<IAssetFreezeNotificationService, AssetFreezeNotificationService>();
+
+        services.AddKycHealthChecks(configuration);
+        services.AddHostedService<ComplianceSeedHostedService>();
+        if (configuration.GetValue("Compliance:EnablePeriodicReviewScheduler", true))
+            services.AddHostedService<PeriodicReviewSchedulerJob>();
 
         services.AddSingleton<ICaseDocumentStorage, LocalCaseDocumentStorage>();
         services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
@@ -159,6 +179,17 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd(newsUserAgent);
         }).AddPolicyHandler(GetRetryPolicy());
 
+        services.AddHttpClient("identity-verification", c => c.Timeout = TimeSpan.FromSeconds(60))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("uif", c => c.Timeout = TimeSpan.FromSeconds(120))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("bdp-freeze", c => c.Timeout = TimeSpan.FromSeconds(60))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("citius", c => c.Timeout = TimeSpan.FromSeconds(45))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("icij", c => c.Timeout = TimeSpan.FromSeconds(45))
+            .AddPolicyHandler(GetRetryPolicy());
+
         if (configuration.GetValue("DataRetention:EnableHostedService", false))
             services.AddHostedService<DataRetentionHostedService>();
 
@@ -169,19 +200,36 @@ public static class DependencyInjection
     {
         var provider = (configuration["Messaging:Provider"] ?? "InMemory").Trim();
         var sbCs = configuration["KYC_SERVICEBUS_CONNECTION"] ?? configuration["ServiceBus:ConnectionString"];
+        var rabbitCs = configuration["KYC_RABBITMQ_CONNECTION"] ?? configuration["RabbitMq:ConnectionString"];
         var useAzure = string.Equals(provider, "AzureServiceBus", StringComparison.OrdinalIgnoreCase)
                        && !string.IsNullOrWhiteSpace(sbCs);
+        var useRabbit = string.Equals(provider, "RabbitMq", StringComparison.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(rabbitCs);
 
         if (string.Equals(provider, "AzureServiceBus", StringComparison.OrdinalIgnoreCase)
             && string.IsNullOrWhiteSpace(sbCs))
         {
             throw new InvalidOperationException(
-                "Messaging:Provider estÃ¡ definido como AzureServiceBus mas falta KYC_SERVICEBUS_CONNECTION ou ServiceBus:ConnectionString.");
+                "Messaging:Provider está definido como AzureServiceBus mas falta KYC_SERVICEBUS_CONNECTION ou ServiceBus:ConnectionString.");
+        }
+
+        if (string.Equals(provider, "RabbitMq", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(rabbitCs))
+        {
+            throw new InvalidOperationException(
+                "Messaging:Provider está definido como RabbitMq mas falta KYC_RABBITMQ_CONNECTION ou RabbitMq:ConnectionString.");
         }
 
         if (useAzure)
         {
             services.AddSingleton<IKycCaseMessageBus, AzureServiceBusKycCaseMessageBus>();
+            return;
+        }
+
+        if (useRabbit)
+        {
+            services.AddSingleton<IKycCaseMessageBus, RabbitMqKycCaseMessageBus>();
+            services.AddHostedService<RabbitMqKycCaseConsumerHostedService>();
             return;
         }
 

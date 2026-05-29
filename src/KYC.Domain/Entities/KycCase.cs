@@ -1,3 +1,4 @@
+using KYC.Domain.Common;
 using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
 
@@ -16,6 +17,25 @@ public class KycCase
     public decimal RequestedCreditAmount { get; private set; }
     public string RequestedCreditCurrency { get; private set; } = "EUR";
     public string RequestedBy { get; private set; } = string.Empty;
+
+    public DueDiligenceLevel DueDiligenceLevel { get; private set; } = DueDiligenceLevel.Standard;
+    public string? DueDiligenceJustification { get; private set; }
+    public RelationshipType RelationshipType { get; private set; } = RelationshipType.Ongoing;
+    public DateTime? NextReviewDue { get; private set; }
+    public DateTime? LastReviewedAt { get; private set; }
+    public SarStatus SarStatus { get; private set; } = SarStatus.None;
+    public string? SarReferenceNumber { get; private set; }
+    public DateTime? SarSubmittedAt { get; private set; }
+    public bool AssetFreezeNotified { get; private set; }
+    public DateTime? AssetFreezeNotifiedAt { get; private set; }
+    public string? ScoringEngineVersion { get; private set; }
+    public string? ScoringModelSnapshot { get; private set; }
+    public string LegalBasisRef { get; private set; } = "Lei83/2017-Art24";
+    public string? FundsOriginDescription { get; private set; }
+    public bool FundsOriginVerified { get; private set; }
+    public string? FundsOriginDocumentId { get; private set; }
+    public string? ApprovedByAnalystId { get; private set; }
+    public string? SecondApproverId { get; private set; }
 
     public ICollection<CaseParty> Parties { get; } = new List<CaseParty>();
     public ICollection<RiskSignal> RiskSignals { get; } = new List<RiskSignal>();
@@ -39,7 +59,8 @@ public class KycCase
             CreatedAt = DateTime.UtcNow,
             RequestedBy = requestedBy,
             RequestedCreditAmount = requestedAmount.Amount,
-            RequestedCreditCurrency = requestedAmount.Currency
+            RequestedCreditCurrency = requestedAmount.Currency,
+            RelationshipType = requestedAmount.Amount >= 12500m ? RelationshipType.Ongoing : RelationshipType.Occasional
         };
         kyc.AuditTrail.Add(AuditEntry.Create(id, "CaseStarted", requestedBy, "User", null));
         return kyc;
@@ -52,6 +73,98 @@ public class KycCase
     }
 
     public void AssignAnalyst(string analystId) => AssignedAnalystId = analystId;
+
+    public void SetDueDiligenceLevel(DueDiligenceLevel level, string justification)
+    {
+        DueDiligenceLevel = level;
+        DueDiligenceJustification = justification;
+        AppendAudit(AuditEntry.Create(Id, "DueDiligenceLevelSet", "System", "Agent", $"{level}: {justification}"));
+    }
+
+    public void SetScoringEngineSnapshot(string version, string snapshotJson)
+    {
+        ScoringEngineVersion = version;
+        ScoringModelSnapshot = snapshotJson;
+    }
+
+    public void SetFundsOrigin(string description, bool verified, string? documentId = null)
+    {
+        FundsOriginDescription = description;
+        FundsOriginVerified = verified;
+        FundsOriginDocumentId = documentId;
+    }
+
+    public void RecordSarSubmitted(string referenceNumber, string analystId)
+    {
+        SarStatus = SarStatus.Submitted;
+        SarReferenceNumber = referenceNumber;
+        SarSubmittedAt = DateTime.UtcNow;
+        AppendAudit(AuditEntry.Create(Id, "SarSubmitted", analystId, "User", referenceNumber));
+    }
+
+    public void MarkSarNotRequired(string analystId, string justification)
+    {
+        SarStatus = SarStatus.NotRequired;
+        AppendAudit(AuditEntry.Create(Id, "SarNotRequired", analystId, "User", justification));
+    }
+
+    public void RecordAssetFreezeNotification(string confirmationNumber)
+    {
+        AssetFreezeNotified = true;
+        AssetFreezeNotifiedAt = DateTime.UtcNow;
+        Status = KycStatus.UnderReview;
+        AppendAudit(AuditEntry.Create(Id, "AssetFreezeNotificationSent", "System", "Agent", confirmationNumber));
+    }
+
+    public void ScheduleNextReview(CustomerAcceptancePolicy policy)
+    {
+        var days = Score?.Level switch
+        {
+            RiskLevel.Low => policy.ReviewDaysLowRisk,
+            RiskLevel.Medium => policy.ReviewDaysMediumRisk,
+            RiskLevel.High => policy.ReviewDaysHighRisk,
+            RiskLevel.Critical => policy.ReviewDaysCriticalRisk,
+            _ => policy.ReviewDaysLowRisk
+        };
+        if (DueDiligenceLevel == DueDiligenceLevel.Enhanced)
+            days = Math.Min(days, 90);
+
+        NextReviewDue = DateTime.UtcNow.AddDays(days);
+        LastReviewedAt = DateTime.UtcNow;
+    }
+
+    public Result CanApprove()
+    {
+        var unverified = Parties
+            .Where(e => e.Role is EntityRole.Ubo or EntityRole.BoardMember or EntityRole.Proxy)
+            .Where(e => e.VerificationStatus != IdentityVerificationStatus.Verified)
+            .ToList();
+
+        if (unverified.Count > 0)
+            return Result.Failure(
+                $"Aprovação bloqueada: {unverified.Count} entidade(s) com identidade não verificada: " +
+                string.Join(", ", unverified.Select(e => e.Name)));
+
+        if (DueDiligenceLevel == DueDiligenceLevel.Enhanced &&
+            string.IsNullOrWhiteSpace(FundsOriginDescription))
+            return Result.Failure("EDD requer declaração de origem de fundos (Art. 37.º Lei 83/2017).");
+
+        if (Parties.Any(p => p.IsSanctioned && p.VerificationStatus == IdentityVerificationStatus.Verified))
+            return Result.Failure("Aprovação bloqueada: entidade sancionada confirmada.");
+
+        return Result.Success();
+    }
+
+    public Result CanProceedWithEnhancedDd()
+    {
+        if (DueDiligenceLevel != DueDiligenceLevel.Enhanced)
+            return Result.Success();
+
+        if (string.IsNullOrWhiteSpace(FundsOriginDescription))
+            return Result.Failure("EDD requer declaração de origem de fundos.");
+
+        return Result.Success();
+    }
 
     public void AddParty(CaseParty party)
     {
@@ -89,12 +202,24 @@ public class KycCase
         FinalReport.UpdateContent(report.NarrativeHtml, report.ModelUsed);
     }
 
-    public void Approve(string analystId)
+    public void Approve(string analystId, string? secondApproverId = null)
     {
+        var check = CanApprove();
+        if (!check.IsSuccess)
+            throw new InvalidOperationException(check.Error);
+
+        if (DueDiligenceLevel == DueDiligenceLevel.Enhanced)
+        {
+            if (string.IsNullOrWhiteSpace(secondApproverId) || secondApproverId == analystId)
+                throw new InvalidOperationException("EDD requer aprovação 4-eyes com segundo aprovador distinto.");
+            SecondApproverId = secondApproverId;
+        }
+
         EnsureStatus(KycStatus.InProgress, KycStatus.UnderReview);
         Status = KycStatus.Approved;
         CompletedAt = DateTime.UtcNow;
-        AppendAudit(AuditEntry.Create(Id, "Approved", analystId, "User"));
+        ApprovedByAnalystId = analystId;
+        AppendAudit(AuditEntry.Create(Id, "Approved", analystId, "User", secondApproverId));
     }
 
     public void Reject(string analystId, string reason)
@@ -105,13 +230,19 @@ public class KycCase
         AppendAudit(AuditEntry.Create(Id, "Rejected", analystId, "User", reason));
     }
 
+    public void RejectByPolicy(string reason)
+    {
+        Status = KycStatus.Rejected;
+        CompletedAt = DateTime.UtcNow;
+        AppendAudit(AuditEntry.Create(Id, "AutoRejectedByPolicy", "System", "Agent", reason));
+    }
+
     public void RequestManualReview(string reason)
     {
         Status = KycStatus.UnderReview;
         AppendAudit(AuditEntry.Create(Id, "ManualReviewRequested", AssignedAnalystId ?? "System", "User", reason));
     }
 
-    /// <summary>Anonimização pós-retenção (preserva audit trail e chaves técnicas).</summary>
     public void AnonymizeForRetention()
     {
         CompanyName = "ANON";
@@ -121,9 +252,19 @@ public class KycCase
     public void AutoApproveLowRisk(string actorId)
     {
         EnsureStatus(KycStatus.InProgress);
+        if (Score?.Level > RiskLevel.Low)
+            throw new InvalidOperationException("Auto-approve apenas para risco Low.");
+
+        var check = CanApprove();
+        if (!check.IsSuccess)
+        {
+            MarkHumanReviewAfterScan(actorId);
+            return;
+        }
+
         Status = KycStatus.Approved;
         CompletedAt = DateTime.UtcNow;
-        AppendAudit(AuditEntry.Create(Id, "AutoApproved", actorId, "Agent", "Critérios automáticos"));
+        AppendAudit(AuditEntry.Create(Id, "AutoApproved", actorId, "Agent", "Critérios automáticos Low"));
     }
 
     public void MarkHumanReviewAfterScan(string actorId)
@@ -133,7 +274,6 @@ public class KycCase
         AppendAudit(AuditEntry.Create(Id, "ScanAwaitingHumanReview", actorId, "Agent"));
     }
 
-    /// <summary>Limpa dados de triagem e reabre o caso para nova execução completa.</summary>
     public void PrepareForAutomaticRescreen(string actorId)
     {
         EnsureStatus(KycStatus.InProgress, KycStatus.UnderReview, KycStatus.Approved);
@@ -146,8 +286,6 @@ public class KycCase
         Parties.Clear();
         RiskSignals.Clear();
         Score = null;
-        // Não atribuir FinalReport = null: o FK KycCaseId no relatório é obrigatório e o EF falha ao
-        // desassociar a navegação 1:1. O pipeline substitui o conteúdo via SetFinalReport/UpdateContent.
         AppendAudit(AuditEntry.Create(Id, "AutomaticRescreenRequested", actorId, "User"));
     }
 
@@ -159,6 +297,11 @@ public class KycCase
             actorId,
             "Agent",
             $"{newSignalCount} sinais gerados na nova triagem."));
+    }
+
+    public void RecordPeriodicReviewCompleted(string actorId)
+    {
+        AppendAudit(AuditEntry.Create(Id, "PeriodicReviewCompleted", actorId, "User"));
     }
 
     public void AddDocument(CaseDocument document, string actorId)
@@ -174,7 +317,6 @@ public class KycCase
             $"{document.FileName} ({document.DocumentKind})"));
     }
 
-    /// <summary>Adiciona uma parte manualmente (quadro social, accionistas, etc.).</summary>
     public void AddManualParty(CaseParty party, string actorId, string? auditDetails = null)
     {
         EnsureStatus(KycStatus.InProgress, KycStatus.UnderReview, KycStatus.Approved);

@@ -2,6 +2,7 @@ using System.Reflection;
 using FluentValidation;
 using KYC.Application.Behaviors;
 using KYC.Application.Cases;
+using KYC.Application.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,9 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         services.AddValidatorsFromAssemblyContaining<StartKycCaseCommandValidator>();
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddSingleton<DueDiligenceLevelEvaluator>();
+        services.AddSingleton<PolicyComplianceValidator>();
+        services.AddSingleton<SarEligibilityEvaluator>();
         return services;
     }
 }

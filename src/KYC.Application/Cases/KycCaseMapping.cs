@@ -1,4 +1,5 @@
 using KYC.Application.Dtos;
+using KYC.Application.Services;
 using KYC.Domain.Entities;
 
 namespace KYC.Application.Cases;
@@ -30,7 +31,9 @@ internal static class KycCaseMapping
             p.OwnershipPercentage,
             p.IsPep,
             p.IsSanctioned,
-            p.IsOffshore)).ToList();
+            p.IsOffshore,
+            p.VerificationStatus,
+            p.VerificationMethod)).ToList();
 
         var partyNames = c.Parties.ToDictionary(p => p.Id, p => p.Name);
         var signals = c.RiskSignals.Select(s => new RiskSignalDetailDto(
@@ -60,6 +63,9 @@ internal static class KycCaseMapping
             .Select(ToDocumentDto)
             .ToList();
 
+        var suggestSar = new SarEligibilityEvaluator().ShouldSuggestSar(c);
+        var canApprove = c.CanApprove();
+
         return new KycCaseDetailDto(
             c.Id,
             c.Nif,
@@ -73,7 +79,17 @@ internal static class KycCaseMapping
             signals,
             audit,
             report,
-            documents);
+            documents,
+            Gleif: null,
+            GleifRelatedParties: null,
+            c.DueDiligenceLevel,
+            c.DueDiligenceJustification,
+            c.SarStatus,
+            c.SarReferenceNumber,
+            c.NextReviewDue,
+            c.FundsOriginDescription,
+            suggestSar,
+            canApprove.IsSuccess ? null : canApprove.Error);
     }
 
     public static CaseDocumentDto ToDocumentDto(CaseDocument d)

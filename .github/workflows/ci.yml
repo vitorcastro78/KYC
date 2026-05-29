@@ -1,0 +1,56 @@
+name: KYC CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: dev123
+          POSTGRES_DB: kyc_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kyc_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore KYC.sln
+
+      - name: Build
+        run: dotnet build KYC.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test KYC.sln -c Release --no-build --verbosity normal
+        env:
+          KYC_DB_CONNECTION: Host=localhost;Port=5432;Database=kyc_ci;Username=postgres;Password=dev123
+
+      - name: Publish Web
+        run: dotnet publish src/KYC.Web/KYC.Web.csproj -c Release -o ./artifacts/web
+
+      - name: Publish Workers
+        run: dotnet publish src/KYC.Workers/KYC.Workers.csproj -c Release -o ./artifacts/workers
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyc-publish
+          path: artifacts/

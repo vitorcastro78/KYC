@@ -1,6 +1,7 @@
 using KYC.Application.Cases;
 using KYC.Application.Interfaces;
 using KYC.Application.Models;
+using KYC.Application.Services;
 using KYC.Domain.Entities;
 using KYC.Domain.ValueObjects;
 using Moq;
@@ -9,6 +10,15 @@ namespace KYC.Application.Tests;
 
 public class StartKycCaseCommandHandlerTests
 {
+    private static StartKycCaseCommandHandler CreateHandler(
+        Mock<IKycCaseRepository> repo,
+        Mock<IEntityResolutionService> res,
+        Mock<IKycCaseMessageBus> bus)
+    {
+        var policyRepo = new Mock<ICustomerAcceptancePolicyRepository>();
+        return new StartKycCaseCommandHandler(repo.Object, res.Object, bus.Object);
+    }
+
     [Fact]
     public async Task Creates_case_and_publishes_bus()
     {
@@ -25,7 +35,7 @@ public class StartKycCaseCommandHandlerTests
         bus.Setup(b => b.PublishCaseStartedAsync(It.IsAny<Guid>(), "123456789", It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var handler = new StartKycCaseCommandHandler(repo.Object, res.Object, bus.Object);
+        var handler = CreateHandler(repo, res, bus);
         var id = await handler.Handle(new StartKycCaseCommand("123456789", "u1", CreditAmount.Eur(1000)), CancellationToken.None);
 
         Assert.NotEqual(Guid.Empty, id);
@@ -51,7 +61,7 @@ public class StartKycCaseCommandHandlerTests
         bus.Setup(b => b.PublishCaseStartedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var handler = new StartKycCaseCommandHandler(repo.Object, res.Object, bus.Object);
+        var handler = CreateHandler(repo, res, bus);
         await handler.Handle(new StartKycCaseCommand("  Acme Test  ", "u1", CreditAmount.Eur(1000)), CancellationToken.None);
 
         Assert.NotNull(captured);

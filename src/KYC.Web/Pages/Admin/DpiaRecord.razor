@@ -1,0 +1,25 @@
+@page "/admin/dpia"
+@attribute [Authorize(Policy = "Admin")]
+@inject IDpiaRecordRepository Repo
+
+<PageTitle>DPIA</PageTitle>
+<h1>Registo DPIA (RGPD Art. 35)</h1>
+
+@if (_active is not null)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div>Versão activa: <strong>@_active.Version</strong></div>
+            <div>Aprovado por: @_active.ApprovedBy em @_active.ApprovedAt.ToLocalTime()</div>
+            <div>Próxima revisão: @_active.NextReviewDue.ToLocalTime()</div>
+            <div class="small text-muted mt-2">Documento: @_active.DocumentStoragePath</div>
+        </div>
+    </div>
+}
+
+@code {
+    private KYC.Domain.Entities.DpiaRecord? _active;
+
+    protected override async Task OnInitializedAsync() =>
+        _active = await Repo.GetActiveAsync();
+}

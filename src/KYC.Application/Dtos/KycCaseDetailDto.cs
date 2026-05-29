@@ -13,7 +13,9 @@ public record CasePartyDto(
     decimal OwnershipPercentage,
     bool IsPep,
     bool IsSanctioned,
-    bool IsOffshore);
+    bool IsOffshore,
+    IdentityVerificationStatus VerificationStatus = IdentityVerificationStatus.Pending,
+    IdentityVerificationMethod VerificationMethod = IdentityVerificationMethod.NotYetVerified);
 
 public record RiskSignalDetailDto(
     Guid Id,
@@ -43,4 +45,12 @@ public record KycCaseDetailDto(
     KycReportDto? Report,
     IReadOnlyList<CaseDocumentDto> Documents,
     GleifCompanySnapshot? Gleif = null,
-    IReadOnlyList<GleifRelatedParty>? GleifRelatedParties = null);
+    IReadOnlyList<GleifRelatedParty>? GleifRelatedParties = null,
+    DueDiligenceLevel DueDiligenceLevel = DueDiligenceLevel.Standard,
+    string? DueDiligenceJustification = null,
+    SarStatus SarStatus = SarStatus.None,
+    string? SarReferenceNumber = null,
+    DateTime? NextReviewDue = null,
+    string? FundsOriginDescription = null,
+    bool SuggestSar = false,
+    string? CanApproveMessage = null);

@@ -1,0 +1,37 @@
+@page "/admin/aml-report"
+@attribute [Authorize(Policy = "Admin")]
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>RPB — Relatório BdP</PageTitle>
+<h1>Relatório de Prevenção do Branqueamento (Instrução BdP 8/2024)</h1>
+
+<div class="mb-3 d-flex gap-2 align-items-end">
+    <div>
+        <label class="form-label">Ano</label>
+        <input type="number" class="form-control" @bind="_year" min="2020" max="2100" />
+    </div>
+    <button class="btn btn-primary" @onclick="Generate">Gerar RPB</button>
+</div>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="alert alert-info">@_message</div>
+}
+
+@if (_reportId is not null)
+{
+    <a class="btn btn-outline-secondary" href="@Nav.ToAbsoluteUri($"/api/admin/aml-reports/{_reportId}/export")" target="_blank">Exportar JSON</a>
+}
+
+@code {
+    private int _year = DateTime.UtcNow.Year;
+    private Guid? _reportId;
+    private string? _message;
+
+    private async Task Generate()
+    {
+        _reportId = await Mediator.Send(new GenerateAmlReportCommand(_year, "admin"));
+        _message = $"RPB {_year} gerado (id: {_reportId}).";
+    }
+}

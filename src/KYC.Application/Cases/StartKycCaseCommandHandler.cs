@@ -1,4 +1,3 @@
-using KYC.Application.Common;
 using KYC.Application.Interfaces;
 using KYC.Domain.Entities;
 using KYC.Domain.Enums;
@@ -13,7 +12,7 @@ public class StartKycCaseCommandHandler(
 {
     public async Task<Guid> Handle(StartKycCaseCommand request, CancellationToken cancellationToken)
     {
-        if (!NifSanitizer.TryNormalizeCaseKey(request.Nif, out var nif))
+        if (!Common.NifSanitizer.TryNormalizeCaseKey(request.Nif, out var nif))
             throw new ArgumentException("Identificador comercial inválido.");
 
         var existing = await repository.GetByNifAsync(nif, cancellationToken);
@@ -43,4 +42,10 @@ public class StartKycCaseCommandHandler(
         await messageBus.PublishCaseStartedAsync(kyc.Id, nif, cancellationToken);
         return kyc.Id;
     }
+}
+
+public class PolicyViolationException(IReadOnlyList<string> violations)
+    : Exception($"Violação da PAC: {string.Join("; ", violations)}")
+{
+    public IReadOnlyList<string> Violations { get; } = violations;
 }

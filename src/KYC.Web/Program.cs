@@ -34,6 +34,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddKycProductionHosting(builder.Configuration, builder.Environment, builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<IKycCaseRealtimeNotifier, HubKycCaseRealtimeNotifier>();
 builder.Services.AddScoped<KYC.Web.Services.KycHubConnectionFactory>();
+builder.Services.AddSingleton<ToastService>();
 
 var azureAd = builder.Configuration.GetSection("AzureAd");
 var azureAdEnabled = azureAd.GetValue<bool?>("Enabled");
@@ -153,6 +154,17 @@ app.MapHub<KycCaseHub>("/hubs/kyc-case");
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToPage("/_Host");
+
+app.MapHealthChecks("/health");
+
+app.MapGet("/api/admin/aml-reports/{reportId:guid}/export", async (
+    Guid reportId,
+    IAmlComplianceReportService svc,
+    CancellationToken ct) =>
+{
+    var stream = await svc.ExportRpbAsync(reportId, ct);
+    return Results.File(stream, "application/json", $"rpb-{reportId}.json");
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Admin"));
 
 app.MapGet("/api/cases/{caseId:guid}/report.pdf", async (
     Guid caseId,

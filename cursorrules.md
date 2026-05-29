@@ -29,3 +29,27 @@
 - Async/await em toda a stack — sem bloqueios síncronos
 - Usar CancellationToken em todos os métodos de infra
 - Testes unitários para todos os Use Cases e Value Objects
+
+## Conformidade BdP (adenda v1.0)
+
+### Identificação e diligência
+- SEMPRE verificar DueDiligenceLevelEvaluator após entity resolution no pipeline
+- NUNCA aprovar caso com CaseParty.VerificationStatus != Verified para UBOs/BoardMembers
+- SEMPRE registar LegalBasisRef em KycCase
+
+### SAR e notificações obrigatórias
+- NUNCA silenciar SarEligibilityEvaluator.ShouldSuggestSar sem registo em audit
+- SEMPRE chamar IAssetFreezeNotificationService quando sinal Sanction é confirmado
+- Prazo de notificação de congelamento: IMEDIATO (síncrono)
+
+### Revisão periódica
+- SEMPRE chamar ScheduleNextReview() após ApproveKycCaseCommand
+- NUNCA omitir NextReviewDue em casos aprovados Ongoing
+
+### Reproducibilidade
+- SEMPRE guardar ScoringEngineVersion no KycCase antes de scoring
+- NUNCA alterar ScoringEngineConfig após activação — nova versão
+
+### RGPD
+- NUNCA Auto-Approve para RiskLevel > Low sem revisão humana
+- SEMPRE validar PolicyComplianceValidator no pipeline após UBO sync

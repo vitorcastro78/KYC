@@ -22,6 +22,16 @@ public class CaseParty
     public string? OffshoreJurisdiction { get; private set; }
     public RiskScore? PartyScore { get; private set; }
 
+    public IdentityVerificationMethod VerificationMethod { get; private set; } = IdentityVerificationMethod.NotYetVerified;
+    public DateTime? VerifiedAt { get; private set; }
+    public string? VerificationSessionId { get; private set; }
+    public IdentityVerificationStatus VerificationStatus { get; private set; } = IdentityVerificationStatus.Pending;
+    public DateTime? RcbeVerifiedAt { get; private set; }
+    public bool RcbeDiscrepancyDetected { get; private set; }
+    public bool RcbeDiscrepancyReported { get; private set; }
+    public DateTime? RcbeDiscrepancyReportedAt { get; private set; }
+    public string DataCollectionBasis { get; private set; } = "Lei83/2017-Art24-n1";
+
     private CaseParty()
     {
     }
@@ -64,4 +74,38 @@ public class CaseParty
     }
 
     public void SetPartyScore(RiskScore? score) => PartyScore = score;
+
+    public void StartVerification(IdentityVerificationMethod method, string sessionId)
+    {
+        VerificationMethod = method;
+        VerificationSessionId = sessionId;
+        VerificationStatus = IdentityVerificationStatus.Pending;
+    }
+
+    public void RecordVerificationResult(bool verified, IdentityVerificationMethod method)
+    {
+        VerificationMethod = method;
+        VerificationStatus = verified ? IdentityVerificationStatus.Verified : IdentityVerificationStatus.Failed;
+        VerifiedAt = verified ? DateTime.UtcNow : null;
+    }
+
+    public void RecordPresentialVerification(string documentReference)
+    {
+        VerificationMethod = IdentityVerificationMethod.Presential;
+        VerificationStatus = IdentityVerificationStatus.Verified;
+        VerifiedAt = DateTime.UtcNow;
+        VerificationSessionId = documentReference;
+    }
+
+    public void RecordRcbeVerification(bool discrepancyDetected)
+    {
+        RcbeVerifiedAt = DateTime.UtcNow;
+        RcbeDiscrepancyDetected = discrepancyDetected;
+    }
+
+    public void ReportRcbeDiscrepancy()
+    {
+        RcbeDiscrepancyReported = true;
+        RcbeDiscrepancyReportedAt = DateTime.UtcNow;
+    }
 }

@@ -1,5 +1,52 @@
 @page "/admin/settings"
 @attribute [Authorize(Policy = "Admin")]
+@inject ICustomerAcceptancePolicyRepository PolicyRepo
+@inject IDpiaRecordRepository DpiaRepo
+
 <PageTitle>Configurações</PageTitle>
 <h1>Configurações da plataforma</h1>
-<p class="text-muted">Segredos via Key Vault; ajustar LLM e fontes externas em appsettings / variáveis de ambiente.</p>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">PAC activa</div>
+            <div class="card-body">
+                @if (_policy is null)
+                {
+                    <p class="text-muted mb-0">Nenhuma PAC activa.</p>
+                }
+                else
+                {
+                    <p>Versão <strong>@_policy.Version</strong> — limiar ocasional @_policy.OccasionalThreshold.ToString("C")</p>
+                    <p class="small text-muted mb-0">Segredos e integrações via variáveis de ambiente / Key Vault.</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">DPIA</div>
+            <div class="card-body">
+                @if (_dpia is null)
+                {
+                    <p class="text-muted mb-0">Sem DPIA registada.</p>
+                }
+                else
+                {
+                    <p>Versão @_dpia.Version — revisão @_dpia.NextReviewDue.ToLocalTime().ToString("dd/MM/yyyy")</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private KYC.Domain.Entities.CustomerAcceptancePolicy? _policy;
+    private KYC.Domain.Entities.DpiaRecord? _dpia;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _policy = await PolicyRepo.GetActiveAsync();
+        _dpia = await DpiaRepo.GetActiveAsync();
+    }
+}

@@ -1,0 +1,95 @@
+# Produção on-prem — KYC AI Platform
+# Uso: cp .env.example .env && docker compose -f docker-compose.prod.yml up -d
+
+services:
+  kyc-postgres:
+    image: pgvector/pgvector:pg17
+    container_name: kyc-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kyc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:-kyc_prod}
+    volumes:
+      - kyc_pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kyc} -d ${POSTGRES_DB:-kyc_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kyc-net
+
+  kyc-rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: kyc-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-kyc}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD required}
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - kyc-net
+
+  kyc-web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: kyc-web
+    restart: unless-stopped
+    depends_on:
+      kyc-postgres:
+        condition: service_healthy
+      kyc-rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      KYC_DB_CONNECTION: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_prod};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD}
+      KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD}@kyc-rabbitmq:5672/
+      Messaging__Provider: RabbitMq
+      LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
+      Auth__AdminEmail: ${KYC_ADMIN_EMAIL:-admin@kyc.local}
+      Auth__AdminPassword: ${KYC_ADMIN_PASSWORD:?KYC_ADMIN_PASSWORD required}
+    ports:
+      - "${KYC_WEB_PORT:-8080}:8080"
+    volumes:
+      - kyc_documents:/app/Data/cases
+    networks:
+      - kyc-net
+
+  kyc-workers:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.workers
+    container_name: kyc-workers
+    restart: unless-stopped
+    depends_on:
+      kyc-postgres:
+        condition: service_healthy
+      kyc-rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      KYC_DB_CONNECTION: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_prod};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD}
+      KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD}@kyc-rabbitmq:5672/
+      Messaging__Provider: RabbitMq
+      LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
+    volumes:
+      - kyc_worker_data:/app/Data
+    networks:
+      - kyc-net
+
+volumes:
+  kyc_pgdata_prod:
+  kyc_documents:
+  kyc_worker_data:
+
+networks:
+  kyc-net:
+    driver: bridge

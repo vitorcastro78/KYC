@@ -1,3 +1,4 @@
+using KYC.Application.Interfaces;
 using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
 using MediatR;
@@ -6,7 +7,7 @@ namespace KYC.Application.Cases;
 
 public record StartKycCaseCommand(string Nif, string RequestedBy, CreditAmount RequestedAmount) : IRequest<Guid>;
 
-public record ApproveKycCaseCommand(Guid CaseId, string AnalystId, string Notes) : IRequest<Unit>;
+public record ApproveKycCaseCommand(Guid CaseId, string AnalystId, string Notes, string? SecondApproverId = null) : IRequest<Unit>;
 
 public record RejectKycCaseCommand(Guid CaseId, string AnalystId, string Reason) : IRequest<Unit>;
 
@@ -39,3 +40,22 @@ public record UploadCaseDocumentCommand(
     Guid? CasePartyId) : IRequest<Guid>;
 
 public record RerunKycCaseScreeningCommand(Guid CaseId, string ActorId) : IRequest<Unit>;
+
+public record InitiateEntityVerificationCommand(
+    Guid CaseId, Guid PartyId, IdentityVerificationMethod Method, string RequestedBy) : IRequest<IdentityVerificationSession>;
+
+public record RecordPresentialVerificationCommand(
+    Guid CaseId, Guid PartyId, string AnalystId, string DocumentReference) : IRequest<Unit>;
+
+public record SubmitSarCommand(
+    Guid CaseId, string SuspicionDescription, string AnalystId, bool IsUrgent) : IRequest<UifSubmissionResult>;
+
+public record MarkSarNotRequiredCommand(Guid CaseId, string AnalystId, string Justification) : IRequest<Unit>;
+
+public record SetFundsOriginCommand(Guid CaseId, string Description, bool Verified, string? DocumentId) : IRequest<Unit>;
+
+public record TriggerPeriodicReviewCommand(Guid CaseId, string InitiatedBy, string? ReviewNotes) : IRequest<Unit>;
+
+public record EscalateToSupervisorCommand(Guid CaseId, string Reason) : IRequest<Unit>;
+
+public record GenerateAmlReportCommand(int Year, string RequestedBy) : IRequest<Guid>;

@@ -5,6 +5,7 @@ obj/
 *.suo
 .env
 .env.local
+appsettings.*.local.json
 *.log
 TestResults/
 coverage*.json

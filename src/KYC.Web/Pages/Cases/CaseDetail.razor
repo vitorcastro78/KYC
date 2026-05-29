@@ -10,6 +10,7 @@
 @inject IMediator Mediator
 @inject NavigationManager Nav
 @inject KycHubConnectionFactory HubFactory
+@inject ToastService Toast
 
 <PageTitle>Caso</PageTitle>
 
@@ -30,6 +31,8 @@ else
             <div class="mt-2"><RiskScoreBadge Score="_case.Score" /></div>
         </div>
     </div>
+
+    <ComplianceCaseSection Case="_case" CaseId="CaseId" OnChanged="Reload" />
 
     <div class="card mb-3">
         <div class="card-body">
