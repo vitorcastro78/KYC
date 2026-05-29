@@ -19,15 +19,22 @@ public class ScoringEngineConfig
     {
     }
 
-    public static ScoringEngineConfig CreateDefault(string approvedBy, string promptHash)
+    public static ScoringEngineConfig CreateDefault(string approvedBy, string promptHash) =>
+        CreateVersion("1.0.0", "qwen3.5:9b", promptHash, approvedBy);
+
+    public static ScoringEngineConfig CreateVersion(
+        string version,
+        string localModelName,
+        string promptHash,
+        string approvedBy)
     {
         return new ScoringEngineConfig
         {
             Id = Guid.NewGuid(),
-            Version = "1.0.0",
+            Version = version,
             ActiveFrom = DateTime.UtcNow,
             IsActive = true,
-            LocalModelName = "qwen3.5:9b",
+            LocalModelName = localModelName,
             LocalModelVersion = "latest",
             CloudModelName = "(Ollama local)",
             SystemPromptHash = promptHash,

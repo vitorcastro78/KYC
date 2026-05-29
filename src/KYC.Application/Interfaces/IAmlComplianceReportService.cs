@@ -6,6 +6,7 @@ public interface IAmlComplianceReportService
 {
     Task<AmlComplianceReport> GenerateAnnualReportAsync(int year, string requestedBy, CancellationToken ct = default);
     Task<Stream> ExportRpbAsync(Guid reportId, CancellationToken ct = default);
+    Task<Stream> ExportRpbBdpAsync(Guid reportId, CancellationToken ct = default);
     Task<string> SubmitToBdpAsync(Guid reportId, string submittedBy, CancellationToken ct = default);
 }
 

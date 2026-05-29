@@ -30,4 +30,12 @@ public class HubKycCaseRealtimeNotifier(IHubContext<KycCaseHub> hub) : IKycCaseR
         CancellationToken ct = default) =>
         hub.Clients.Group(KycCaseHub.CaseGroup(caseId))
             .SendAsync("DocumentIngestionUpdated", caseId, documentId, status.ToString(), ct);
+
+    public Task NotifyComplianceAlertAsync(
+        Guid caseId,
+        string alertType,
+        string message,
+        CancellationToken ct = default) =>
+        hub.Clients.Group(KycCaseHub.CaseGroup(caseId))
+            .SendAsync("ComplianceAlert", caseId, alertType, message, ct);
 }

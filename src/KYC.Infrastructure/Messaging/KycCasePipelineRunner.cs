@@ -111,6 +111,18 @@ public class KycCasePipelineRunner(
 
         await notifier.NotifyScanProgressAsync(caseId, "LLM", 92, ct);
 
+        var eddCheck = kyc.CanProceedWithEnhancedDd();
+        if (!eddCheck.IsSuccess)
+        {
+            kyc.AddRiskSignal(RiskSignal.Create(
+                kyc.Id,
+                null,
+                SignalType.Inconsistency,
+                SignalSeverity.High,
+                eddCheck.Error ?? "EDD incompleta",
+                "PolicyEngine"));
+        }
+
         var ctx = BuildContext(kyc);
         var score = await llm.ComputeRiskScoreAsync(ctx, ct);
         kyc.SetScore(score);
@@ -241,7 +253,8 @@ public class KycCasePipelineRunner(
             ctx.Parties,
             ctx.Signals,
             score,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            kyc.LegalBasisRef);
 
     private static KycScanContext BuildContext(KycCase kyc)
     {

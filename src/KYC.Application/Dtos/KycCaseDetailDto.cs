@@ -15,7 +15,9 @@ public record CasePartyDto(
     bool IsSanctioned,
     bool IsOffshore,
     IdentityVerificationStatus VerificationStatus = IdentityVerificationStatus.Pending,
-    IdentityVerificationMethod VerificationMethod = IdentityVerificationMethod.NotYetVerified);
+    IdentityVerificationMethod VerificationMethod = IdentityVerificationMethod.NotYetVerified,
+    bool RcbeDiscrepancyDetected = false,
+    bool RcbeDiscrepancyReported = false);
 
 public record RiskSignalDetailDto(
     Guid Id,

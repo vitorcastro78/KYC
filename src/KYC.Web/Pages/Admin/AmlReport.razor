@@ -21,7 +21,11 @@
 
 @if (_reportId is not null)
 {
-    <a class="btn btn-outline-secondary" href="@Nav.ToAbsoluteUri($"/api/admin/aml-reports/{_reportId}/export")" target="_blank">Exportar JSON</a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="@Nav.ToAbsoluteUri($"/api/admin/aml-reports/{_reportId}/export")" target="_blank">Exportar JSON (interno)</a>
+        <a class="btn btn-outline-primary" href="@Nav.ToAbsoluteUri($"/api/admin/aml-reports/{_reportId}/export?format=bdp")" target="_blank">Exportar XML BdP</a>
+        <button class="btn btn-success" @onclick="SubmitToBdp">Marcar submetido à BdP</button>
+    </div>
 }
 
 @code {
@@ -33,5 +37,12 @@
     {
         _reportId = await Mediator.Send(new GenerateAmlReportCommand(_year, "admin"));
         _message = $"RPB {_year} gerado (id: {_reportId}).";
+    }
+
+    private async Task SubmitToBdp()
+    {
+        if (_reportId is null) return;
+        var reference = await Mediator.Send(new SubmitAmlReportToBdpCommand(_reportId.Value, "admin"));
+        _message = $"Submetido à BdP — referência {reference}.";
     }
 }

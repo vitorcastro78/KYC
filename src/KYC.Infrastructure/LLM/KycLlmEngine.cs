@@ -187,7 +187,7 @@ public class KycLlmEngine(
         if (!tryLlm)
             return KycReport.Create(context.CaseId, baselineHtml, templateModel);
 
-        var system = "Fornece APENAS o conteudo interno HTML de <section class=\"ai-summary\"> com 1-3 paragrafos curtos para analista KYC.";
+        var system = "Fornece APENAS HTML interno de <section class=\"ai-summary\"> com 1-3 paragrafos. Menciona factores de risco e que a decisao final e humana (Art. 22 RGPD). Sem markdown.";
         var user = JsonSerializer.Serialize(new { context, score });
         var hash = Sha256(system + user);
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";

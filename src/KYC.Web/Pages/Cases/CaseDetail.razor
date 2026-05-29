@@ -60,7 +60,7 @@ else
                     <div class="case-actions-group">
                         <span class="case-actions-label">Decisão KYC</span>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-success" @onclick="() => _showApprove = true">Aprovar</button>
+                            <button type="button" class="btn btn-success" disabled="@(!string.IsNullOrWhiteSpace(_case?.CanApproveMessage))" @onclick="() => _showApprove = true">Aprovar</button>
                             <button type="button" class="btn btn-danger" @onclick="() => _showReject = true">Rejeitar</button>
                             <button type="button" class="btn btn-outline-secondary" @onclick="() => _showReview = true">Pedir revisão</button>
                         </div>
@@ -303,7 +303,21 @@ else
 }
 
 <ConfirmDialog Visible="_showApprove" Title="Aprovar caso" OnConfirm="Approve" OnCancel="() => _showApprove = false">
-    <p>Confirmar aprovação do caso?</p>
+    @if (!string.IsNullOrWhiteSpace(_case?.CanApproveMessage))
+    {
+        <div class="alert alert-danger">@_case.CanApproveMessage</div>
+    }
+    else
+    {
+        <p>Confirmar aprovação do caso?</p>
+        @if (_case?.DueDiligenceLevel == DueDiligenceLevel.Enhanced)
+        {
+            <div class="mb-2">
+                <label class="form-label">Segundo aprovador (4-eyes EDD) *</label>
+                <input class="form-control" @bind="_secondApproverId" placeholder="ID do supervisor" />
+            </div>
+        }
+    }
 </ConfirmDialog>
 <ConfirmDialog Visible="_showReject" Title="Rejeitar caso" OnConfirm="Reject" OnCancel="() => _showReject = false">
     <InputTextArea class="form-control" @bind-Value="_rejectReason" placeholder="Motivo" />
@@ -381,6 +395,7 @@ else
     private UploadDocumentFormModel _uploadForm = new();
     private string _rejectReason = "";
     private string _reviewReason = "";
+    private string _secondApproverId = "";
     private string? _actionError;
     private AddPartyFormModel _addForm = new();
 
@@ -699,7 +714,12 @@ else
     {
         await RunDataAsync(async () =>
         {
-            await Mediator.Send(new ApproveKycCaseCommand(CaseId, "dev-user", "Aprovado"));
+            await Mediator.Send(new ApproveKycCaseCommand(
+                CaseId,
+                "dev-user",
+                "Aprovado",
+                string.IsNullOrWhiteSpace(_secondApproverId) ? null : _secondApproverId.Trim()));
+            _secondApproverId = "";
             _showApprove = false;
             await ReloadCoreAsync();
         });

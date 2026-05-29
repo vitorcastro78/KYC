@@ -60,13 +60,22 @@
                         <strong>@p.Name</strong> <span class="text-muted small">(@p.Role)</span>
                         <div><span class="badge @VerificationBadge(p.VerificationStatus)">@p.VerificationStatus</span></div>
                     </div>
-                    @if (p.VerificationStatus != IdentityVerificationStatus.Verified)
-                    {
-                        <button type="button" class="btn btn-sm btn-outline-primary"
-                                @onclick="() => InitiateVerification(p.Id, IdentityVerificationMethod.VideoConference)">
-                            Iniciar verificação
-                        </button>
-                    }
+                    <div class="d-flex gap-1 flex-wrap">
+                        @if (p.VerificationStatus != IdentityVerificationStatus.Verified)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                    @onclick="() => OpenVerificationModal(p.Id)">
+                                Verificar identidade
+                            </button>
+                        }
+                        @if (p.RcbeDiscrepancyDetected && !p.RcbeDiscrepancyReported)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-warning"
+                                    @onclick="() => ReportRcbe(p.Id)">
+                                Reportar discrepância RCBE
+                            </button>
+                        }
+                    </div>
                 </div>
             }
 
@@ -88,6 +97,7 @@
                     <div class="modal-header"><h5 class="modal-title">Comunicação à UIF</h5></div>
                     <div class="modal-body">
                         <textarea class="form-control" rows="6" @bind="_sarNarrative" placeholder="Narrativa (mín. 200 caracteres)"></textarea>
+                        <small class="text-muted">@(_sarNarrative?.Length ?? 0) / 200 caracteres</small>
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" @bind="_sarUrgent" id="sarUrgent" />
                             <label class="form-check-label" for="sarUrgent">Urgente (comunicação imediata)</label>
@@ -95,7 +105,52 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" @onclick="() => _showSar = false">Cancelar</button>
-                        <button type="button" class="btn btn-danger" @onclick="SubmitSar">Submeter SAR</button>
+                        <button type="button" class="btn btn-danger" disabled="@((_sarNarrative?.Length ?? 0) < 200)" @onclick="SubmitSar">Submeter SAR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_showSarNotRequired)
+    {
+        <div class="modal show d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">SAR não aplicável</h5></div>
+                    <div class="modal-body">
+                        <textarea class="form-control" rows="4" @bind="_sarNotRequiredJustification" placeholder="Justificação (mín. 50 caracteres)"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showSarNotRequired = false">Cancelar</button>
+                        <button type="button" class="btn btn-primary" disabled="@((_sarNotRequiredJustification?.Length ?? 0) < 50)" @onclick="MarkSarNotRequired">Confirmar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_showVerification && _verificationPartyId is not null)
+    {
+        <div class="modal show d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Método de verificação (Aviso 1/2022)</h5></div>
+                    <div class="modal-body">
+                        <select class="form-select" @bind="_verificationMethod">
+                            <option value="@IdentityVerificationMethod.VideoConference">Videoconferência</option>
+                            <option value="@IdentityVerificationMethod.CMD">Chave Móvel Digital</option>
+                            <option value="@IdentityVerificationMethod.Presential">Presencial</option>
+                            <option value="@IdentityVerificationMethod.QualifiedSignature">Assinatura qualificada eIDAS</option>
+                        </select>
+                        @if (_verificationMethod == IdentityVerificationMethod.Presential)
+                        {
+                            <input class="form-control mt-2" @bind="_presentialDocRef" placeholder="Referência do documento" />
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseVerificationModal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" @onclick="ConfirmVerification">Iniciar</button>
                     </div>
                 </div>
             </div>
@@ -110,7 +165,12 @@
 
     private bool _showSar;
     private bool _showSarNotRequired;
+    private bool _showVerification;
+    private Guid? _verificationPartyId;
+    private IdentityVerificationMethod _verificationMethod = IdentityVerificationMethod.VideoConference;
+    private string _presentialDocRef = "";
     private string _sarNarrative = "";
+    private string _sarNotRequiredJustification = "";
     private bool _sarUrgent;
     private string _fundsOrigin = "";
 
@@ -137,10 +197,49 @@
         _ => "bg-secondary"
     };
 
-    private async Task InitiateVerification(Guid partyId, IdentityVerificationMethod method)
+    private void OpenVerificationModal(Guid partyId)
     {
-        await Mediator.Send(new InitiateEntityVerificationCommand(CaseId, partyId, method, "dev-user"));
-        Toast.Show("Sessão de verificação iniciada.", ToastLevel.Success);
+        _verificationPartyId = partyId;
+        _showVerification = true;
+    }
+
+    private void CloseVerificationModal()
+    {
+        _showVerification = false;
+        _verificationPartyId = null;
+    }
+
+    private async Task ConfirmVerification()
+    {
+        if (_verificationPartyId is null) return;
+        if (_verificationMethod == IdentityVerificationMethod.Presential)
+        {
+            await Mediator.Send(new RecordPresentialVerificationCommand(
+                CaseId, _verificationPartyId.Value, "dev-user", _presentialDocRef));
+            Toast.Show("Verificação presencial registada.", ToastLevel.Success);
+        }
+        else
+        {
+            await Mediator.Send(new InitiateEntityVerificationCommand(
+                CaseId, _verificationPartyId.Value, _verificationMethod, "dev-user"));
+            Toast.Show("Sessão de verificação iniciada.", ToastLevel.Success);
+        }
+        CloseVerificationModal();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task MarkSarNotRequired()
+    {
+        await Mediator.Send(new MarkSarNotRequiredCommand(CaseId, "dev-user", _sarNotRequiredJustification));
+        Toast.Show("SAR marcado como não aplicável.", ToastLevel.Success);
+        _showSarNotRequired = false;
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task ReportRcbe(Guid partyId)
+    {
+        await Mediator.Send(new ReportRcbeDiscrepancyCommand(CaseId, partyId, "dev-user"));
+        Toast.Show("Discrepância RCBE reportada.", ToastLevel.Success);
         await OnChanged.InvokeAsync();
     }
 

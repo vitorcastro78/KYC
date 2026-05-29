@@ -3,6 +3,7 @@ using KYC.Application.Interfaces;
 using KYC.Application.Models;
 using KYC.Application.Services;
 using KYC.Domain.Entities;
+using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
 using Moq;
 
@@ -16,7 +17,11 @@ public class StartKycCaseCommandHandlerTests
         Mock<IKycCaseMessageBus> bus)
     {
         var policyRepo = new Mock<ICustomerAcceptancePolicyRepository>();
-        return new StartKycCaseCommandHandler(repo.Object, res.Object, bus.Object);
+        policyRepo.Setup(p => p.GetActiveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CustomerAcceptancePolicy.CreateV1("test"));
+        var validator = new PolicyComplianceValidator();
+        return new StartKycCaseCommandHandler(
+            repo.Object, res.Object, policyRepo.Object, validator, bus.Object);
     }
 
     [Fact]
@@ -67,5 +72,28 @@ public class StartKycCaseCommandHandlerTests
         Assert.NotNull(captured);
         Assert.Equal("Acme Test", captured!.CompanyName);
         Assert.Equal("ACMETEST", captured.Nif);
+    }
+
+    [Fact]
+    public async Task Throws_when_policy_auto_rejects_prohibited_sector()
+    {
+        var repo = new Mock<IKycCaseRepository>();
+        repo.Setup(r => r.GetByNifAsync("123456789", It.IsAny<CancellationToken>())).ReturnsAsync((KycCase?)null);
+
+        var res = new Mock<IEntityResolutionService>();
+        res.Setup(s => s.ResolveByNifAsync("123456789", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EntityResolutionResult("123456789", "Casino X", "PT", "x", true, null));
+
+        var bus = new Mock<IKycCaseMessageBus>();
+        var policy = CustomerAcceptancePolicy.CreateV1("test");
+        var policyRepo = new Mock<ICustomerAcceptancePolicyRepository>();
+        policyRepo.Setup(p => p.GetActiveAsync(It.IsAny<CancellationToken>())).ReturnsAsync(policy);
+
+        var handler = new StartKycCaseCommandHandler(
+            repo.Object, res.Object, policyRepo.Object, new PolicyComplianceValidator(), bus.Object);
+
+        await Assert.ThrowsAsync<PolicyViolationException>(() =>
+            handler.Handle(new StartKycCaseCommand("123456789", "u1", CreditAmount.Eur(1000), CaeCode: "92000"),
+                CancellationToken.None));
     }
 }

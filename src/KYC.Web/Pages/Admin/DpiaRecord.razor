@@ -1,6 +1,8 @@
 @page "/admin/dpia"
 @attribute [Authorize(Policy = "Admin")]
 @inject IDpiaRecordRepository Repo
+@inject IMediator Mediator
+@inject ToastService Toast
 
 <PageTitle>DPIA</PageTitle>
 <h1>Registo DPIA (RGPD Art. 35)</h1>
@@ -17,9 +19,26 @@
     </div>
 }
 
+<div class="card mt-3">
+    <div class="card-header">Nova versão DPIA</div>
+    <div class="card-body row g-2">
+        <div class="col-md-3"><input class="form-control" @bind="_version" placeholder="Versão" /></div>
+        <div class="col-md-6"><input class="form-control" @bind="_path" placeholder="Caminho documento" /></div>
+        <div class="col-md-3"><button class="btn btn-primary w-100" @onclick="Create">Registar</button></div>
+    </div>
+</div>
+
 @code {
     private KYC.Domain.Entities.DpiaRecord? _active;
+    private string _version = "1.1";
+    private string _path = "docs/dpia-v1.1.pdf";
 
-    protected override async Task OnInitializedAsync() =>
+    protected override async Task OnInitializedAsync() => _active = await Repo.GetActiveAsync();
+
+    private async Task Create()
+    {
+        await Mediator.Send(new CreateDpiaRecordCommand(_version, _path, "admin"));
+        Toast.Show("DPIA registado.", ToastLevel.Success);
         _active = await Repo.GetActiveAsync();
+    }
 }

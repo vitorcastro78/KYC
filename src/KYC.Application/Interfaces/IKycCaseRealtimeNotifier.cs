@@ -14,4 +14,10 @@ public interface IKycCaseRealtimeNotifier
         Guid documentId,
         DocumentIngestionStatus status,
         CancellationToken ct = default);
+
+    Task NotifyComplianceAlertAsync(
+        Guid caseId,
+        string alertType,
+        string message,
+        CancellationToken ct = default);
 }

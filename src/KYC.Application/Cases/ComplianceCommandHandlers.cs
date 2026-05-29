@@ -7,7 +7,8 @@ namespace KYC.Application.Cases;
 
 public class OverrideSignalCommandHandler(
     IKycCaseRepository repository,
-    IAssetFreezeNotificationService assetFreeze) : IRequestHandler<OverrideSignalCommand, Unit>
+    IAssetFreezeNotificationService assetFreeze,
+    IKycCaseRealtimeNotifier notifier) : IRequestHandler<OverrideSignalCommand, Unit>
 {
     public async Task<Unit> Handle(OverrideSignalCommand request, CancellationToken cancellationToken)
     {
@@ -36,9 +37,18 @@ public class OverrideSignalCommandHandler(
                 cancellationToken);
             if (notify.IsSuccess)
                 kyc.RecordAssetFreezeNotification(notify.ConfirmationNumber ?? "OK");
+
+            kyc.RequireSupervisorReviewAfterSanction(request.AnalystId, signal.Description);
+            await notifier.NotifyComplianceAlertAsync(
+                kyc.Id,
+                "AssetFreeze",
+                $"Sanção confirmada — congelamento notificado. Ref: {notify.ConfirmationNumber}",
+                cancellationToken);
         }
 
         await repository.UpdateAsync(kyc, cancellationToken);
+        if (request.Confirm && signal.Type == SignalType.Sanction)
+            await notifier.NotifyStatusChangedAsync(kyc.Id, kyc.Status, cancellationToken);
         return Unit.Value;
     }
 }
@@ -54,6 +64,13 @@ public class SubmitSarCommandHandler(
 
         var kyc = await repository.GetByIdAsync(request.CaseId, cancellationToken)
                   ?? throw new KeyNotFoundException("Caso não encontrado.");
+
+        var hasCritical = kyc.RiskSignals.Any(s => s.Severity == SignalSeverity.Critical && !s.IsConfirmed);
+        var riskOk = kyc.Score?.Level >= RiskLevel.High || hasCritical
+                     || kyc.Parties.Any(p => p.IsSanctioned);
+        if (!riskOk)
+            throw new InvalidOperationException(
+                "SAR apenas permitido para risco Alto/Crítico, sinal Critical ou correspondência em sanções.");
 
         var report = new SuspiciousActivityReport(
             kyc.Id,
@@ -83,9 +100,56 @@ public class MarkSarNotRequiredCommandHandler(IKycCaseRepository repository)
 {
     public async Task<Unit> Handle(MarkSarNotRequiredCommand request, CancellationToken cancellationToken)
     {
+        if (request.Justification.Length < 50)
+            throw new ArgumentException("Justificação deve ter pelo menos 50 caracteres.");
+
         var kyc = await repository.GetByIdAsync(request.CaseId, cancellationToken)
                   ?? throw new KeyNotFoundException("Caso não encontrado.");
         kyc.MarkSarNotRequired(request.AnalystId, request.Justification);
+        await repository.UpdateAsync(kyc, cancellationToken);
+        return Unit.Value;
+    }
+}
+
+public class RecordVerificationResultCommandHandler(IKycCaseRepository repository)
+    : IRequestHandler<RecordVerificationResultCommand, Unit>
+{
+    public async Task<Unit> Handle(RecordVerificationResultCommand request, CancellationToken cancellationToken)
+    {
+        var match = await repository.GetCaseWithPartyBySessionIdAsync(request.SessionId, cancellationToken)
+                    ?? await repository.GetCaseWithPartyAsync(request.PartyId, cancellationToken);
+        if (match is null)
+            throw new KeyNotFoundException("Sessão ou parte não encontrada.");
+
+        var kyc = match.Value.Case;
+        var party = match.Value.Party;
+        var method = party.VerificationMethod;
+        party.RecordVerificationResult(request.IsVerified, method);
+        kyc.AppendAudit(AuditEntry.Create(
+            kyc.Id,
+            request.IsVerified ? "IdentityVerified" : "IdentityVerificationFailed",
+            "System",
+            "Agent",
+            request.FailureReason ?? request.EidasLevel));
+        await repository.UpdateAsync(kyc, cancellationToken);
+        return Unit.Value;
+    }
+}
+
+public class ReportRcbeDiscrepancyCommandHandler(IKycCaseRepository repository)
+    : IRequestHandler<ReportRcbeDiscrepancyCommand, Unit>
+{
+    public async Task<Unit> Handle(ReportRcbeDiscrepancyCommand request, CancellationToken cancellationToken)
+    {
+        var match = await repository.GetCaseWithPartyAsync(request.PartyId, cancellationToken)
+                    ?? throw new KeyNotFoundException("Parte não encontrada.");
+        var kyc = match.Case;
+        var party = match.Party;
+        if (kyc.Id != request.CaseId)
+            throw new InvalidOperationException("Parte não pertence ao caso.");
+
+        party.ReportRcbeDiscrepancy();
+        kyc.AppendAudit(AuditEntry.Create(kyc.Id, "RcbeDiscrepancyReported", request.AnalystId, "User", party.Name));
         await repository.UpdateAsync(kyc, cancellationToken);
         return Unit.Value;
     }

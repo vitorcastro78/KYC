@@ -5,7 +5,12 @@ using MediatR;
 
 namespace KYC.Application.Cases;
 
-public record StartKycCaseCommand(string Nif, string RequestedBy, CreditAmount RequestedAmount) : IRequest<Guid>;
+public record StartKycCaseCommand(
+    string Nif,
+    string RequestedBy,
+    CreditAmount RequestedAmount,
+    RelationshipType? RelationshipType = null,
+    string? CaeCode = null) : IRequest<Guid>;
 
 public record ApproveKycCaseCommand(Guid CaseId, string AnalystId, string Notes, string? SecondApproverId = null) : IRequest<Unit>;
 
@@ -47,6 +52,15 @@ public record InitiateEntityVerificationCommand(
 public record RecordPresentialVerificationCommand(
     Guid CaseId, Guid PartyId, string AnalystId, string DocumentReference) : IRequest<Unit>;
 
+public record RecordVerificationResultCommand(
+    Guid PartyId,
+    string SessionId,
+    bool IsVerified,
+    string? FailureReason,
+    string? EidasLevel) : IRequest<Unit>;
+
+public record ReportRcbeDiscrepancyCommand(Guid CaseId, Guid PartyId, string AnalystId) : IRequest<Unit>;
+
 public record SubmitSarCommand(
     Guid CaseId, string SuspicionDescription, string AnalystId, bool IsUrgent) : IRequest<UifSubmissionResult>;
 
@@ -59,3 +73,13 @@ public record TriggerPeriodicReviewCommand(Guid CaseId, string InitiatedBy, stri
 public record EscalateToSupervisorCommand(Guid CaseId, string Reason) : IRequest<Unit>;
 
 public record GenerateAmlReportCommand(int Year, string RequestedBy) : IRequest<Guid>;
+
+public record SubmitAmlReportToBdpCommand(Guid ReportId, string SubmittedBy) : IRequest<string>;
+
+public record CreateScoringEngineConfigCommand(
+    string Version,
+    string LocalModelName,
+    string SystemPromptHash,
+    string ApprovedBy) : IRequest<Guid>;
+
+public record CreateDpiaRecordCommand(string Version, string DocumentPath, string ApprovedBy) : IRequest<Guid>;

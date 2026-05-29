@@ -6,6 +6,7 @@ using KYC.Application.Interfaces;
 using KYC.Domain.Enums;
 using KYC.Infrastructure;
 using MediatR;
+using KYC.Web.Endpoints;
 using KYC.Web.Hubs;
 using KYC.Web.Security;
 using KYC.Web.Services;
@@ -157,13 +158,22 @@ app.MapFallbackToPage("/_Host");
 
 app.MapHealthChecks("/health");
 
+app.MapIdentityWebhookEndpoints();
+
 app.MapGet("/api/admin/aml-reports/{reportId:guid}/export", async (
     Guid reportId,
+    string? format,
     IAmlComplianceReportService svc,
     CancellationToken ct) =>
 {
-    var stream = await svc.ExportRpbAsync(reportId, ct);
-    return Results.File(stream, "application/json", $"rpb-{reportId}.json");
+    var useBdp = string.Equals(format, "bdp", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(format, "xml", StringComparison.OrdinalIgnoreCase);
+    var stream = useBdp
+        ? await svc.ExportRpbBdpAsync(reportId, ct)
+        : await svc.ExportRpbAsync(reportId, ct);
+    var contentType = useBdp ? "application/xml" : "application/json";
+    var ext = useBdp ? "xml" : "json";
+    return Results.File(stream, contentType, $"rpb-{reportId}.{ext}");
 }).RequireAuthorization(policy => policy.RequireRole("KYC.Admin"));
 
 app.MapGet("/api/cases/{caseId:guid}/report.pdf", async (

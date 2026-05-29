@@ -23,4 +23,11 @@ public class NoOpKycCaseRealtimeNotifier : IKycCaseRealtimeNotifier
         DocumentIngestionStatus status,
         CancellationToken ct = default) =>
         Task.CompletedTask;
+
+    public Task NotifyComplianceAlertAsync(
+        Guid caseId,
+        string alertType,
+        string message,
+        CancellationToken ct = default) =>
+        Task.CompletedTask;
 }

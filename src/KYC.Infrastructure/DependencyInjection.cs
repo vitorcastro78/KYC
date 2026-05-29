@@ -18,6 +18,7 @@ using KYC.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Polly;
 using Polly.Extensions.Http;
@@ -70,6 +71,8 @@ public static class DependencyInjection
         services.AddHostedService<ComplianceSeedHostedService>();
         if (configuration.GetValue("Compliance:EnablePeriodicReviewScheduler", true))
             services.AddHostedService<PeriodicReviewSchedulerJob>();
+        if (configuration.GetValue("IdentityVerification:EnablePolling", true))
+            services.AddHostedService<IdentityVerificationPollingHostedService>();
 
         services.AddSingleton<ICaseDocumentStorage, LocalCaseDocumentStorage>();
         services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
@@ -123,8 +126,10 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd(ofacUserAgent);
         }).AddPolicyHandler(GetRetryPolicy());
 
-        services.AddHttpClient<IOfacClient, OfacClient>()
-            .AddPolicyHandler(GetRetryPolicy());
+        services.RemoveAll<IOfacClient>();
+        services.AddScoped<IOfacClient>(static sp => new OfacClient(
+            sp.GetRequiredService<OfacSdnXmlLocalIndex>(),
+            sp.GetRequiredService<ILogger<OfacClient>>()));
 
         var euSanctionsBase = configuration["ExternalSources:EuSanctionsBaseUrl"] ?? "http://localhost:5057/eu-sanctions/";
         var euBuilder = services.AddHttpClient<IEuSanctionsClient, EuSanctionsClient>((_, c) =>

@@ -34,6 +34,7 @@ public class KycStructuredReportComposerTests
         var html = _composer.ComposeHtml(request);
 
         Assert.Contains("Relatório KYC", html);
+        Assert.Contains("Transparência e RGPD", html);
         Assert.Contains("Sumário executivo", html);
         Assert.Contains("Metodologia e parâmetros utilizados", html);
         Assert.Contains("Lógica de cálculo do score de risco", html);

@@ -17,7 +17,7 @@
         <div class="table-responsive">
             <table class="table table-hover table-corporate mb-0">
                 <thead>
-                <tr><th>Identificador</th><th>Empresa</th><th>Score</th><th>Estado</th><th>Criado</th></tr>
+                <tr><th>Identificador</th><th>Empresa</th><th>Score</th><th>DDC</th><th>SAR</th><th>Estado</th><th>Criado</th></tr>
                 </thead>
                 <tbody>
                 @foreach (var c in _items)
@@ -26,6 +26,8 @@
                         <td><a class="fw-semibold" href="/cases/@c.Id">@c.Nif</a></td>
                         <td>@c.CompanyName</td>
                         <td><RiskScoreBadge Score="c.Score" /></td>
+                        <td><span class="badge bg-light text-dark">@DdcLabel(c.DueDiligenceLevel)</span></td>
+                        <td><span class="badge @SarBadgeClass(c.SarStatus)">@SarLabel(c.SarStatus)</span></td>
                         <td><span class="status-pill @StatusClass(c.Status)">@StatusLabel(c.Status)</span></td>
                         <td>@c.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                     </tr>
@@ -53,6 +55,29 @@
         KycStatus.Approved => "Aprovado",
         KycStatus.Rejected => "Rejeitado",
         _ => status.ToString()
+    };
+
+    private static string DdcLabel(DueDiligenceLevel d) => d switch
+    {
+        DueDiligenceLevel.Simplified => "Simplificada",
+        DueDiligenceLevel.Enhanced => "Reforçada",
+        _ => "Standard"
+    };
+
+    private static string SarLabel(SarStatus s) => s switch
+    {
+        SarStatus.Submitted => "UIF",
+        SarStatus.Pending => "SAR pend.",
+        SarStatus.NotRequired => "N/A",
+        _ => "—"
+    };
+
+    private static string SarBadgeClass(SarStatus s) => s switch
+    {
+        SarStatus.Submitted => "bg-danger",
+        SarStatus.Pending => "bg-warning text-dark",
+        SarStatus.NotRequired => "bg-secondary",
+        _ => "bg-light text-dark"
     };
 
     private static string StatusClass(KycStatus status) => status switch

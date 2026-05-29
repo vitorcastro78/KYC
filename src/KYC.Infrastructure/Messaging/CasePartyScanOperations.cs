@@ -32,7 +32,8 @@ internal static class CasePartyScanOperations
                 m.ListName));
         }
 
-        var am = await adverse.ScanAsync(party.Name, party.Nif, ct);
+        var lookbackYears = kyc.DueDiligenceLevel == DueDiligenceLevel.Enhanced ? 5 : 2;
+        var am = await adverse.ScanAsync(party.Name, party.Nif, lookbackYears, ct);
         foreach (var hit in am.Hits)
         {
             signals.Add(RiskSignal.Create(

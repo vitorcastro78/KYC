@@ -17,7 +17,9 @@ internal static class KycCaseMapping
             c.CompletedAt,
             c.AssignedAnalystId,
             c.Parties.Count,
-            c.RiskSignals.Count);
+            c.RiskSignals.Count,
+            c.DueDiligenceLevel,
+            c.SarStatus);
 
     public static KycCaseDetailDto? ToDetailDto(KycCase? c)
     {
@@ -33,7 +35,9 @@ internal static class KycCaseMapping
             p.IsSanctioned,
             p.IsOffshore,
             p.VerificationStatus,
-            p.VerificationMethod)).ToList();
+            p.VerificationMethod,
+            p.RcbeDiscrepancyDetected,
+            p.RcbeDiscrepancyReported)).ToList();
 
         var partyNames = c.Parties.ToDictionary(p => p.Id, p => p.Name);
         var signals = c.RiskSignals.Select(s => new RiskSignalDetailDto(

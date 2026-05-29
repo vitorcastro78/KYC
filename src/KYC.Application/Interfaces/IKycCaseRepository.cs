@@ -14,4 +14,5 @@ public interface IKycCaseRepository
     Task<(KycCase Case, RiskSignal Signal)?> GetCaseWithSignalAsync(Guid signalId, CancellationToken ct = default);
     Task<IReadOnlyList<KycCase>> GetCasesDueForReviewAsync(DateTime dueBy, CancellationToken ct = default);
     Task<(KycCase Case, CaseParty Party)?> GetCaseWithPartyAsync(Guid partyId, CancellationToken ct = default);
+    Task<(KycCase Case, CaseParty Party)?> GetCaseWithPartyBySessionIdAsync(string sessionId, CancellationToken ct = default);
 }

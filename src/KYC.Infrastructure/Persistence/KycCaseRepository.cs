@@ -194,4 +194,23 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
         var party = kyc.Parties.FirstOrDefault(p => p.Id == partyId);
         return party is null ? null : (kyc, party);
     }
+
+    public async Task<(KycCase Case, CaseParty Party)?> GetCaseWithPartyBySessionIdAsync(
+        string sessionId,
+        CancellationToken ct = default)
+    {
+        var row = await db.CaseParties.AsNoTracking()
+            .Where(p => p.VerificationSessionId == sessionId)
+            .Select(p => new { p.KycCaseId, p.Id })
+            .FirstOrDefaultAsync(ct);
+        if (row is null)
+            return null;
+
+        var kyc = await GetByIdAsync(row.KycCaseId, ct);
+        if (kyc is null)
+            return null;
+
+        var party = kyc.Parties.FirstOrDefault(p => p.Id == row.Id);
+        return party is null ? null : (kyc, party);
+    }
 }

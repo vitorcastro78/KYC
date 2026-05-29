@@ -30,6 +30,7 @@ public sealed class KycStructuredReportComposer : IKycReportComposer
         AppendRiskScore(body, request);
         AppendConsistency(body, request);
         AppendRecommendation(body, request);
+        AppendRegulatoryDisclosures(body, request);
         AppendSources(body, generated);
 
         body.AppendLine("</main>");
@@ -149,6 +150,19 @@ public sealed class KycStructuredReportComposer : IKycReportComposer
         body.AppendLine($"<p>{RecommendedAction(request)}</p>");
         body.AppendLine(
             "<p class=\"footnote\">Esta recomendação é gerada por regras automáticas e não substitui a decisão de crédito ou compliance do analista.</p>");
+    }
+
+    private static void AppendRegulatoryDisclosures(StringBuilder body, KycReportComposeRequest request)
+    {
+        body.AppendLine("<h2>10. Transparência e RGPD (Art. 22)</h2>");
+        body.AppendLine("<p>Decisão assistida por sistemas automatizados de triagem e scoring. O analista pode solicitar revisão humana, contestar o resultado e obter explicação dos factores considerados.</p>");
+        body.AppendLine("<ul>");
+        body.AppendLine("<li><strong>Base legal:</strong> cumprimento de obrigações legais AML/CFT (Lei 83/2017, Reg. UE 2015/847).</li>");
+        body.AppendLine("<li><strong>Retenção:</strong> 7 anos após encerramento do relacionamento (conforme política interna).</li>");
+        body.AppendLine("<li><strong>Direitos do titular:</strong> acesso, rectificação, oposição limitada — contacto DPO da instituição.</li>");
+        body.AppendLine("</ul>");
+        if (!string.IsNullOrWhiteSpace(request.LegalBasisRef))
+            body.AppendLine($"<p><strong>Referência PAC/base legal:</strong> {Enc(request.LegalBasisRef)}</p>");
     }
 
     private static void AppendSources(StringBuilder body, DateTime generated)

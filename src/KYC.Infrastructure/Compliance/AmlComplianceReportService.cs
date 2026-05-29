@@ -51,19 +51,27 @@ public sealed class AmlComplianceReportService(
                 a => a.Action == "PeriodicReviewCompleted" && a.Timestamp >= start && a.Timestamp < end, ct),
             reviewsOverdue: cases.Count(c => c.NextReviewDue < DateTime.UtcNow && c.Status == KycStatus.Approved),
             platformVersion: "1.0.0",
-            aiModelsJson: JsonSerializer.Serialize(new { local = "qwen3.5:9b", cloud = "claude-sonnet-4-20250514" }));
+            aiModelsJson: JsonSerializer.Serialize(new { local = "qwen3.5:9b", embeddings = "qwen3-embedding:8b" }));
 
         await reportRepo.AddAsync(report, ct);
         log.LogInformation("RPB {Year} generated with {Count} cases.", year, cases.Count);
         return report;
     }
 
-    public async Task<Stream> ExportRpbAsync(Guid reportId, CancellationToken ct = default)
+    public Task<Stream> ExportRpbAsync(Guid reportId, CancellationToken ct = default) =>
+        ExportInternalAsync(reportId, internalFormat: true, ct);
+
+    public Task<Stream> ExportRpbBdpAsync(Guid reportId, CancellationToken ct = default) =>
+        ExportInternalAsync(reportId, internalFormat: false, ct);
+
+    private async Task<Stream> ExportInternalAsync(Guid reportId, bool internalFormat, CancellationToken ct)
     {
         var report = await reportRepo.GetByIdAsync(reportId, ct)
                      ?? throw new KeyNotFoundException("Relatório não encontrado.");
-        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
-        return new MemoryStream(Encoding.UTF8.GetBytes(json));
+        byte[] bytes = internalFormat
+            ? Encoding.UTF8.GetBytes(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }))
+            : BdpRpbExporter.ToXml(report);
+        return new MemoryStream(bytes);
     }
 
     public async Task<string> SubmitToBdpAsync(Guid reportId, string submittedBy, CancellationToken ct = default)

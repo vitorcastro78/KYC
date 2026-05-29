@@ -15,7 +15,8 @@ public record KycReportComposeRequest(
     IReadOnlyList<PartyScanDto> Parties,
     IReadOnlyList<RiskSignalScanDto> Signals,
     RiskScore Score,
-    DateTime GeneratedAtUtc);
+    DateTime GeneratedAtUtc,
+    string? LegalBasisRef = null);
 
 public interface IKycReportComposer
 {

@@ -47,7 +47,12 @@ public class KycCase
     {
     }
 
-    public static KycCase Start(string nif, string companyName, string requestedBy, CreditAmount requestedAmount)
+    public static KycCase Start(
+        string nif,
+        string companyName,
+        string requestedBy,
+        CreditAmount requestedAmount,
+        RelationshipType? relationshipType = null)
     {
         var id = Guid.NewGuid();
         var kyc = new KycCase
@@ -60,7 +65,8 @@ public class KycCase
             RequestedBy = requestedBy,
             RequestedCreditAmount = requestedAmount.Amount,
             RequestedCreditCurrency = requestedAmount.Currency,
-            RelationshipType = requestedAmount.Amount >= 12500m ? RelationshipType.Ongoing : RelationshipType.Occasional
+            RelationshipType = relationshipType
+                ?? (requestedAmount.Amount >= 12500m ? RelationshipType.Ongoing : RelationshipType.Occasional)
         };
         kyc.AuditTrail.Add(AuditEntry.Create(id, "CaseStarted", requestedBy, "User", null));
         return kyc;
@@ -73,6 +79,14 @@ public class KycCase
     }
 
     public void AssignAnalyst(string analystId) => AssignedAnalystId = analystId;
+
+    public void SetLegalBasisRef(string legalBasisRef) => LegalBasisRef = legalBasisRef;
+
+    public void RequireSupervisorReviewAfterSanction(string actorId, string reason)
+    {
+        Status = KycStatus.UnderReview;
+        AppendAudit(AuditEntry.Create(Id, "SanctionConfirmedUnderReview", actorId, "User", reason));
+    }
 
     public void SetDueDiligenceLevel(DueDiligenceLevel level, string justification)
     {
@@ -149,8 +163,25 @@ public class KycCase
             string.IsNullOrWhiteSpace(FundsOriginDescription))
             return Result.Failure("EDD requer declaração de origem de fundos (Art. 37.º Lei 83/2017).");
 
-        if (Parties.Any(p => p.IsSanctioned && p.VerificationStatus == IdentityVerificationStatus.Verified))
-            return Result.Failure("Aprovação bloqueada: entidade sancionada confirmada.");
+        if (Parties.Any(p => p.IsSanctioned)
+            || RiskSignals.Any(s => s.Type == SignalType.Sanction && s.IsConfirmed))
+            return Result.Failure("Aprovação bloqueada: correspondência em lista de sanções confirmada.");
+
+        if (DueDiligenceLevel == DueDiligenceLevel.Enhanced)
+        {
+            var weakId = Parties
+                .Where(e => e.Role is EntityRole.Ubo or EntityRole.BoardMember or EntityRole.Proxy)
+                .Where(e => e.VerificationStatus == IdentityVerificationStatus.Verified)
+                .Where(e => e.VerificationMethod is not (
+                    IdentityVerificationMethod.Presential
+                    or IdentityVerificationMethod.QualifiedSignature
+                    or IdentityVerificationMethod.CMD))
+                .ToList();
+            if (weakId.Count > 0)
+                return Result.Failure(
+                    "EDD requer verificação presencial, CMD ou assinatura qualificada eIDAS para: " +
+                    string.Join(", ", weakId.Select(e => e.Name)));
+        }
 
         return Result.Success();
     }

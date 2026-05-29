@@ -4,5 +4,9 @@ namespace KYC.Application.Interfaces;
 
 public interface IAdverseMediaService
 {
-    Task<AdverseMediaResult> ScanAsync(string entityName, string? nif = null, CancellationToken ct = default);
+    Task<AdverseMediaResult> ScanAsync(
+        string entityName,
+        string? nif = null,
+        int lookbackYears = 2,
+        CancellationToken ct = default);
 }
