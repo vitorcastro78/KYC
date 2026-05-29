@@ -114,13 +114,17 @@ public static class DependencyInjection
         services.AddSingleton<OfacSdnXmlLocalIndex>();
         services.AddSingleton<EuFsfXmlLocalIndex>();
 
-        var ofacBase = configuration["ExternalSources:OfacBaseUrl"] ?? "http://localhost:5056/ofac/";
-        var ofacBuilder = services.AddHttpClient<IOfacClient, OfacClient>((_, c) =>
+        var ofacSlsBase = OfacSlsOptions.GetBaseUrl(configuration).TrimEnd('/') + "/";
+        var ofacUserAgent = OfacSlsOptions.GetUserAgent(configuration);
+        services.AddHttpClient("ofac-sls", c =>
         {
-            c.BaseAddress = new Uri(ofacBase);
+            c.BaseAddress = new Uri(ofacSlsBase);
+            c.Timeout = TimeSpan.FromSeconds(30);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd(ofacUserAgent);
         }).AddPolicyHandler(GetRetryPolicy());
-        if (!LocalDevEndpoint.LooksLikeLocalStub(ofacBase))
-            ofacBuilder.AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        services.AddHttpClient<IOfacClient, OfacClient>()
+            .AddPolicyHandler(GetRetryPolicy());
 
         var euSanctionsBase = configuration["ExternalSources:EuSanctionsBaseUrl"] ?? "http://localhost:5057/eu-sanctions/";
         var euBuilder = services.AddHttpClient<IEuSanctionsClient, EuSanctionsClient>((_, c) =>
@@ -162,12 +166,6 @@ public static class DependencyInjection
             c.BaseAddress = new Uri(ollama);
             c.Timeout = TimeSpan.FromSeconds(5);
         });
-
-        services.AddHttpClient("anthropic", c =>
-        {
-            c.BaseAddress = new Uri("https://api.anthropic.com/");
-            c.Timeout = TimeSpan.FromSeconds(120);
-        }).AddPolicyHandler(GetRetryPolicy());
 
         var newsBase = configuration["NewsApi:BaseUrl"] ?? "https://newsapi.org/";
         var newsUserAgent = configuration["NewsApi:UserAgent"]

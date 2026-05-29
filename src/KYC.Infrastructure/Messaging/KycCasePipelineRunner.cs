@@ -78,7 +78,7 @@ public class KycCasePipelineRunner(
                 System.Text.Json.JsonSerializer.Serialize(new
                 {
                     scoringConfig.LocalModelName,
-                    scoringConfig.CloudModelName,
+                    scoringConfig.LocalModelVersion,
                     scoringConfig.SystemPromptHash,
                     scoringConfig.WeightsJson
                 }));

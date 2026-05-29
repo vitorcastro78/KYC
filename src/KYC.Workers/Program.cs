@@ -11,12 +11,11 @@ builder.Services.AddSingleton<IKycCaseRealtimeNotifier, NoOpKycCaseRealtimeNotif
 
 builder.Services.Configure<OfacSdnDailyDownloadOptions>(
     builder.Configuration.GetSection(OfacSdnDailyDownloadOptions.SectionKey));
+var ofacUserAgent = KYC.Infrastructure.ExternalSources.OfacSlsOptions.GetUserAgent(builder.Configuration);
 builder.Services.AddHttpClient("ofac-sdn-export", client =>
 {
     client.Timeout = TimeSpan.FromMinutes(20);
-    client.DefaultRequestHeaders.TryAddWithoutValidation(
-        "User-Agent",
-        "KYC-Workers/1.0 (+https://example.com; OFAC SDN daily sync)");
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(ofacUserAgent);
 });
 builder.Services.AddHostedService<OfacSdnDailyDownloadHostedService>();
 

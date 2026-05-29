@@ -53,7 +53,11 @@ services:
       KYC_DB_CONNECTION: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_prod};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
+      LLM__Mode: LocalOnly
       LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
+      LLM__LocalModel: qwen3.5:9b
+      LLM__UseOllamaForScoring: "true"
+      LLM__EnrichReportsWithLlm: "true"
       Auth__AdminEmail: ${KYC_ADMIN_EMAIL:-admin@kyc.local}
       Auth__AdminPassword: ${KYC_ADMIN_PASSWORD:?KYC_ADMIN_PASSWORD required}
     ports:
@@ -79,7 +83,11 @@ services:
       KYC_DB_CONNECTION: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_prod};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
+      LLM__Mode: LocalOnly
       LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
+      LLM__LocalModel: qwen3.5:9b
+      LLM__UseOllamaForScoring: "true"
+      LLM__EnrichReportsWithLlm: "true"
     volumes:
       - kyc_worker_data:/app/Data
     networks:

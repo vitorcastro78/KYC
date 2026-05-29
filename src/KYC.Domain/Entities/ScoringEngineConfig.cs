@@ -29,7 +29,7 @@ public class ScoringEngineConfig
             IsActive = true,
             LocalModelName = "qwen3.5:9b",
             LocalModelVersion = "latest",
-            CloudModelName = "claude-sonnet-4-20250514",
+            CloudModelName = "(Ollama local)",
             SystemPromptHash = promptHash,
             WeightsJson = "{\"sanctions\":0.25,\"pep\":0.15,\"adverse\":0.15,\"financial\":0.15,\"judicial\":0.15,\"ubo\":0.15}",
             ApprovedBy = approvedBy,

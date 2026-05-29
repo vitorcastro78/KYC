@@ -20,6 +20,12 @@ public static class HealthCheckExtensions
 
         var ollama = configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434";
         checks.Add(new HealthCheckRegistration(
+            "ofac-sls",
+            sp => new OfacSlsHealthCheck(sp.GetRequiredService<IHttpClientFactory>()),
+            HealthStatus.Degraded,
+            ["external", "sanctions"]));
+
+        checks.Add(new HealthCheckRegistration(
             "ollama",
             sp => new OllamaHealthCheck(ollama, sp.GetRequiredService<IHttpClientFactory>()),
             HealthStatus.Degraded,
