@@ -47,6 +47,27 @@ public class IdentityWebhookHttpTests : IClassFixture<KycWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Webhook_verification_unblocks_can_approve_for_standard_dd()
+    {
+        var before = await _factory.Repository.GetCaseWithPartyAsync(_factory.TestPartyId);
+        Assert.NotNull(before);
+        Assert.False(before!.Value.Case.CanApprove().IsSuccess);
+
+        var body = BuildPayload(_factory.TestPartyId, _factory.TestSessionId, verified: true);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/identity/webhook")
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("X-Webhook-Signature", KycWebApplicationFactory.Sign(body, KycWebApplicationFactory.WebhookSecret));
+        Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(request)).StatusCode);
+
+        var after = await _factory.Repository.GetCaseWithPartyAsync(_factory.TestPartyId);
+        Assert.NotNull(after);
+        Assert.Equal(IdentityVerificationStatus.Verified, after!.Value.Party.VerificationStatus);
+        Assert.True(after.Value.Case.CanApprove().IsSuccess);
+    }
+
+    [Fact]
     public async Task Webhook_returns_bad_request_for_invalid_json()
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/identity/webhook")

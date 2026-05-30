@@ -26,6 +26,7 @@ public class KycCasePipelineRunner(
     DueDiligenceLevelEvaluator ddEvaluator,
     PolicyComplianceValidator policyValidator,
     SarEligibilityEvaluator sarEvaluator,
+    IRcbePartyVerificationService rcbeVerification,
     ILogger<KycCasePipelineRunner> log) : IKycCasePipelineRunner
 {
     public Task RunCaseStartedAsync(Guid caseId, CancellationToken ct = default) =>
@@ -69,6 +70,8 @@ public class KycCasePipelineRunner(
             kyc.Parties.ToList(),
             policy);
         kyc.SetDueDiligenceLevel(dd.Level, dd.Justification);
+
+        await rcbeVerification.VerifyCasePartiesAsync(kyc, ct);
 
         var scoringConfig = await scoringRepo.GetActiveAsync(ct);
         if (scoringConfig is not null)
@@ -126,6 +129,7 @@ public class KycCasePipelineRunner(
         var ctx = BuildContext(kyc);
         var score = await llm.ComputeRiskScoreAsync(ctx, ct);
         kyc.SetScore(score);
+        AppendLlmAudit(kyc, "LlmRiskScored", score.Overall, score.Level.ToString(), scoringConfig);
 
         var consistency = await llm.CheckConsistencyAsync(ctx, ct);
         if (!consistency.IsConsistent)
@@ -143,6 +147,7 @@ public class KycCasePipelineRunner(
         var composeRequest = BuildReportRequest(kyc, ctx, score);
         var report = await llm.GenerateNarrativeReportAsync(ctx, score, composeRequest, ct);
         kyc.SetFinalReport(report);
+        AppendLlmAudit(kyc, "LlmReportGenerated", null, report.ModelUsed, scoringConfig);
 
         if (kyc.CanAutoApproveLowRisk())
             kyc.AutoApproveLowRisk(actorId);
@@ -304,5 +309,28 @@ public class KycCasePipelineRunner(
             declaredFacts,
             declaredParties,
             uboSummary);
+    }
+
+    private static void AppendLlmAudit(
+        KycCase kyc,
+        string action,
+        decimal? scoreOverall,
+        string? detail,
+        ScoringEngineConfig? scoringConfig)
+    {
+        var model = scoringConfig?.LocalModelName ?? "unknown";
+        var promptHash = scoringConfig?.SystemPromptHash ?? "n/a";
+        var version = scoringConfig?.Version ?? "n/a";
+        var details = scoreOverall is { } s
+            ? $"model={model};promptHash={promptHash};version={version};score={s:F1};level={detail}"
+            : $"model={model};promptHash={promptHash};version={version};reportModel={detail}";
+        var hash = scoringConfig?.SystemPromptHash;
+        kyc.AppendAudit(AuditEntry.Create(
+            kyc.Id,
+            action,
+            "System",
+            "Agent",
+            details,
+            string.IsNullOrWhiteSpace(hash) || hash == "n/a" ? null : hash));
     }
 }

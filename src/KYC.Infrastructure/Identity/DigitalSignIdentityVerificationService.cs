@@ -1,4 +1,4 @@
-using System.Text;
+using System.Net;
 using System.Text.Json;
 using KYC.Application.Interfaces;
 using KYC.Domain.Enums;
@@ -62,17 +62,66 @@ public sealed class DigitalSignIdentityVerificationService(
         }
 
         var client = httpClientFactory.CreateClient("identity-verification");
-        using var res = await client.GetAsync($"{baseUrl.TrimEnd('/')}/sessions/{sessionId}", ct);
-        res.EnsureSuccessStatusCode();
-        var doc = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+        try
+        {
+            using var res = await client.GetAsync(
+                $"{baseUrl.TrimEnd('/')}/sessions/{Uri.EscapeDataString(sessionId)}",
+                ct);
+            if (res.StatusCode == HttpStatusCode.NotFound)
+                return new IdentityVerificationResult(sessionId, false, "Session not found", DateTime.UtcNow, null, null);
+
+            res.EnsureSuccessStatusCode();
+            var doc = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            return MapVerificationResult(sessionId, doc);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "Identity provider poll failed for session {SessionId}", sessionId);
+            return new IdentityVerificationResult(sessionId, false, "Provider unreachable", DateTime.UtcNow, null, null);
+        }
+    }
+
+    private static IdentityVerificationResult MapVerificationResult(string sessionId, JsonElement doc)
+    {
+        var status = doc.TryGetProperty("status", out var st) ? st.GetString() : null;
+        var verified = doc.TryGetProperty("verified", out var v) && v.ValueKind == JsonValueKind.True && v.GetBoolean();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (status.Equals("verified", StringComparison.OrdinalIgnoreCase)
+                || status.Equals("completed", StringComparison.OrdinalIgnoreCase))
+                verified = true;
+            else if (status.Equals("failed", StringComparison.OrdinalIgnoreCase)
+                     || status.Equals("rejected", StringComparison.OrdinalIgnoreCase))
+                return new IdentityVerificationResult(
+                    sessionId,
+                    false,
+                    doc.TryGetProperty("failureReason", out var frFail) ? frFail.GetString() : status,
+                    ReadTimestamp(doc, "completedAt"),
+                    ReadString(doc, "livenessScore"),
+                    ReadString(doc, "eidasLevel"));
+            else if (status.Equals("expired", StringComparison.OrdinalIgnoreCase))
+                return new IdentityVerificationResult(sessionId, false, "Session expired", DateTime.UtcNow, null, null);
+            else if (!verified)
+                return new IdentityVerificationResult(sessionId, false, "Pending", DateTime.UtcNow, null, null);
+        }
+
         return new IdentityVerificationResult(
             sessionId,
-            doc.GetProperty("verified").GetBoolean(),
+            verified,
             doc.TryGetProperty("failureReason", out var fr) ? fr.GetString() : null,
-            DateTime.UtcNow,
-            doc.TryGetProperty("livenessScore", out var ls) ? ls.GetString() : null,
-            doc.TryGetProperty("eidasLevel", out var el) ? el.GetString() : null);
+            ReadTimestamp(doc, "completedAt"),
+            ReadString(doc, "livenessScore"),
+            ReadString(doc, "eidasLevel"));
     }
+
+    private static DateTime ReadTimestamp(JsonElement doc, string property) =>
+        doc.TryGetProperty(property, out var el) && el.ValueKind == JsonValueKind.String
+            ? el.GetDateTime()
+            : DateTime.UtcNow;
+
+    private static string? ReadString(JsonElement doc, string property) =>
+        doc.TryGetProperty(property, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() : null;
 
     public Task RecordPresentialVerificationAsync(
         Guid partyId,

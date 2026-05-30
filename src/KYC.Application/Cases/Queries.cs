@@ -22,3 +22,5 @@ public record GetDashboardSummaryQuery : IRequest<DashboardSummaryDto>;
 public record GetCriticalAlertsQuery : IRequest<IReadOnlyList<CriticalAlertDto>>;
 
 public record ListAmlComplianceReportsQuery : IRequest<IReadOnlyList<AmlComplianceReportListItemDto>>;
+
+public record GetAmlComplianceReportQuery(Guid ReportId) : IRequest<AmlComplianceReportDetailDto?>;

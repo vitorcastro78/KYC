@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using KYC.Application.Interfaces;
 using KYC.Domain.Entities;
@@ -12,6 +11,8 @@ namespace KYC.Infrastructure.Compliance;
 public sealed class AmlComplianceReportService(
     KycDbContext db,
     IAmlComplianceReportRepository reportRepo,
+    IScoringEngineConfigRepository scoringRepo,
+    IBdpRpbExporter rpbExporter,
     ILogger<AmlComplianceReportService> log) : IAmlComplianceReportService
 {
     public async Task<AmlComplianceReport> GenerateAnnualReportAsync(
@@ -29,6 +30,7 @@ public sealed class AmlComplianceReportService(
             .AsNoTracking()
             .ToListAsync(ct);
 
+        var scoring = await scoringRepo.GetActiveAsync(ct);
         var report = AmlComplianceReport.CreateDraft(year, requestedBy);
         report.PopulateMetrics(
             totalCases: cases.Count,
@@ -51,7 +53,7 @@ public sealed class AmlComplianceReportService(
                 a => a.Action == "PeriodicReviewCompleted" && a.Timestamp >= start && a.Timestamp < end, ct),
             reviewsOverdue: cases.Count(c => c.NextReviewDue < DateTime.UtcNow && c.Status == KycStatus.Approved),
             platformVersion: "1.0.0",
-            aiModelsJson: JsonSerializer.Serialize(new { local = "qwen3.5:9b", embeddings = "qwen3-embedding:8b" }));
+            aiModelsJson: BuildOllamaOnlyModelsJson(scoring));
 
         await reportRepo.AddAsync(report, ct);
         log.LogInformation("RPB {Year} generated with {Count} cases.", year, cases.Count);
@@ -69,8 +71,15 @@ public sealed class AmlComplianceReportService(
         var report = await reportRepo.GetByIdAsync(reportId, ct)
                      ?? throw new KeyNotFoundException("Relatório não encontrado.");
         byte[] bytes = internalFormat
-            ? Encoding.UTF8.GetBytes(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }))
-            : BdpRpbExporter.ToXml(report);
+            ? rpbExporter.ToInternalJson(report)
+            : rpbExporter.ToOfficialXml(report);
+        if (!internalFormat)
+        {
+            var validation = rpbExporter.ValidateOfficialXml(bytes);
+            if (!validation.IsValid)
+                log.LogWarning("RPB XML inválido: {Errors}", string.Join("; ", validation.Errors));
+        }
+
         return new MemoryStream(bytes);
     }
 
@@ -83,4 +92,15 @@ public sealed class AmlComplianceReportService(
         await reportRepo.UpdateAsync(report, ct);
         return reference;
     }
+
+    internal static string BuildOllamaOnlyModelsJson(ScoringEngineConfig? scoring) =>
+        JsonSerializer.Serialize(new
+        {
+            provider = "ollama-local",
+            local = scoring?.LocalModelName ?? "qwen3.5:9b",
+            localVersion = scoring?.LocalModelVersion ?? "latest",
+            scoringVersion = scoring?.Version,
+            promptHash = scoring?.SystemPromptHash,
+            embeddings = "qwen3-embedding:8b"
+        });
 }

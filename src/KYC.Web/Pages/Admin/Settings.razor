@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = "Admin")]
 @inject ICustomerAcceptancePolicyRepository PolicyRepo
 @inject IDpiaRecordRepository DpiaRepo
+@inject IScoringEngineConfigRepository ScoringRepo
 @inject IMediator Mediator
 @inject ToastService Toast
 
@@ -9,8 +10,8 @@
 <h1>Configurações da plataforma</h1>
 
 <div class="row g-3">
-    <div class="col-md-6">
-        <div class="card">
+    <div class="col-md-4">
+        <div class="card h-100">
             <div class="card-header">PAC activa</div>
             <div class="card-body">
                 @if (_policy is null)
@@ -19,15 +20,43 @@
                 }
                 else
                 {
-                    <p>Versão <strong>@_policy.Version</strong> — limiar ocasional @_policy.OccasionalThreshold.ToString("C")</p>
-                    <p class="small text-muted mb-0">Segredos e integrações via variáveis de ambiente / Key Vault.</p>
+                    <p>Versão <strong>@_policy.Version</strong></p>
+                    <p class="small mb-1">Limiar ocasional: @_policy.OccasionalThreshold.ToString("C")</p>
+                    <p class="small mb-1">EDD a partir de: @_policy.EnhancedDdThreshold.ToString("C")</p>
+                    <p class="small text-muted mb-0">Base legal: @_policy.ResolveLegalBasisRef()</p>
+                }
+            </div>
+            <div class="card-footer">
+                <label class="form-label small">Nova versão PAC</label>
+                <div class="input-group input-group-sm">
+                    <input class="form-control" @bind="_newPacVersion" placeholder="ex. 1.1.0" />
+                    <button class="btn btn-outline-primary" @onclick="CreatePacVersion">Activar v2+</button>
+                </div>
+                <p class="small text-muted mt-2 mb-0">Desactiva a versão anterior e copia parâmetros.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">Motor de scoring activo</div>
+            <div class="card-body">
+                @if (_scoring is null)
+                {
+                    <p class="text-muted mb-0">Sem configuração de scoring.</p>
+                }
+                else
+                {
+                    <p>Versão <strong>@_scoring.Version</strong></p>
+                    <p class="small mb-1">Modelo local: @_scoring.LocalModelName (@_scoring.LocalModelVersion)</p>
+                    <p class="small mb-1 font-monospace">Prompt hash: @(_scoring.SystemPromptHash[..Math.Min(16, _scoring.SystemPromptHash.Length)])…</p>
+                    <p class="small text-muted mb-0">Aprovado por @_scoring.ApprovedBy em @_scoring.ApprovedAt.ToLocalTime().ToString("dd/MM/yyyy")</p>
                 }
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">DPIA</div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">DPIA activa</div>
             <div class="card-body">
                 @if (_dpia is null)
                 {
@@ -35,16 +64,21 @@
                 }
                 else
                 {
-                    <p>Versão @_dpia.Version — revisão @_dpia.NextReviewDue.ToLocalTime().ToString("dd/MM/yyyy")</p>
+                    <p>Versão <strong>@_dpia.Version</strong></p>
+                    <p class="small mb-1">Documento: @_dpia.DocumentStoragePath</p>
+                    <p class="small text-muted mb-0">Próxima revisão: @_dpia.NextReviewDue.ToLocalTime().ToString("dd/MM/yyyy")</p>
                 }
             </div>
         </div>
     </div>
 </div>
 
+<p class="text-muted small mt-3 mb-0">Segredos e integrações (UIF, BdP freeze, identidade) via variáveis de ambiente / Key Vault — ver <code>.env.example</code>.</p>
+
 @code {
     private KYC.Domain.Entities.CustomerAcceptancePolicy? _policy;
     private KYC.Domain.Entities.DpiaRecord? _dpia;
+    private KYC.Domain.Entities.ScoringEngineConfig? _scoring;
     private string _newPacVersion = "1.1.0";
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
@@ -53,6 +87,7 @@
     {
         _policy = await PolicyRepo.GetActiveAsync();
         _dpia = await DpiaRepo.GetActiveAsync();
+        _scoring = await ScoringRepo.GetActiveAsync();
     }
 
     private async Task CreatePacVersion()

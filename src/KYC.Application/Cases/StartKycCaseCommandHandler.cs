@@ -31,7 +31,7 @@ public class StartKycCaseCommandHandler(
             throw new InvalidOperationException(resolved.ErrorMessage ?? "Não foi possível resolver a entidade.");
 
         var kyc = KycCase.Start(nif, companyName, request.RequestedBy, request.RequestedAmount, request.RelationshipType);
-        kyc.SetLegalBasisRef("Lei83/2017-Art24");
+        kyc.SetLegalBasisRef(policy.ResolveLegalBasisRef());
         kyc.MarkInProgress();
 
         var target = CaseParty.Create(

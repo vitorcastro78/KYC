@@ -52,6 +52,8 @@ public class CustomerAcceptancePolicy
 
     public void Deactivate() => IsActive = false;
 
+    public string ResolveLegalBasisRef() => $"PAC/{Version}/Lei83/2017-Art24";
+
     public static CustomerAcceptancePolicy CreateSuccessor(string version, string approvedBy, CustomerAcceptancePolicy source) =>
         new()
         {

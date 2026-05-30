@@ -30,17 +30,12 @@ public sealed class PeriodicReviewSchedulerJob(
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
-                var cases = scope.ServiceProvider.GetRequiredService<IKycCaseRepository>();
-                var bus = scope.ServiceProvider.GetRequiredService<IKycCaseMessageBus>();
-                var due = await cases.GetCasesDueForReviewAsync(DateTime.UtcNow.AddDays(14), stoppingToken);
-
-                foreach (var kyc in due)
-                {
-                    log.LogInformation(
-                        "Revisão periódica agendada para caso {CaseId} — vence {DueDate:yyyy-MM-dd}",
-                        kyc.Id, kyc.NextReviewDue);
-                    await bus.PublishCaseRescreenAsync(kyc.Id, "System", stoppingToken);
-                }
+                var scheduler = scope.ServiceProvider.GetRequiredService<IPeriodicReviewScheduler>();
+                var count = await scheduler.PublishDueReviewsAsync(
+                    DateTime.UtcNow.AddDays(14),
+                    stoppingToken);
+                if (count > 0)
+                    log.LogInformation("Revisão periódica: {Count} caso(s) enfileirados para re-triagem.", count);
             }
             catch (Exception ex)
             {

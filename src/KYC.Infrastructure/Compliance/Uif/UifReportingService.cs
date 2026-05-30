@@ -33,15 +33,14 @@ public sealed class UifReportingService(
         if (!res.IsSuccessStatusCode)
         {
             var err = await res.Content.ReadAsStringAsync(ct);
+            log.LogError("UIF SAR rejected ({Status}): {Error}", res.StatusCode, err);
             return new UifSubmissionResult(false, null, err, DateTime.UtcNow);
         }
 
         var doc = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-        return new UifSubmissionResult(
-            true,
-            doc.GetProperty("referenceNumber").GetString(),
-            null,
-            DateTime.UtcNow);
+        var reference = doc.GetProperty("referenceNumber").GetString()!;
+        log.LogInformation("UIF SAR submitted for case {CaseId}: {Reference}", report.KycCaseId, reference);
+        return new UifSubmissionResult(true, reference, null, DateTime.UtcNow);
     }
 
     public async Task<UifSubmissionStatus> GetSubmissionStatusAsync(string referenceNumber, CancellationToken ct = default)

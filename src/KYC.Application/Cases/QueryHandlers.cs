@@ -143,3 +143,44 @@ public class ListAmlComplianceReportsQueryHandler(IAmlComplianceReportRepository
             r.BdpReferenceNumber)).ToList();
     }
 }
+
+public class GetAmlComplianceReportQueryHandler(IAmlComplianceReportRepository reports)
+    : IRequestHandler<GetAmlComplianceReportQuery, AmlComplianceReportDetailDto?>
+{
+    public async Task<AmlComplianceReportDetailDto?> Handle(
+        GetAmlComplianceReportQuery request,
+        CancellationToken cancellationToken)
+    {
+        var r = await reports.GetByIdAsync(request.ReportId, cancellationToken);
+        if (r is null)
+            return null;
+
+        return new AmlComplianceReportDetailDto(
+            r.Id,
+            r.ReportingYear,
+            r.Status,
+            r.GeneratedAt,
+            r.GeneratedBy,
+            r.BdpReferenceNumber,
+            r.TotalCasesProcessed,
+            r.TotalCasesApproved,
+            r.TotalCasesRejected,
+            r.TotalCasesUnderReview,
+            r.CasesLowRisk,
+            r.CasesMediumRisk,
+            r.CasesHighRisk,
+            r.CasesCriticalRisk,
+            r.TotalRiskSignalsDetected,
+            r.SanctionMatches,
+            r.PepMatches,
+            r.SarsSubmitted,
+            r.AssetFreezeNotifications,
+            r.CasesSimplifiedDd,
+            r.CasesStandardDd,
+            r.CasesEnhancedDd,
+            r.PeriodicReviewsCompleted,
+            r.PeriodicReviewsOverdue,
+            r.PlatformVersion,
+            r.AiModelsUsed);
+    }
+}

@@ -45,10 +45,12 @@ public sealed class AssetFreezeNotificationService(
         }
 
         var doc = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-        return new AssetFreezeNotificationResult(
-            true,
-            doc.GetProperty("confirmationNumber").GetString(),
-            null,
-            DateTime.UtcNow);
+        var confirmation = doc.GetProperty("confirmationNumber").GetString()!;
+        log.LogInformation(
+            "BdP asset freeze notified for case {CaseId}, party {PartyId}: {Confirmation}",
+            kycCaseId,
+            partyId,
+            confirmation);
+        return new AssetFreezeNotificationResult(true, confirmation, null, DateTime.UtcNow);
     }
 }

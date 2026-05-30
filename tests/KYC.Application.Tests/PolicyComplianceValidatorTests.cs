@@ -65,4 +65,29 @@ public class DueDiligenceLevelEvaluatorTests
         var decision = eval.Evaluate(500_000m, RelationshipType.Ongoing, [], CustomerAcceptancePolicy.CreateV1("t"));
         Assert.Equal(DueDiligenceLevel.Enhanced, decision.Level);
     }
+
+    [Fact]
+    public void Offshore_high_risk_jurisdiction_triggers_enhanced()
+    {
+        var eval = new DueDiligenceLevelEvaluator();
+        var party = CaseParty.Create(Guid.NewGuid(), EntityType.Company, "Offshore Co", null,
+            EntityRole.Shareholder, 30, 1, null);
+        party.SetFlags(false, false, true, "IR");
+
+        var decision = eval.Evaluate(20_000m, RelationshipType.Ongoing, [party],
+            CustomerAcceptancePolicy.CreateV1("t"));
+        Assert.Equal(DueDiligenceLevel.Enhanced, decision.Level);
+        Assert.Contains("FATF", decision.Justification);
+    }
+
+    [Fact]
+    public void Ongoing_without_risk_factors_is_standard()
+    {
+        var eval = new DueDiligenceLevelEvaluator();
+        var party = CaseParty.Create(Guid.NewGuid(), EntityType.Company, "Acme", "123456789",
+            EntityRole.Target, 100, 0, null);
+        var decision = eval.Evaluate(10_000m, RelationshipType.Ongoing, [party],
+            CustomerAcceptancePolicy.CreateV1("t"));
+        Assert.Equal(DueDiligenceLevel.Standard, decision.Level);
+    }
 }

@@ -1,19 +1,27 @@
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
+using KYC.Application.Interfaces;
 using KYC.Domain.Entities;
 
 namespace KYC.Infrastructure.Compliance;
 
-/// <summary>
-/// Export RPB alinhado com Instrução BdP 8/2024 (estrutura XML; validar schema oficial com compliance).
-/// </summary>
-public static class BdpRpbExporter
+/// <summary>Export RPB (Instrução BdP 8/2024). Substituir mapeamento quando template oficial X1 estiver disponível.</summary>
+public sealed class BdpRpbExporter : IBdpRpbExporter
 {
-    public static byte[] ToXml(AmlComplianceReport report)
+    private static readonly string[] RequiredSections =
+    [
+        "Metadados",
+        "Secao1_EstruturaOrganizacional",
+        "Secao2_DistribuicaoRisco",
+        "Secao3_SinaisComunicacoes",
+        "Secao4_Diligencia",
+        "Secao5_TecnologiaIA"
+    ];
+
+    public byte[] ToOfficialXml(AmlComplianceReport report)
     {
         var root = new XElement("RelatorioPrevencaoBranqueamento",
-            new XAttribute("xmlns", "https://kyc.local/bdp/rpb/v1"),
             new XAttribute("ano", report.ReportingYear),
             new XAttribute("versaoPlataforma", report.PlatformVersion),
             new XElement("Metadados",
@@ -50,21 +58,36 @@ public static class BdpRpbExporter
         return ms.ToArray();
     }
 
-    public static byte[] ToBdpJson(AmlComplianceReport report)
+    public byte[] ToInternalJson(AmlComplianceReport report) =>
+        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+
+    public BdpRpbValidationResult ValidateOfficialXml(byte[] xml)
     {
-        var payload = new
+        var errors = new List<string>();
+        try
         {
-            instrucao = "BdP-8-2024",
-            reportingYear = report.ReportingYear,
-            generatedAt = report.GeneratedAt,
-            status = report.Status.ToString(),
-            bdpReferenceNumber = report.BdpReferenceNumber,
-            secao1 = new { report.TotalAmlAnalysts, report.TotalCasesProcessed, report.TotalCasesApproved, report.TotalCasesRejected, report.TotalCasesUnderReview },
-            secao2 = new { report.CasesLowRisk, report.CasesMediumRisk, report.CasesHighRisk, report.CasesCriticalRisk },
-            secao3 = new { report.TotalRiskSignalsDetected, report.SanctionMatches, report.PepMatches, report.SarsSubmitted, report.AssetFreezeNotifications },
-            secao4 = new { report.CasesSimplifiedDd, report.CasesStandardDd, report.CasesEnhancedDd, report.PeriodicReviewsCompleted, report.PeriodicReviewsOverdue },
-            secao5 = new { report.PlatformVersion, report.AiModelsUsed }
-        };
-        return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+            var doc = XDocument.Load(new MemoryStream(xml));
+            var root = doc.Root;
+            if (root is null || root.Name.LocalName != "RelatorioPrevencaoBranqueamento")
+            {
+                errors.Add("Elemento raiz RelatorioPrevencaoBranqueamento em falta.");
+                return new BdpRpbValidationResult(false, errors);
+            }
+
+            foreach (var section in RequiredSections)
+            {
+                if (root.Element(section) is null)
+                    errors.Add($"Secção obrigatória em falta: {section}.");
+            }
+
+            if (!root.Attributes().Any(a => a.Name.LocalName == "ano"))
+                errors.Add("Atributo ano em falta.");
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"XML inválido: {ex.Message}");
+        }
+
+        return new BdpRpbValidationResult(errors.Count == 0, errors);
     }
 }

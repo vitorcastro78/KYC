@@ -2,6 +2,7 @@
 using KYC.Application.Interfaces;
 
 using KYC.Infrastructure.BackgroundJobs;
+using KYC.Application.Services;
 using KYC.Infrastructure.Compliance;
 using KYC.Infrastructure.Compliance.AssetFreeze;
 using KYC.Infrastructure.Compliance.Uif;
@@ -35,8 +36,11 @@ public static class DependencyInjection
 
         // NpgsqlDataSource com UseVector() é necessário para serializar HalfVector/halfvec (EF Core 9 + pgvector 0.3).
         services.AddSingleton(_ => KycNpgsqlDataSource.Create(cs));
+        services.AddSingleton<RegulatoryVersionSaveChangesInterceptor>();
         services.AddDbContext<KycDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.UseVector()));
+            options
+                .UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.UseVector())
+                .AddInterceptors(sp.GetRequiredService<RegulatoryVersionSaveChangesInterceptor>()));
 
         services.AddScoped<IKycCaseRepository, KycCaseRepository>();
         services.AddScoped<IKycAnalyticsRepository, KycAnalyticsRepository>();
@@ -63,6 +67,9 @@ public static class DependencyInjection
         services.AddScoped<IDpiaRecordRepository, DpiaRecordRepository>();
         services.AddScoped<IAmlComplianceReportRepository, AmlComplianceReportRepository>();
         services.AddScoped<IAmlComplianceReportService, AmlComplianceReportService>();
+        services.AddSingleton<IBdpRpbExporter, BdpRpbExporter>();
+        services.AddScoped<IRcbePartyVerificationService, RcbePartyVerificationService>();
+        services.AddScoped<IPeriodicReviewScheduler, PeriodicReviewScheduler>();
         services.AddScoped<IIdentityVerificationService, DigitalSignIdentityVerificationService>();
         services.AddScoped<IUifReportingService, UifReportingService>();
         services.AddScoped<IAssetFreezeNotificationService, AssetFreezeNotificationService>();
