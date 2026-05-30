@@ -60,4 +60,5 @@ public record KycCaseDetailDto(
     string? LegalBasisRef = null,
     bool AssetFreezeNotified = false,
     DateTime? AssetFreezeNotifiedAt = null,
-    string? AssetFreezeConfirmationRef = null);
+    string? AssetFreezeConfirmationRef = null,
+    IReadOnlyList<SarAuditEntryDto>? SarHistory = null);

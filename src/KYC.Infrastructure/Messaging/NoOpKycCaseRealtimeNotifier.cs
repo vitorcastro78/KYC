@@ -30,4 +30,7 @@ public class NoOpKycCaseRealtimeNotifier : IKycCaseRealtimeNotifier
         string message,
         CancellationToken ct = default) =>
         Task.CompletedTask;
+
+    public Task NotifySupervisorsAsync(string alertType, string message, CancellationToken ct = default) =>
+        Task.CompletedTask;
 }

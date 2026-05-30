@@ -24,3 +24,5 @@ public record GetCriticalAlertsQuery : IRequest<IReadOnlyList<CriticalAlertDto>>
 public record ListAmlComplianceReportsQuery : IRequest<IReadOnlyList<AmlComplianceReportListItemDto>>;
 
 public record GetAmlComplianceReportQuery(Guid ReportId) : IRequest<AmlComplianceReportDetailDto?>;
+
+public record GetUifSubmissionStatusQuery(string ReferenceNumber) : IRequest<UifSubmissionStatusDto>;

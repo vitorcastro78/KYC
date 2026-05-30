@@ -124,6 +124,25 @@ public class KycCasePipelineRunner(
                 SignalSeverity.High,
                 eddCheck.Error ?? "EDD incompleta",
                 "PolicyEngine"));
+
+            if (kyc.DueDiligenceLevel == DueDiligenceLevel.Enhanced)
+            {
+                kyc.MarkHumanReviewAfterScan(actorId);
+                if (sarEvaluator.ShouldSuggestSar(kyc) && kyc.SarStatus == SarStatus.None)
+                    kyc.AppendAudit(AuditEntry.Create(kyc.Id, "SarSuggested", "System", "Agent", "Condições SAR detectadas"));
+                if (isRescreen)
+                    kyc.RecordAutomaticRescreenCompleted(actorId, signals.Count);
+
+                await cases.UpdateAsync(kyc, ct);
+                await progress.UpsertAsync(new KycCaseScanProgressState(caseId, total, total, 0), ct);
+                await notifier.NotifyScanProgressAsync(caseId, "Concluído", 100, ct);
+                await notifier.NotifyStatusChangedAsync(caseId, kyc.Status, ct);
+                log.LogWarning(
+                    "Pipeline {Mode} caso {CaseId}: EDD incompleta — scoring IA omitido.",
+                    isRescreen ? "re-triagem" : "inicial",
+                    caseId);
+                return;
+            }
         }
 
         var ctx = BuildContext(kyc);

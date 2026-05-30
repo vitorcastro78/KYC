@@ -38,4 +38,11 @@ public class HubKycCaseRealtimeNotifier(IHubContext<KycCaseHub> hub) : IKycCaseR
         CancellationToken ct = default) =>
         hub.Clients.Group(KycCaseHub.CaseGroup(caseId))
             .SendAsync("ComplianceAlert", caseId, alertType, message, ct);
+
+    public Task NotifySupervisorsAsync(
+        string alertType,
+        string message,
+        CancellationToken ct = default) =>
+        hub.Clients.Group(KycCaseHub.SupervisorsGroup)
+            .SendAsync("SupervisorAlert", alertType, message, ct);
 }

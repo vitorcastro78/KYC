@@ -30,26 +30,38 @@
 - Usar CancellationToken em todos os métodos de infra
 - Testes unitários para todos os Use Cases e Value Objects
 
-## Conformidade BdP (adenda v1.0)
+## Conformidade BdP (`BLUEPRINT_BdP_Compliance_Addendum.md` §13–22)
 
-### Identificação e diligência
+### Identificação e diligência (Aviso 1/2022)
 - SEMPRE verificar DueDiligenceLevelEvaluator após entity resolution no pipeline
-- NUNCA aprovar caso com CaseParty.VerificationStatus != Verified para UBOs/BoardMembers
-- SEMPRE registar LegalBasisRef em KycCase
+- NUNCA aprovar caso com CaseParty.VerificationStatus != Verified para UBOs/BoardMembers/Proxy
+- SEMPRE registar LegalBasisRef em KycCase (`PAC/{versão}/Lei83/2017-Art24`)
+- EDD: verificação presencial, CMD ou assinatura qualificada — não só videoconferência
+- Publicar `EntityIdentityVerifiedNotification` / `Failed` após webhook ou polling
 
-### SAR e notificações obrigatórias
-- NUNCA silenciar SarEligibilityEvaluator.ShouldSuggestSar sem registo em audit
-- SEMPRE chamar IAssetFreezeNotificationService quando sinal Sanction é confirmado
-- Prazo de notificação de congelamento: IMEDIATO (síncrono)
+### SAR e notificações (Lei 83/2017)
+- NUNCA silenciar SarEligibilityEvaluator.ShouldSuggestSar sem audit `SarSuggested`
+- SEMPRE chamar IAssetFreezeNotificationService quando sanção confirmada
+- SAR urgente: audit `SarUrgentSubmitted` + `SarSubmittedNotification` → supervisores SignalR
+- Consultar estado UIF via `GetUifSubmissionStatusQuery` quando ref. disponível
 
 ### Revisão periódica
-- SEMPRE chamar ScheduleNextReview() após ApproveKycCaseCommand
-- NUNCA omitir NextReviewDue em casos aprovados Ongoing
+- SEMPRE `ScheduleNextReview()` em `ApproveKycCaseCommandHandler`
+- `IPeriodicReviewScheduler` publica re-triagem para casos com `NextReviewDue` vencido
 
-### Reproducibilidade
-- SEMPRE guardar ScoringEngineVersion no KycCase antes de scoring
-- NUNCA alterar ScoringEngineConfig após activação — nova versão
+### Pipeline EDD
+- Se `DueDiligenceLevel == Enhanced` e `CanProceedWithEnhancedDd()` falhar: **omitir scoring LLM**
 
-### RGPD
-- NUNCA Auto-Approve para RiskLevel > Low sem revisão humana
-- SEMPRE validar PolicyComplianceValidator no pipeline após UBO sync
+### Reproducibilidade e IA
+- SEMPRE snapshot scoring (`SetScoringEngineSnapshot`) antes do LLM
+- SEMPRE `LlmPromptHash` em `AuditEntry` para acções `LlmRiskScored` / `LlmReportGenerated`
+- RPB: apenas modelos Ollama locais em `aiModelsJson`
+
+### RGPD / explainability
+- NUNCA auto-approve fora de Low + score ≤30 sem High/Critical/sanções
+- Relatório: secções Art. 22 e limitações do modelo (`KycStructuredReportComposer`)
+
+### Documentação operacional
+- PAC: `docs/PAC_RUNBOOK.md`
+- Analistas: `docs/ANALISTA_QUICK_START.md`
+- Homologação: `docs/E2E_HOMOLOGACAO.md`, `docs/dossier/`

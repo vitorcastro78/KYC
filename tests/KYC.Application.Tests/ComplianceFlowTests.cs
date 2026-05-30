@@ -1,6 +1,7 @@
 using KYC.Application.Cases;
 using KYC.Application.Interfaces;
 using KYC.Application.Services;
+using MediatR;
 using KYC.Domain.Entities;
 using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
@@ -56,7 +57,8 @@ public class ComplianceFlowTests
         var repo = new Mock<IKycCaseRepository>();
         repo.Setup(r => r.GetByIdAsync(kyc.Id, It.IsAny<CancellationToken>())).ReturnsAsync(kyc);
 
-        var handler = new SubmitSarCommandHandler(repo.Object, new Mock<IUifReportingService>().Object);
+        var mediator = new Mock<IMediator>();
+        var handler = new SubmitSarCommandHandler(repo.Object, new Mock<IUifReportingService>().Object, mediator.Object);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(
                 new SubmitSarCommand(kyc.Id, new string('n', 200), "analyst1", false),
@@ -80,7 +82,10 @@ public class ComplianceFlowTests
         uif.Setup(u => u.SubmitSuspiciousActivityReportAsync(It.IsAny<SuspiciousActivityReport>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new UifSubmissionResult(true, "UIF-2026-001", null, DateTime.UtcNow));
 
-        var handler = new SubmitSarCommandHandler(repo.Object, uif.Object);
+        var mediator = new Mock<IMediator>();
+        mediator.Setup(m => m.Publish(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var handler = new SubmitSarCommandHandler(repo.Object, uif.Object, mediator.Object);
         var narrative = new string('x', 200);
         var result = await handler.Handle(
             new SubmitSarCommand(kyc.Id, narrative, "analyst1", false), CancellationToken.None);
@@ -118,7 +123,10 @@ public class ComplianceFlowTests
             .ReturnsAsync((kyc, party));
         repo.Setup(r => r.UpdateAsync(kyc, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var handler = new RecordVerificationResultCommandHandler(repo.Object);
+        var mediator = new Mock<IMediator>();
+        mediator.Setup(m => m.Publish(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var handler = new RecordVerificationResultCommandHandler(repo.Object, mediator.Object);
         await handler.Handle(
             new RecordVerificationResultCommand(party.Id, "sess-abc", true, null, "High"), CancellationToken.None);
 

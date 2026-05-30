@@ -26,6 +26,13 @@
                     @if (!string.IsNullOrWhiteSpace(Case.SarReferenceNumber))
                     {
                         <div class="small">Ref: @Case.SarReferenceNumber</div>
+                        <button type="button" class="btn btn-link btn-sm p-0" @onclick="QueryUifStatus" disabled="@_uifStatusLoading">
+                            @(_uifStatusLoading ? "A consultar…" : "Estado na UIF")
+                        </button>
+                        @if (_uifStatus is not null)
+                        {
+                            <div class="small text-muted">UIF: @_uifStatus.Status (@_uifStatus.LastUpdated?.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</div>
+                        }
                     }
                 </div>
                 <div class="col-md-4">
@@ -72,6 +79,25 @@
                     <textarea class="form-control" rows="2" @bind="_fundsOrigin"></textarea>
                     <button type="button" class="btn btn-sm btn-primary mt-2" @onclick="SaveFundsOrigin">Guardar origem</button>
                 </div>
+            }
+
+            @if (Case.SarHistory is { Count: > 0 })
+            {
+                <h4 class="h6 mt-3">Histórico SAR / UIF</h4>
+                <table class="table table-sm mb-3">
+                    <thead><tr><th>Data</th><th>Acção</th><th>Actor</th><th>Detalhe</th></tr></thead>
+                    <tbody>
+                    @foreach (var h in Case.SarHistory)
+                    {
+                        <tr>
+                            <td>@h.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@SarActionLabel(h.Action)</td>
+                            <td>@h.ActorId</td>
+                            <td class="small">@(h.Details ?? "—")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
             }
 
             <h4 class="h6">Verificação de identidade</h4>
@@ -195,6 +221,8 @@
     private string _sarNotRequiredJustification = "";
     private bool _sarUrgent;
     private string _fundsOrigin = "";
+    private bool _uifStatusLoading;
+    private UifSubmissionStatusDto? _uifStatus;
 
     protected override void OnParametersSet()
     {
@@ -216,6 +244,35 @@
         SarStatus.NotRequired => "bg-secondary",
         _ => "bg-light text-dark"
     };
+
+    private static string SarActionLabel(string action) => action switch
+    {
+        "SarSubmitted" => "SAR submetido",
+        "SarUrgentSubmitted" => "SAR urgente",
+        "SarNotRequired" => "SAR não aplicável",
+        "SarSuggested" => "SAR sugerido",
+        _ => action
+    };
+
+    private async Task QueryUifStatus()
+    {
+        if (string.IsNullOrWhiteSpace(Case?.SarReferenceNumber))
+            return;
+        _uifStatusLoading = true;
+        try
+        {
+            _uifStatus = await Mediator.Send(new GetUifSubmissionStatusQuery(Case.SarReferenceNumber));
+            Toast.Show($"Estado UIF: {_uifStatus.Status}", ToastLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            Toast.Show(ex.Message, ToastLevel.Error);
+        }
+        finally
+        {
+            _uifStatusLoading = false;
+        }
+    }
 
     private static string VerificationBadge(IdentityVerificationStatus s) => s switch
     {

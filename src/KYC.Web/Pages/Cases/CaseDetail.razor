@@ -11,6 +11,7 @@
 @inject NavigationManager Nav
 @inject KycHubConnectionFactory HubFactory
 @inject ToastService Toast
+@inject IConfiguration Configuration
 
 <PageTitle>Caso</PageTitle>
 
@@ -314,7 +315,20 @@ else
         {
             <div class="mb-2">
                 <label class="form-label">Segundo aprovador (4-eyes EDD) *</label>
-                <input class="form-control" @bind="_secondApproverId" placeholder="ID do supervisor" />
+                @if (_supervisorIds.Count > 0)
+                {
+                    <select class="form-select" @bind="_secondApproverId">
+                        <option value="">— Seleccionar supervisor —</option>
+                        @foreach (var s in _supervisorIds)
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input class="form-control" @bind="_secondApproverId" placeholder="ID do supervisor" />
+                }
             </div>
         }
     }
@@ -396,6 +410,7 @@ else
     private string _rejectReason = "";
     private string _reviewReason = "";
     private string _secondApproverId = "";
+    private IReadOnlyList<string> _supervisorIds = [];
     private string? _actionError;
     private AddPartyFormModel _addForm = new();
 
@@ -418,8 +433,12 @@ else
         public string CasePartyIdStr { get; set; } = "";
     }
 
-    protected override async Task OnInitializedAsync() =>
+    protected override async Task OnInitializedAsync()
+    {
+        _supervisorIds = Configuration.GetSection("Compliance:SupervisorUserIds").Get<string[]>()
+                         ?? ["supervisor@kyc.local", "admin@kyc.local"];
         await RunDataAsync(ReloadCoreAsync);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -488,6 +507,14 @@ else
 
             await _hub.StartAsync();
             await _hub.SendAsync("JoinCaseGroup", CaseId);
+            try
+            {
+                await _hub.SendAsync("JoinSupervisorsGroup");
+            }
+            catch
+            {
+                // Analistas sem role Supervisor ignoram este grupo.
+            }
         }
         catch
         {

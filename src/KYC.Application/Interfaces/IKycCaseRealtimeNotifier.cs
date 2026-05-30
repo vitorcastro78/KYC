@@ -20,4 +20,9 @@ public interface IKycCaseRealtimeNotifier
         string alertType,
         string message,
         CancellationToken ct = default);
+
+    Task NotifySupervisorsAsync(
+        string alertType,
+        string message,
+        CancellationToken ct = default);
 }

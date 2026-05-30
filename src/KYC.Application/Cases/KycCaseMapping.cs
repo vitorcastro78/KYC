@@ -75,6 +75,19 @@ internal static class KycCaseMapping
             .Select(a => a.Details)
             .FirstOrDefault();
 
+        string[] sarActions =
+        [
+            "SarSubmitted",
+            "SarUrgentSubmitted",
+            "SarNotRequired",
+            "SarSuggested"
+        ];
+        var sarHistory = c.AuditTrail
+            .Where(a => sarActions.Contains(a.Action))
+            .OrderByDescending(a => a.Timestamp)
+            .Select(a => new SarAuditEntryDto(a.Action, a.ActorId, a.Timestamp, a.Details))
+            .ToList();
+
         return new KycCaseDetailDto(
             c.Id,
             c.Nif,
@@ -103,7 +116,8 @@ internal static class KycCaseMapping
             c.LegalBasisRef,
             c.AssetFreezeNotified,
             c.AssetFreezeNotifiedAt,
-            freezeRef);
+            freezeRef,
+            sarHistory);
     }
 
     public static CaseDocumentDto ToDocumentDto(CaseDocument d)

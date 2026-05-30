@@ -83,7 +83,10 @@ public class ComplianceHandlersIntegrationTests
         var repo = new Mock<IKycCaseRepository>();
         repo.Setup(r => r.GetByIdAsync(kyc.Id, It.IsAny<CancellationToken>())).ReturnsAsync(kyc);
 
-        var handler = new SubmitSarCommandHandler(repo.Object, new Mock<IUifReportingService>().Object);
+        var handler = new SubmitSarCommandHandler(
+            repo.Object,
+            new Mock<IUifReportingService>().Object,
+            new Mock<MediatR.IMediator>().Object);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(
@@ -105,7 +108,10 @@ public class ComplianceHandlersIntegrationTests
         uif.Setup(u => u.SubmitSuspiciousActivityReportAsync(It.IsAny<SuspiciousActivityReport>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new UifSubmissionResult(true, "UIF-URGENT-1", null, DateTime.UtcNow));
 
-        var handler = new SubmitSarCommandHandler(repo.Object, uif.Object);
+        var mediator = new Moq.Mock<MediatR.IMediator>();
+        mediator.Setup(m => m.Publish(It.IsAny<MediatR.INotification>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var handler = new SubmitSarCommandHandler(repo.Object, uif.Object, mediator.Object);
         await handler.Handle(
             new SubmitSarCommand(kyc.Id, new string('x', 200), "analyst1", IsUrgent: true),
             CancellationToken.None);

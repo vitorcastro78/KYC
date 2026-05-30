@@ -144,6 +144,21 @@ public class ListAmlComplianceReportsQueryHandler(IAmlComplianceReportRepository
     }
 }
 
+public class GetUifSubmissionStatusQueryHandler(IUifReportingService uif)
+    : IRequestHandler<GetUifSubmissionStatusQuery, UifSubmissionStatusDto>
+{
+    public async Task<UifSubmissionStatusDto> Handle(
+        GetUifSubmissionStatusQuery request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.ReferenceNumber))
+            throw new ArgumentException("Referência UIF obrigatória.");
+
+        var status = await uif.GetSubmissionStatusAsync(request.ReferenceNumber, cancellationToken);
+        return new UifSubmissionStatusDto(status.ReferenceNumber, status.Status, status.LastUpdated);
+    }
+}
+
 public class GetAmlComplianceReportQueryHandler(IAmlComplianceReportRepository reports)
     : IRequestHandler<GetAmlComplianceReportQuery, AmlComplianceReportDetailDto?>
 {

@@ -1,3 +1,4 @@
+using KYC.Application.Compliance;
 using KYC.Application.Interfaces;
 using KYC.Domain.Entities;
 using KYC.Domain.Enums;
@@ -55,7 +56,8 @@ public class OverrideSignalCommandHandler(
 
 public class SubmitSarCommandHandler(
     IKycCaseRepository repository,
-    IUifReportingService uif) : IRequestHandler<SubmitSarCommand, UifSubmissionResult>
+    IUifReportingService uif,
+    IMediator mediator) : IRequestHandler<SubmitSarCommand, UifSubmissionResult>
 {
     public async Task<UifSubmissionResult> Handle(SubmitSarCommand request, CancellationToken cancellationToken)
     {
@@ -120,8 +122,9 @@ public class MarkSarNotRequiredCommandHandler(IKycCaseRepository repository)
     }
 }
 
-public class RecordVerificationResultCommandHandler(IKycCaseRepository repository)
-    : IRequestHandler<RecordVerificationResultCommand, Unit>
+public class RecordVerificationResultCommandHandler(
+    IKycCaseRepository repository,
+    IMediator mediator) : IRequestHandler<RecordVerificationResultCommand, Unit>
 {
     public async Task<Unit> Handle(RecordVerificationResultCommand request, CancellationToken cancellationToken)
     {
@@ -141,6 +144,24 @@ public class RecordVerificationResultCommandHandler(IKycCaseRepository repositor
             "Agent",
             request.FailureReason ?? request.EidasLevel));
         await repository.UpdateAsync(kyc, cancellationToken);
+
+        if (request.IsVerified)
+        {
+            await mediator.Publish(
+                new EntityIdentityVerifiedNotification(kyc.Id, party.Id, party.Name),
+                cancellationToken);
+        }
+        else
+        {
+            await mediator.Publish(
+                new EntityIdentityVerificationFailedNotification(
+                    kyc.Id,
+                    party.Id,
+                    party.Name,
+                    request.FailureReason),
+                cancellationToken);
+        }
+
         return Unit.Value;
     }
 }
