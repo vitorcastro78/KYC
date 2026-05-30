@@ -2,7 +2,9 @@ using System.Net;
 using System.Text.Json;
 using KYC.Application.Interfaces;
 using KYC.Domain.Enums;
+using KYC.Infrastructure.Compliance;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace KYC.Infrastructure.Identity;
@@ -11,6 +13,7 @@ namespace KYC.Infrastructure.Identity;
 public sealed class DigitalSignIdentityVerificationService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
+    IHostEnvironment environment,
     ILogger<DigitalSignIdentityVerificationService> log) : IIdentityVerificationService
 {
     public async Task<IdentityVerificationSession> InitiateVerificationAsync(
@@ -20,8 +23,22 @@ public sealed class DigitalSignIdentityVerificationService(
         string? email,
         CancellationToken ct = default)
     {
-        var baseUrl = configuration["IdentityVerification:BaseUrl"]
-                      ?? throw new InvalidOperationException("IdentityVerification:BaseUrl required.");
+        var baseUrl = configuration["IdentityVerification:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            if (ComplianceIntegrationOptions.RequireLiveIntegrations(configuration, environment))
+                throw new InvalidOperationException(
+                    "Identidade remota não configurada (IdentityVerification:BaseUrl).");
+
+            log.LogWarning("IdentityVerification:BaseUrl missing; local session (development only).");
+            var devSessionId = $"local-{partyId:N}";
+            return new IdentityVerificationSession(
+                devSessionId,
+                $"/cases/verify/{devSessionId}",
+                method,
+                DateTime.UtcNow.AddHours(24));
+        }
+
         var apiKey = configuration["IdentityVerification:ApiKey"] ?? "";
 
         var client = httpClientFactory.CreateClient("identity-verification");
@@ -43,7 +60,10 @@ public sealed class DigitalSignIdentityVerificationService(
         }
         catch (Exception ex)
         {
-            log.LogWarning(ex, "Identity provider unavailable; using local session stub.");
+            if (ComplianceIntegrationOptions.RequireLiveIntegrations(configuration, environment))
+                throw new InvalidOperationException("Prestador de identidade indisponível.", ex);
+
+            log.LogWarning(ex, "Identity provider unavailable; using local session stub (development only).");
             var sessionId = $"local-{partyId:N}";
             return new IdentityVerificationSession(
                 sessionId,

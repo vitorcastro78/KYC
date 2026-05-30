@@ -2,6 +2,7 @@ using KYC.Application.Common;
 using KYC.Application.Dtos;
 using KYC.Application.Interfaces;
 using KYC.Application.Models;
+using KYC.Application.Services;
 using KYC.Domain.Enums;
 using MediatR;
 
@@ -36,14 +37,14 @@ public class ListKycCasesQueryHandler(IKycCaseRepository repository)
 }
 
 public class GetUboGraphQueryHandler(IKycCaseRepository cases, IEntityResolutionService resolution)
-    : IRequestHandler<GetUboGraphQuery, UboGraphDto?>
+    : IRequestHandler<GetUboGraphQuery, UboGraphViewDto?>
 {
-    public async Task<UboGraphDto?> Handle(GetUboGraphQuery request, CancellationToken cancellationToken)
+    public async Task<UboGraphViewDto?> Handle(GetUboGraphQuery request, CancellationToken cancellationToken)
     {
         var kyc = await cases.GetByIdAsync(request.CaseId, cancellationToken);
         if (kyc is null) return null;
         var graph = await resolution.BuildUboGraphAsync(kyc.Nif, maxDepth: 5, cancellationToken);
-        return new UboGraphDto(graph);
+        return UboGraphViewBuilder.Build(kyc, graph);
     }
 }
 

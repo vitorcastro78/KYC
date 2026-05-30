@@ -1,4 +1,6 @@
 @using KYC.Application.Dtos
+@using KYC.Domain.Enums
+@using KYC.Web.Services
 <div class="card h-100">
     <div class="card-body">
         <h6 class="card-title">@Party.Name</h6>
@@ -7,6 +9,16 @@
             <div class="small text-muted">NIF: @Party.Nif</div>
         }
         <div class="small text-muted">@RoleLabel(Party.Role) · profundidade @Party.UboDepthLevel</div>
+        @if (ComplianceUiLabels.RequiresIdentityVerification(Party.Role) || Party.VerificationStatus != IdentityVerificationStatus.Pending)
+        {
+            <div class="mt-2">
+                <IdentityVerificationBadge Status="Party.VerificationStatus" Method="Party.VerificationMethod" />
+                @if (!string.IsNullOrWhiteSpace(Party.VerificationUrl) && Party.VerificationStatus == IdentityVerificationStatus.Pending)
+                {
+                    <a class="small d-block mt-1" href="@Party.VerificationUrl" target="_blank" rel="noopener noreferrer">Abrir verificação ↗</a>
+                }
+            </div>
+        }
         <div class="mt-2">
             @if (Party.IsPep) { <span class="badge bg-info me-1">PEP</span> }
             @if (Party.IsSanctioned) { <span class="badge bg-danger me-1">Sanções</span> }

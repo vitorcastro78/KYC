@@ -1,7 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using KYC.Application.Interfaces;
+using KYC.Infrastructure.Compliance;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace KYC.Infrastructure.Compliance.Uif;
@@ -9,6 +11,7 @@ namespace KYC.Infrastructure.Compliance.Uif;
 public sealed class UifReportingService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
+    IHostEnvironment environment,
     ILogger<UifReportingService> log) : IUifReportingService
 {
     public async Task<UifSubmissionResult> SubmitSuspiciousActivityReportAsync(
@@ -18,8 +21,17 @@ public sealed class UifReportingService(
         var baseUrl = configuration["Uif:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            log.LogWarning("UIF API not configured; generating local reference.");
-            var localRef = $"UIF-{DateTime.UtcNow:yyyyMMdd}-{report.KycCaseId:N}"[..32];
+            if (ComplianceIntegrationOptions.RequireLiveIntegrations(configuration, environment))
+            {
+                return new UifSubmissionResult(
+                    false,
+                    null,
+                    "API UIF não configurada (Uif:BaseUrl). Use registo manual ou configure a integração.",
+                    DateTime.UtcNow);
+            }
+
+            log.LogWarning("UIF API not configured; generating local reference (development only).");
+            var localRef = $"UIF-DEV-{DateTime.UtcNow:yyyyMMdd}-{report.KycCaseId:N}"[..36];
             return new UifSubmissionResult(true, localRef, null, DateTime.UtcNow);
         }
 

@@ -1,7 +1,7 @@
 # Plano de Desenvolvimento — Conformidade BdP 100%
 
 > **Base:** `BLUEPRINT_BdP_Compliance_Addendum.md` (sec. 13–22) + `docs/CHECKLIST_HOMOLOGACAO_BDP.md`  
-> **Estado actual (Maio 2026):** ~65–70% core implementado; integrações reais, RPB oficial, UI completa e homologação em falta.  
+> **Estado actual (Maio 2026):** ~90% código (ver `docs/BLUEPRINT_COMPLETION_STATUS.md`); pendente integrações reais (UIF/BdP/identidade), template RPB oficial e homologação (E2E, dossier, pen test).  
 > **Objectivo:** 59 critérios de aceite (47 técnicos + 12 checklist) verificados em ambiente de homologação.
 
 ---
@@ -42,7 +42,7 @@ Um item só está **Done** quando:
 
 ### 2.2 Em falta (âmbito deste plano)
 
-Ver **Épicos E1–E10** abaixo (62 tarefas).
+Ver **`docs/BLUEPRINT_COMPLETION_STATUS.md`** (mapa actualizado). Resumo: credenciais externas X1–X6, homologação E10 (E2E, dossier, pen test), Claude/Blob (fase 2 blueprint principal).
 
 ---
 

@@ -1,5 +1,6 @@
 ﻿@page "/cases"
 @attribute [Authorize(Policy = "Analyst")]
+@using KYC.Web.Services
 @inject IMediator Mediator
 
 <PageTitle>Casos</PageTitle>
@@ -27,7 +28,7 @@
                         <td>@c.CompanyName</td>
                         <td><RiskScoreBadge Score="c.Score" /></td>
                         <td><span class="badge bg-light text-dark">@DdcLabel(c.DueDiligenceLevel)</span></td>
-                        <td><span class="badge @SarBadgeClass(c.SarStatus)">@SarLabel(c.SarStatus)</span></td>
+                        <td><span class="badge @ComplianceUiLabels.SarBadgeClass(c.SarStatus)">@ComplianceUiLabels.SarListLabel(c.SarStatus)</span></td>
                         <td><span class="status-pill @StatusClass(c.Status)">@StatusLabel(c.Status)</span></td>
                         <td>@c.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                     </tr>
@@ -62,22 +63,6 @@
         DueDiligenceLevel.Simplified => "Simplificada",
         DueDiligenceLevel.Enhanced => "Reforçada",
         _ => "Standard"
-    };
-
-    private static string SarLabel(SarStatus s) => s switch
-    {
-        SarStatus.Submitted => "UIF",
-        SarStatus.Pending => "SAR pend.",
-        SarStatus.NotRequired => "N/A",
-        _ => "—"
-    };
-
-    private static string SarBadgeClass(SarStatus s) => s switch
-    {
-        SarStatus.Submitted => "bg-danger",
-        SarStatus.Pending => "bg-warning text-dark",
-        SarStatus.NotRequired => "bg-secondary",
-        _ => "bg-light text-dark"
     };
 
     private static string StatusClass(KycStatus status) => status switch

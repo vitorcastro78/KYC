@@ -10,7 +10,7 @@
                 <div class="modal-body">@ChildContent</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="Cancel">Cancelar</button>
-                    <button class="btn btn-primary" @onclick="Confirm">Confirmar</button>
+                    <button class="btn btn-primary" disabled="@ConfirmDisabled" @onclick="Confirm">@(ConfirmLabel ?? "Confirmar")</button>
                 </div>
             </div>
         </div>
@@ -23,6 +23,8 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback OnConfirm { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public bool ConfirmDisabled { get; set; }
+    [Parameter] public string? ConfirmLabel { get; set; }
 
     private Task Confirm() => OnConfirm.InvokeAsync();
     private Task Cancel() => OnCancel.InvokeAsync();

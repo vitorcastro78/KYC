@@ -1,6 +1,8 @@
 using System.Text.Json;
 using KYC.Application.Interfaces;
+using KYC.Infrastructure.Compliance;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace KYC.Infrastructure.Compliance.AssetFreeze;
@@ -8,6 +10,7 @@ namespace KYC.Infrastructure.Compliance.AssetFreeze;
 public sealed class AssetFreezeNotificationService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
+    IHostEnvironment environment,
     ILogger<AssetFreezeNotificationService> log) : IAssetFreezeNotificationService
 {
     public async Task<AssetFreezeNotificationResult> NotifyAsync(
@@ -21,8 +24,17 @@ public sealed class AssetFreezeNotificationService(
         var baseUrl = configuration["BdpAssetFreeze:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            log.LogWarning("BdP asset freeze API not configured; local confirmation.");
-            var local = $"FREEZE-{DateTime.UtcNow:yyyyMMddHHmmss}-{kycCaseId:N}"[..40];
+            if (ComplianceIntegrationOptions.RequireLiveIntegrations(configuration, environment))
+            {
+                return new AssetFreezeNotificationResult(
+                    false,
+                    null,
+                    "API de congelamento BdP não configurada (BdpAssetFreeze:BaseUrl).",
+                    DateTime.UtcNow);
+            }
+
+            log.LogWarning("BdP asset freeze API not configured; local confirmation (development only).");
+            var local = $"FREEZE-DEV-{DateTime.UtcNow:yyyyMMddHHmmss}-{kycCaseId:N}"[..44];
             return new AssetFreezeNotificationResult(true, local, null, DateTime.UtcNow);
         }
 

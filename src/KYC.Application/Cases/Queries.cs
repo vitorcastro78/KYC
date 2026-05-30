@@ -9,7 +9,7 @@ public record GetKycCaseQuery(Guid CaseId) : IRequest<KycCaseDetailDto?>;
 
 public record ListKycCasesQuery(KycCaseFilter Filter) : IRequest<PagedResult<KycCaseDto>>;
 
-public record GetUboGraphQuery(Guid CaseId) : IRequest<UboGraphDto?>;
+public record GetUboGraphQuery(Guid CaseId) : IRequest<UboGraphViewDto?>;
 
 public record GetRiskTimelineQuery(Guid CaseId) : IRequest<RiskTimelineDto?>;
 

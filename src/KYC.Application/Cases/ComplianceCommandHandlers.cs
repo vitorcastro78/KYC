@@ -86,6 +86,37 @@ public class SubmitSarCommandHandler(
     }
 }
 
+public class RegisterManualUifReferenceCommandHandler(
+    IKycCaseRepository repository,
+    IMediator mediator) : IRequestHandler<RegisterManualUifReferenceCommand, Unit>
+{
+    public async Task<Unit> Handle(RegisterManualUifReferenceCommand request, CancellationToken cancellationToken)
+    {
+        if (request.ReferenceNumber.Length < 5)
+            throw new ArgumentException("Referência UIF inválida.");
+
+        var kyc = await repository.GetByIdAsync(request.CaseId, cancellationToken)
+                  ?? throw new KeyNotFoundException("Caso não encontrado.");
+
+        if (kyc.SarStatus is not SarStatus.Pending and not SarStatus.None)
+            throw new InvalidOperationException("SAR já foi finalizado para este caso.");
+
+        kyc.RecordSarSubmitted(request.ReferenceNumber.Trim(), request.AnalystId);
+        kyc.AppendAudit(AuditEntry.Create(
+            kyc.Id,
+            "SarManualRegistered",
+            request.AnalystId,
+            "User",
+            request.ReferenceNumber.Trim()));
+
+        await repository.UpdateAsync(kyc, cancellationToken);
+        await mediator.Publish(
+            new Compliance.SarSubmittedNotification(kyc.Id, kyc.CompanyName, request.ReferenceNumber.Trim(), false),
+            cancellationToken);
+        return Unit.Value;
+    }
+}
+
 public class MarkSarNotRequiredCommandHandler(IKycCaseRepository repository)
     : IRequestHandler<MarkSarNotRequiredCommand, Unit>
 {

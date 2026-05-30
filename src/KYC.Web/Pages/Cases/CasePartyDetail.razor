@@ -1,7 +1,10 @@
 @page "/cases/{CaseId:guid}/parties/{PartyId:guid}"
 @attribute [Authorize(Policy = "Analyst")]
+@using KYC.Application.Interfaces
+@using KYC.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Nav
+@inject ICurrentAnalystAccessor AnalystAccessor
 
 <PageTitle>Parte do caso</PageTitle>
 
@@ -23,6 +26,16 @@ else
             <span> · NIF @_party.Nif</span>
         }
     </p>
+
+    @if (ComplianceUiLabels.RequiresIdentityVerification(_party.Role))
+    {
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="h6 mb-0">Verificação de identidade</h3></div>
+            <div class="card-body">
+                <PartyIdentityPanel Party="_party" CaseId="CaseId" ShowName="false" OnChanged="ReloadPartyAsync" />
+            </div>
+        </div>
+    }
 
     <div class="row g-3 mb-3">
         <div class="col-md-6">
@@ -102,12 +115,14 @@ else
             .ToList();
     }
 
+    private Task ReloadPartyAsync() => LoadAsync();
+
     private async Task TriagemParteAsync(Guid partyId)
     {
         _actionError = null;
         try
         {
-            await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, "dev-user"));
+            await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, await AnalystAccessor.GetAnalystIdAsync()));
             await LoadAsync();
         }
         catch (Exception ex)

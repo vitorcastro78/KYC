@@ -64,6 +64,12 @@ public record ReportRcbeDiscrepancyCommand(Guid CaseId, Guid PartyId, string Ana
 public record SubmitSarCommand(
     Guid CaseId, string SuspicionDescription, string AnalystId, bool IsUrgent) : IRequest<UifSubmissionResult>;
 
+/// <summary>Regista referência UIF obtida fora da API (processo manual homologado).</summary>
+public record RegisterManualUifReferenceCommand(
+    Guid CaseId,
+    string ReferenceNumber,
+    string AnalystId) : IRequest<Unit>;
+
 public record MarkSarNotRequiredCommand(Guid CaseId, string AnalystId, string Justification) : IRequest<Unit>;
 
 public record SetFundsOriginCommand(Guid CaseId, string Description, bool Verified, string? DocumentId) : IRequest<Unit>;

@@ -3,6 +3,7 @@
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Forms
 @using KYC.Application.Cases
+@using KYC.Application.Dtos
 @using KYC.Application.Interfaces
 @using KYC.Domain.Enums
 @using FluentValidation
@@ -13,6 +14,7 @@
 @inject KycHubConnectionFactory HubFactory
 @inject ToastService Toast
 @inject IConfiguration Configuration
+@inject ICurrentAnalystAccessor AnalystAccessor
 
 <PageTitle>Caso</PageTitle>
 
@@ -30,11 +32,30 @@ else
         <div class="text-md-end">
             <div class="small text-muted">Estado do processo</div>
             <span class="status-pill @StatusClass(_case.Status)">@StatusLabel(_case.Status)</span>
-            <div class="mt-2"><RiskScoreBadge Score="_case.Score" /></div>
+            <div class="mt-2 d-flex flex-wrap gap-1 justify-content-md-end">
+                <RiskScoreBadge Score="_case.Score" />
+                <span class="badge @ComplianceUiLabels.SarBadgeClass(_case.SarStatus)">@ComplianceUiLabels.SarStatusLabel(_case.SarStatus)</span>
+                <span class="badge bg-light text-dark">@DdcHeroLabel(_case.DueDiligenceLevel)</span>
+            </div>
         </div>
     </div>
 
-    <ComplianceCaseSection Case="_case" CaseId="CaseId" OnChanged="Reload" />
+    @if (_case.SuggestSar && _case.SarStatus != SarStatus.Submitted)
+    {
+        <div class="alert alert-warning py-2 mb-3">
+            <strong>SAR sugerido</strong> — reveja sinais e comunique à UIF se aplicável.
+            <a class="btn btn-sm btn-warning ms-2" href="#compliance-section">Ir à conformidade</a>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_case.CanApproveMessage))
+    {
+        <div class="alert alert-danger py-2 mb-3">@_case.CanApproveMessage</div>
+    }
+
+    <div id="compliance-section">
+        <ComplianceCaseSection Case="_case" CaseId="CaseId" OnChanged="Reload" />
+    </div>
 
     <div class="card mb-3">
         <div class="card-body">
@@ -95,6 +116,35 @@ else
     </div>
 
     <GleifCompanyCard Snapshot="_case.Gleif" RelatedParties="_case.GleifRelatedParties" />
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h3 class="h6 mb-0">Grafo de controlo (UBO)</h3>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ToggleUboPreview">
+                    @(_uboExpanded ? "Recolher" : "Expandir")
+                </button>
+                <a class="btn btn-sm btn-outline-primary" href="/cases/@CaseId/ubo">Ecrã completo</a>
+            </div>
+        </div>
+        @if (_uboExpanded)
+        {
+            <div class="card-body pt-0">
+                @if (_uboGraph is null)
+                {
+                    <p class="text-muted small mb-0">A carregar grafo…</p>
+                }
+                else if (_uboGraph.Nodes.Count == 0)
+                {
+                    <p class="text-muted small mb-0">Sem dados de grafo disponíveis.</p>
+                }
+                else
+                {
+                    <UboGraphView Graph="_uboGraph" CaseId="CaseId" Compact="true" />
+                }
+            </div>
+        }
+    </div>
 
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -304,10 +354,15 @@ else
     </div>
 }
 
-<ConfirmDialog Visible="_showApprove" Title="Aprovar caso" OnConfirm="Approve" OnCancel="() => _showApprove = false">
+<ConfirmDialog Visible="_showApprove"
+               Title="Aprovar caso"
+               ConfirmDisabled="@(!CanConfirmApprove())"
+               ConfirmLabel="Aprovar"
+               OnConfirm="Approve"
+               OnCancel="() => _showApprove = false">
     @if (!string.IsNullOrWhiteSpace(_case?.CanApproveMessage))
     {
-        <div class="alert alert-danger">@_case.CanApproveMessage</div>
+        <div class="alert alert-danger mb-0">@_case.CanApproveMessage</div>
     }
     else
     {
@@ -414,6 +469,21 @@ else
     private IReadOnlyList<SupervisorUserDto> _supervisors = [];
     private string? _actionError;
     private AddPartyFormModel _addForm = new();
+    private bool _uboExpanded;
+    private UboGraphViewDto? _uboGraph;
+    private bool _uboLoadStarted;
+
+    private Task<string> AnalystIdAsync() => AnalystAccessor.GetAnalystIdAsync();
+
+    private async Task ToggleUboPreview()
+    {
+        _uboExpanded = !_uboExpanded;
+        if (_uboExpanded && !_uboLoadStarted)
+        {
+            _uboLoadStarted = true;
+            _uboGraph = await Mediator.Send(new GetUboGraphQuery(CaseId));
+        }
+    }
 
     private sealed class AddPartyFormModel
     {
@@ -595,7 +665,7 @@ else
 
             await Mediator.Send(new AddManualCasePartyCommand(
                 CaseId,
-                "dev-user",
+                await AnalystIdAsync(),
                 _addForm.Name,
                 string.IsNullOrWhiteSpace(_addForm.Nif) ? null : _addForm.Nif,
                 _addForm.Type,
@@ -639,7 +709,7 @@ else
             await using var stream = _uploadFile.OpenReadStream(maxBytes);
             await Mediator.Send(new UploadCaseDocumentCommand(
                 CaseId,
-                "dev-user",
+                await AnalystIdAsync(),
                 _uploadFile.Name,
                 _uploadFile.ContentType,
                 stream,
@@ -701,7 +771,7 @@ else
         _scan.BeginRescreen();
         try
         {
-            await Mediator.Send(new RerunKycCaseScreeningCommand(CaseId, "dev-user"));
+            await Mediator.Send(new RerunKycCaseScreeningCommand(CaseId, await AnalystIdAsync()));
             _showRescreen = false;
             await RunDataAsync(ReloadCoreAsync);
         }
@@ -730,7 +800,7 @@ else
         {
             await RunDataAsync(async () =>
             {
-                await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, "dev-user"));
+                await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, await AnalystIdAsync()));
                 await ReloadCoreAsync();
             });
         }
@@ -744,13 +814,31 @@ else
         }
     }
 
+    private bool CanConfirmApprove()
+    {
+        if (_case is null || !string.IsNullOrWhiteSpace(_case.CanApproveMessage))
+            return false;
+        if (_case.DueDiligenceLevel == DueDiligenceLevel.Enhanced)
+            return !string.IsNullOrWhiteSpace(_secondApproverId);
+        return true;
+    }
+
+    private static string DdcHeroLabel(DueDiligenceLevel d) => d switch
+    {
+        DueDiligenceLevel.Simplified => "DDC simplificada",
+        DueDiligenceLevel.Enhanced => "EDD",
+        _ => "DDC standard"
+    };
+
     private async Task Approve()
     {
+        if (!CanConfirmApprove())
+            return;
         await RunDataAsync(async () =>
         {
             await Mediator.Send(new ApproveKycCaseCommand(
                 CaseId,
-                "dev-user",
+                await AnalystIdAsync(),
                 "Aprovado",
                 string.IsNullOrWhiteSpace(_secondApproverId) ? null : _secondApproverId.Trim()));
             _secondApproverId = "";
@@ -763,7 +851,7 @@ else
     {
         await RunDataAsync(async () =>
         {
-            await Mediator.Send(new RejectKycCaseCommand(CaseId, "dev-user", _rejectReason));
+            await Mediator.Send(new RejectKycCaseCommand(CaseId, await AnalystIdAsync(), _rejectReason));
             _showReject = false;
             await ReloadCoreAsync();
         });

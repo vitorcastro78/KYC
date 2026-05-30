@@ -82,6 +82,7 @@ internal static class KycCaseMapping
             "SarSubmitted",
             "SarUrgentSubmitted",
             "SarQueued",
+            "SarManualRegistered",
             "SarNotRequired",
             "SarSuggested"
         ];

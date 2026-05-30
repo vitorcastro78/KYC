@@ -2,8 +2,10 @@
 @attribute [Authorize(Policy = "Analyst")]
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.SignalR.Client
+@using KYC.Application.Interfaces
 @using KYC.Web.Services
 @inject IMediator Mediator
+@inject ICurrentAnalystAccessor AnalystAccessor
 @inject NavigationManager Nav
 @inject KycHubConnectionFactory HubFactory
 
@@ -97,7 +99,7 @@
         {
             var id = await Mediator.Send(new StartKycCaseCommand(
                 _model.Nif,
-                "dev-user",
+                await AnalystAccessor.GetAnalystIdAsync(),
                 CreditAmount.Eur(_model.Amount),
                 _model.RelationshipType,
                 string.IsNullOrWhiteSpace(_model.CaeCode) ? null : _model.CaeCode.Trim()));

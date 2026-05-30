@@ -101,8 +101,17 @@ else
     });
 }
 
+builder.Services.AddScoped<ICurrentAnalystAccessor, HttpContextAnalystAccessor>();
+
 if (useEntra)
-    builder.Services.AddSingleton<ISupervisorUserDirectory, ConfigSupervisorUserDirectory>();
+{
+    if (!string.IsNullOrWhiteSpace(builder.Configuration["Compliance:SupervisorGroupObjectId"])
+        && (!string.IsNullOrWhiteSpace(builder.Configuration["AzureAd:ClientSecret"])
+            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AZURE_AD_CLIENT_SECRET"))))
+        builder.Services.AddSingleton<ISupervisorUserDirectory, EntraGraphSupervisorUserDirectory>();
+    else
+        builder.Services.AddSingleton<ISupervisorUserDirectory, ConfigSupervisorUserDirectory>();
+}
 else
     builder.Services.AddScoped<ISupervisorUserDirectory, IdentitySupervisorUserDirectory>();
 

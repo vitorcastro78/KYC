@@ -107,3 +107,20 @@ a:hover, .btn-link:hover {
 .blazor-error-boundary::after {
     content: "Ocorreu um erro na aplicação.";
 }
+
+.compliance-modal {
+    z-index: 1055;
+}
+
+.compliance-modal .modal-backdrop {
+    z-index: 1050;
+}
+
+.compliance-modal .modal-dialog {
+    z-index: 1060;
+    position: relative;
+}
+
+.party-identity-panel--compact .party-identity-panel {
+    font-size: 0.9rem;
+}
