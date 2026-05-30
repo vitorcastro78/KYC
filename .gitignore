@@ -21,3 +21,4 @@ coverage*.xml
 **/Data/AT/Devedores/**/*.json
 **/Data/AT/Devedores/**/*.tmp
 **/Data/cases/**
+**/DataProtection-Keys/
