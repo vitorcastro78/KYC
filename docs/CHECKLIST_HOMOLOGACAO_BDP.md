@@ -28,6 +28,6 @@
 
 ## Operacional
 - [x] Health check `/health`
-- [ ] Secrets fora do repositório
-- [ ] Deploy on-prem (`docker-compose.prod.yml`)
-- [ ] CI pipeline verde
+- [x] Secrets fora do repositório (`.env` no `.gitignore`, usar `.env.example`)
+- [x] Deploy on-prem documentado (`docker-compose.prod.yml`, `docs/DEPLOY_ONPREM.md`)
+- [x] CI pipeline (`/.github/workflows/ci.yml` — build, migrate, test)

@@ -2,7 +2,7 @@ name: KYC CI
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, master, develop, "feature/**"]
   pull_request:
     branches: [main, master, develop]
 
@@ -24,6 +24,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+    env:
+      KYC_DB_CONNECTION: Host=localhost;Port=5432;Database=kyc_ci;Username=postgres;Password=dev123
+      ConnectionStrings__KycDatabase: Host=localhost;Port=5432;Database=kyc_ci;Username=postgres;Password=dev123
+      Testing__DisableBackgroundServices: "true"
+      Messaging__HostInMemoryPipeline: "false"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -32,16 +38,24 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
+      - name: Install EF tools
+        run: dotnet tool install dotnet-ef --global
+
       - name: Restore
         run: dotnet restore KYC.sln
 
       - name: Build
         run: dotnet build KYC.sln -c Release --no-restore
 
+      - name: Apply database migrations
+        run: >
+          dotnet ef database update
+          --project src/KYC.Infrastructure/KYC.Infrastructure.csproj
+          --startup-project src/KYC.Web/KYC.Web.csproj
+          --configuration Release
+
       - name: Test
         run: dotnet test KYC.sln -c Release --no-build --verbosity normal
-        env:
-          KYC_DB_CONNECTION: Host=localhost;Port=5432;Database=kyc_ci;Username=postgres;Password=dev123
 
       - name: Publish Web
         run: dotnet publish src/KYC.Web/KYC.Web.csproj -c Release -o ./artifacts/web

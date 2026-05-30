@@ -44,6 +44,14 @@ dotnet test
 dotnet test tests/KYC.Web.Integration.Tests
 ```
 
-## 4. Checklist
+## 4. Deploy on-prem
+
+Ver `docs/DEPLOY_ONPREM.md`.
+
+## 5. CI
+
+Push/PR para `main`, `develop` ou `feature/*` dispara `.github/workflows/ci.yml` (PostgreSQL + migrations + `dotnet test`).
+
+## 6. Checklist
 
 Marcar itens em `docs/CHECKLIST_HOMOLOGACAO_BDP.md` com evidências (prints, exports XML RPB, logs audit).
