@@ -68,11 +68,15 @@ public static class DependencyInjection
         services.AddScoped<IAssetFreezeNotificationService, AssetFreezeNotificationService>();
 
         services.AddKycHealthChecks(configuration);
-        services.AddHostedService<ComplianceSeedHostedService>();
-        if (configuration.GetValue("Compliance:EnablePeriodicReviewScheduler", true))
-            services.AddHostedService<PeriodicReviewSchedulerJob>();
-        if (configuration.GetValue("IdentityVerification:EnablePolling", true))
-            services.AddHostedService<IdentityVerificationPollingHostedService>();
+        var disableBackground = configuration.GetValue("Testing:DisableBackgroundServices", false);
+        if (!disableBackground)
+        {
+            services.AddHostedService<ComplianceSeedHostedService>();
+            if (configuration.GetValue("Compliance:EnablePeriodicReviewScheduler", true))
+                services.AddHostedService<PeriodicReviewSchedulerJob>();
+            if (configuration.GetValue("IdentityVerification:EnablePolling", true))
+                services.AddHostedService<IdentityVerificationPollingHostedService>();
+        }
 
         services.AddSingleton<ICaseDocumentStorage, LocalCaseDocumentStorage>();
         services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
@@ -82,9 +86,10 @@ public static class DependencyInjection
         services.AddSingleton<DocumentVisionExtractor>();
         services.AddSingleton<DocumentFieldExtractor>();
         services.AddScoped<IDocumentConsistencyChecker, DocumentConsistencyChecker>();
-        services.AddHostedService<DocumentIngestionHostedService>();
+        if (!disableBackground)
+            services.AddHostedService<DocumentIngestionHostedService>();
 
-        RegisterMessaging(services, configuration);
+        RegisterMessaging(services, configuration, disableBackground);
 
         // http + porta explÃ­cita: https://localhost/rcbe/ usa 443 e falha sem reverse proxy local.
         var rcbeBase = configuration["ExternalSources:RcbeBaseUrl"] ?? "http://localhost:5055/rcbe/";
@@ -199,7 +204,7 @@ public static class DependencyInjection
         return services;
     }
 
-    private static void RegisterMessaging(IServiceCollection services, IConfiguration configuration)
+    private static void RegisterMessaging(IServiceCollection services, IConfiguration configuration, bool disableBackground = false)
     {
         var provider = (configuration["Messaging:Provider"] ?? "InMemory").Trim();
         var sbCs = configuration["KYC_SERVICEBUS_CONNECTION"] ?? configuration["ServiceBus:ConnectionString"];
@@ -238,7 +243,7 @@ public static class DependencyInjection
 
         services.AddSingleton<InMemoryCaseStartedQueue>();
         services.AddSingleton<IKycCaseMessageBus, InMemoryKycCaseMessageBus>();
-        if (configuration.GetValue("Messaging:HostInMemoryPipeline", true))
+        if (!disableBackground && configuration.GetValue("Messaging:HostInMemoryPipeline", true))
             services.AddHostedService<CaseStartedPipelineHostedService>();
     }
 

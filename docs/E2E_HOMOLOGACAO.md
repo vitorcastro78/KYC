@@ -18,7 +18,7 @@
 ### 2. Identidade
 
 1. No caso, secção Conformidade → «Verificar identidade» → escolher método
-2. Webhook: `POST /api/identity/webhook` com `{ partyId, sessionId, verified: true }`
+2. Webhook: `POST /api/identity/webhook` com `{ partyId, sessionId, verified: true }` e header `X-Webhook-Signature: sha256=<hmac>` (ver `docs/HOMOLOGACAO_RUNBOOK.md`)
 3. Tentar aprovar sem UBO verificado → botão Aprovar desactivado + mensagem
 
 ### 3. SAR

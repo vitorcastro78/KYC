@@ -141,7 +141,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (!useEntra)
+if (!useEntra && !app.Environment.IsEnvironment("Testing"))
     await SeedIdentityAsync(app.Services, app.Configuration);
 
 app.MapGet("/", (HttpContext ctx) =>
@@ -299,3 +299,5 @@ static async Task SeedIdentityAsync(IServiceProvider services, IConfiguration co
             await userManager.AddToRoleAsync(admin, role);
     }
 }
+
+public partial class Program;

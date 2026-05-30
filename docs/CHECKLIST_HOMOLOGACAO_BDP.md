@@ -22,12 +22,12 @@
 
 ## RGPD
 - [x] DPIA activa registada (Admin criar versão)
-- [ ] Audit trail imutável (trigger PostgreSQL) — script em `docs/sql/audit_trail_immutable.sql`
+- [x] Audit trail imutável (trigger `tr_audit_entries_immutable` na migration BdP)
 - [x] Auto-approve apenas Low risk (score ≤30, sem High/Critical/sanções)
 - [x] Secção explainability no relatório (Art. 22)
 
 ## Operacional
-- [ ] Health check `/health`
+- [x] Health check `/health`
 - [ ] Secrets fora do repositório
 - [ ] Deploy on-prem (`docker-compose.prod.yml`)
 - [ ] CI pipeline verde

@@ -88,7 +88,11 @@ public class SubmitSarCommandHandler(
             : await uif.SubmitSuspiciousActivityReportAsync(report, cancellationToken);
 
         if (result.IsSuccess && result.ReferenceNumber is not null)
+        {
             kyc.RecordSarSubmitted(result.ReferenceNumber, request.AnalystId);
+            if (request.IsUrgent)
+                kyc.AppendAudit(AuditEntry.Create(kyc.Id, "SarUrgentSubmitted", request.AnalystId, "User", result.ReferenceNumber));
+        }
 
         await repository.UpdateAsync(kyc, cancellationToken);
         return result;
