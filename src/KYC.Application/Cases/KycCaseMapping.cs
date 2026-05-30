@@ -36,6 +36,8 @@ internal static class KycCaseMapping
             p.IsOffshore,
             p.VerificationStatus,
             p.VerificationMethod,
+            p.VerificationSessionId,
+            p.VerificationUrl,
             p.RcbeDiscrepancyDetected,
             p.RcbeDiscrepancyReported)).ToList();
 
@@ -79,6 +81,7 @@ internal static class KycCaseMapping
         [
             "SarSubmitted",
             "SarUrgentSubmitted",
+            "SarQueued",
             "SarNotRequired",
             "SarSuggested"
         ];

@@ -3,6 +3,7 @@
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Forms
 @using KYC.Application.Cases
+@using KYC.Application.Interfaces
 @using KYC.Domain.Enums
 @using FluentValidation
 @using Microsoft.AspNetCore.SignalR.Client
@@ -315,13 +316,13 @@ else
         {
             <div class="mb-2">
                 <label class="form-label">Segundo aprovador (4-eyes EDD) *</label>
-                @if (_supervisorIds.Count > 0)
+                @if (_supervisors.Count > 0)
                 {
                     <select class="form-select" @bind="_secondApproverId">
                         <option value="">— Seleccionar supervisor —</option>
-                        @foreach (var s in _supervisorIds)
+                        @foreach (var s in _supervisors)
                         {
-                            <option value="@s">@s</option>
+                            <option value="@s.Id">@s.DisplayName (@s.Email)</option>
                         }
                     </select>
                 }
@@ -410,7 +411,7 @@ else
     private string _rejectReason = "";
     private string _reviewReason = "";
     private string _secondApproverId = "";
-    private IReadOnlyList<string> _supervisorIds = [];
+    private IReadOnlyList<SupervisorUserDto> _supervisors = [];
     private string? _actionError;
     private AddPartyFormModel _addForm = new();
 
@@ -435,8 +436,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _supervisorIds = Configuration.GetSection("Compliance:SupervisorUserIds").Get<string[]>()
-                         ?? ["supervisor@kyc.local", "admin@kyc.local"];
+        try
+        {
+            _supervisors = await Mediator.Send(new GetSupervisorUsersQuery());
+        }
+        catch
+        {
+            _supervisors = [];
+        }
         await RunDataAsync(ReloadCoreAsync);
     }
 

@@ -55,53 +55,33 @@ public class OverrideSignalCommandHandler(
 }
 
 public class SubmitSarCommandHandler(
-    IKycCaseRepository repository,
-    IUifReportingService uif,
-    IMediator mediator) : IRequestHandler<SubmitSarCommand, UifSubmissionResult>
+    SarSubmissionProcessor processor,
+    ISarSubmissionQueue sarQueue) : IRequestHandler<SubmitSarCommand, UifSubmissionResult>
 {
     public async Task<UifSubmissionResult> Handle(SubmitSarCommand request, CancellationToken cancellationToken)
     {
-        if (request.SuspicionDescription.Length < 200)
-            throw new ArgumentException("Narrativa de suspeita deve ter pelo menos 200 caracteres.");
+        if (request.IsUrgent)
+            return await processor.SubmitAsync(
+                request.CaseId,
+                request.SuspicionDescription,
+                request.AnalystId,
+                isUrgent: true,
+                cancellationToken);
 
-        var kyc = await repository.GetByIdAsync(request.CaseId, cancellationToken)
-                  ?? throw new KeyNotFoundException("Caso não encontrado.");
-
-        var hasCritical = kyc.RiskSignals.Any(s => s.Severity == SignalSeverity.Critical && !s.IsConfirmed);
-        var riskOk = kyc.Score?.Level >= RiskLevel.High || hasCritical
-                     || kyc.Parties.Any(p => p.IsSanctioned);
-        if (!riskOk)
-            throw new InvalidOperationException(
-                "SAR apenas permitido para risco Alto/Crítico, sinal Critical ou correspondência em sanções.");
-
-        var report = new SuspiciousActivityReport(
-            kyc.Id,
-            kyc.Nif,
-            kyc.CompanyName,
+        var result = await processor.SubmitAsync(
+            request.CaseId,
             request.SuspicionDescription,
-            kyc.RiskSignals.Select(s => $"{s.Type}:{s.Source}").ToList(),
-            kyc.RequestedCreditAmount,
             request.AnalystId,
-            request.AnalystId,
-            DateTime.UtcNow);
+            isUrgent: false,
+            cancellationToken);
 
-        var result = await uif.SubmitSuspiciousActivityReportAsync(report, cancellationToken);
-
-        if (result.IsSuccess && result.ReferenceNumber is not null)
+        if (result.IsQueued)
         {
-            kyc.RecordSarSubmitted(result.ReferenceNumber, request.AnalystId);
-            if (request.IsUrgent)
-            {
-                kyc.AppendAudit(AuditEntry.Create(
-                    kyc.Id,
-                    "SarUrgentSubmitted",
-                    request.AnalystId,
-                    "User",
-                    $"UIF síncrono: {result.ReferenceNumber}"));
-            }
+            await sarQueue.EnqueueAsync(
+                new SarSubmissionWork(request.CaseId, request.SuspicionDescription, request.AnalystId),
+                cancellationToken);
         }
 
-        await repository.UpdateAsync(kyc, cancellationToken);
         return result;
     }
 }
@@ -200,7 +180,7 @@ public class InitiateEntityVerificationCommandHandler(
 
         var session = await identity.InitiateVerificationAsync(
             party.Id, request.Method, party.Name, null, cancellationToken);
-        party.StartVerification(request.Method, session.SessionId);
+        party.StartVerification(request.Method, session.SessionId, session.VerificationUrl);
         await repository.UpdateAsync(kyc, cancellationToken);
         return session;
     }

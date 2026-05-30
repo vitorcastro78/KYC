@@ -30,6 +30,23 @@ public class CreateDpiaRecordCommandHandler(IDpiaRecordRepository repo)
     }
 }
 
+public class UploadDpiaDocumentCommandHandler(IDpiaDocumentStorage storage)
+    : IRequestHandler<UploadDpiaDocumentCommand, string>
+{
+    public async Task<string> Handle(UploadDpiaDocumentCommand request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Version))
+            throw new ArgumentException("Versão DPIA é obrigatória.");
+
+        var ext = Path.GetExtension(request.FileName);
+        if (!string.Equals(ext, ".pdf", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("A DPIA deve ser um ficheiro PDF.");
+
+        var stored = await storage.SaveAsync(request.Version, request.Content, request.FileName, cancellationToken);
+        return stored.StorageRelativePath;
+    }
+}
+
 public class CreateCustomerAcceptancePolicyCommandHandler(ICustomerAcceptancePolicyRepository repo)
     : IRequestHandler<CreateCustomerAcceptancePolicyCommand, Guid>
 {

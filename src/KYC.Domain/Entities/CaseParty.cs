@@ -25,6 +25,7 @@ public class CaseParty
     public IdentityVerificationMethod VerificationMethod { get; private set; } = IdentityVerificationMethod.NotYetVerified;
     public DateTime? VerifiedAt { get; private set; }
     public string? VerificationSessionId { get; private set; }
+    public string? VerificationUrl { get; private set; }
     public IdentityVerificationStatus VerificationStatus { get; private set; } = IdentityVerificationStatus.Pending;
     public DateTime? RcbeVerifiedAt { get; private set; }
     public bool RcbeDiscrepancyDetected { get; private set; }
@@ -75,10 +76,11 @@ public class CaseParty
 
     public void SetPartyScore(RiskScore? score) => PartyScore = score;
 
-    public void StartVerification(IdentityVerificationMethod method, string sessionId)
+    public void StartVerification(IdentityVerificationMethod method, string sessionId, string? verificationUrl = null)
     {
         VerificationMethod = method;
         VerificationSessionId = sessionId;
+        VerificationUrl = verificationUrl;
         VerificationStatus = IdentityVerificationStatus.Pending;
     }
 

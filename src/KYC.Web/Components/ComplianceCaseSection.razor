@@ -106,7 +106,17 @@
                 <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                     <div>
                         <strong>@p.Name</strong> <span class="text-muted small">(@p.Role)</span>
-                        <div><span class="badge @VerificationBadge(p.VerificationStatus)">@p.VerificationStatus</span></div>
+                        <div>
+                            <span class="badge @VerificationBadge(p.VerificationStatus)">@p.VerificationStatus</span>
+                            @if (!string.IsNullOrWhiteSpace(p.VerificationSessionId))
+                            {
+                                <span class="text-muted small ms-1">Sessão: @p.VerificationSessionId</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(p.VerificationUrl) && p.VerificationStatus == IdentityVerificationStatus.Pending)
+                        {
+                            <a class="small" href="@p.VerificationUrl" target="_blank" rel="noopener noreferrer">Abrir verificação</a>
+                        }
                     </div>
                     <div class="d-flex gap-1 flex-wrap">
                         @if (p.VerificationStatus != IdentityVerificationStatus.Verified)
@@ -249,6 +259,7 @@
     {
         "SarSubmitted" => "SAR submetido",
         "SarUrgentSubmitted" => "SAR urgente",
+        "SarQueued" => "SAR em fila",
         "SarNotRequired" => "SAR não aplicável",
         "SarSuggested" => "SAR sugerido",
         _ => action
@@ -305,9 +316,12 @@
         }
         else
         {
-            await Mediator.Send(new InitiateEntityVerificationCommand(
+            var session = await Mediator.Send(new InitiateEntityVerificationCommand(
                 CaseId, _verificationPartyId.Value, _verificationMethod, "dev-user"));
-            Toast.Show("Sessão de verificação iniciada.", ToastLevel.Success);
+            if (!string.IsNullOrWhiteSpace(session.VerificationUrl))
+                Toast.Show("Sessão iniciada — use o link «Abrir verificação» na lista.", ToastLevel.Success);
+            else
+                Toast.Show("Sessão de verificação iniciada.", ToastLevel.Success);
         }
         CloseVerificationModal();
         await OnChanged.InvokeAsync();
@@ -333,7 +347,10 @@
         var result = await Mediator.Send(new SubmitSarCommand(CaseId, _sarNarrative, "dev-user", _sarUrgent));
         if (result.IsSuccess)
         {
-            Toast.Show($"SAR submetido: {result.ReferenceNumber}", ToastLevel.Success);
+            var msg = result.IsQueued
+                ? $"SAR enfileirado (processamento assíncrono): {result.ReferenceNumber}"
+                : $"SAR submetido à UIF: {result.ReferenceNumber}";
+            Toast.Show(msg, ToastLevel.Success);
             _showSar = false;
             await OnChanged.InvokeAsync();
         }

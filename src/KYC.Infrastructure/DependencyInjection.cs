@@ -82,10 +82,19 @@ public static class DependencyInjection
             if (configuration.GetValue("Compliance:EnablePeriodicReviewScheduler", true))
                 services.AddHostedService<PeriodicReviewSchedulerJob>();
             if (configuration.GetValue("IdentityVerification:EnablePolling", true))
+            {
+                services.AddScoped<IdentityVerificationPollingService>();
                 services.AddHostedService<IdentityVerificationPollingHostedService>();
+            }
         }
 
+        services.AddSingleton<SarSubmissionQueue>();
+        services.AddSingleton<ISarSubmissionQueue>(sp => sp.GetRequiredService<SarSubmissionQueue>());
+        if (!disableBackground)
+            services.AddHostedService<SarSubmissionHostedService>();
+
         services.AddSingleton<ICaseDocumentStorage, LocalCaseDocumentStorage>();
+        services.AddSingleton<IDpiaDocumentStorage, LocalDpiaDocumentStorage>();
         services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
         services.AddSingleton<DocumentIngestionQueue>();
         services.AddSingleton<IDocumentIngestionQueue>(sp => sp.GetRequiredService<DocumentIngestionQueue>());

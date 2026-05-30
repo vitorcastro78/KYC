@@ -16,6 +16,8 @@ public record CasePartyDto(
     bool IsOffshore,
     IdentityVerificationStatus VerificationStatus = IdentityVerificationStatus.Pending,
     IdentityVerificationMethod VerificationMethod = IdentityVerificationMethod.NotYetVerified,
+    string? VerificationSessionId = null,
+    string? VerificationUrl = null,
     bool RcbeDiscrepancyDetected = false,
     bool RcbeDiscrepancyReported = false);
 

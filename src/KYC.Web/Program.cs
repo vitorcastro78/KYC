@@ -101,6 +101,11 @@ else
     });
 }
 
+if (useEntra)
+    builder.Services.AddSingleton<ISupervisorUserDirectory, ConfigSupervisorUserDirectory>();
+else
+    builder.Services.AddScoped<ISupervisorUserDirectory, IdentitySupervisorUserDirectory>();
+
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()

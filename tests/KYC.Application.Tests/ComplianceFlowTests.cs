@@ -57,8 +57,11 @@ public class ComplianceFlowTests
         var repo = new Mock<IKycCaseRepository>();
         repo.Setup(r => r.GetByIdAsync(kyc.Id, It.IsAny<CancellationToken>())).ReturnsAsync(kyc);
 
-        var mediator = new Mock<IMediator>();
-        var handler = new SubmitSarCommandHandler(repo.Object, new Mock<IUifReportingService>().Object, mediator.Object);
+        var processor = new SarSubmissionProcessor(
+            repo.Object,
+            new Mock<IUifReportingService>().Object,
+            new Mock<IMediator>().Object);
+        var handler = new SubmitSarCommandHandler(processor, new Mock<ISarSubmissionQueue>().Object);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(
                 new SubmitSarCommand(kyc.Id, new string('n', 200), "analyst1", false),
@@ -85,14 +88,45 @@ public class ComplianceFlowTests
         var mediator = new Mock<IMediator>();
         mediator.Setup(m => m.Publish(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        var handler = new SubmitSarCommandHandler(repo.Object, uif.Object, mediator.Object);
+        var processor = new SarSubmissionProcessor(repo.Object, uif.Object, mediator.Object);
+        var handler = new SubmitSarCommandHandler(processor, new Mock<ISarSubmissionQueue>().Object);
         var narrative = new string('x', 200);
         var result = await handler.Handle(
-            new SubmitSarCommand(kyc.Id, narrative, "analyst1", false), CancellationToken.None);
+            new SubmitSarCommand(kyc.Id, narrative, "analyst1", IsUrgent: true), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
+        Assert.False(result.IsQueued);
         Assert.Equal(SarStatus.Submitted, kyc.SarStatus);
         Assert.Equal("UIF-2026-001", kyc.SarReferenceNumber);
+    }
+
+    [Fact]
+    public async Task Submit_sar_non_urgent_enqueues_and_sets_pending()
+    {
+        var kyc = KycCase.Start("123456789", "Acme", "u1", CreditAmount.Eur(50000));
+        kyc.SetScore(new RiskScore { Overall = 75, Justification = "Alto" });
+
+        var repo = new Mock<IKycCaseRepository>();
+        repo.Setup(r => r.GetByIdAsync(kyc.Id, It.IsAny<CancellationToken>())).ReturnsAsync(kyc);
+        repo.Setup(r => r.UpdateAsync(kyc, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var queue = new Mock<ISarSubmissionQueue>();
+        queue.Setup(q => q.EnqueueAsync(It.IsAny<SarSubmissionWork>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        var processor = new SarSubmissionProcessor(
+            repo.Object,
+            new Mock<IUifReportingService>().Object,
+            new Mock<IMediator>().Object);
+        var handler = new SubmitSarCommandHandler(processor, queue.Object);
+        var narrative = new string('x', 200);
+        var result = await handler.Handle(
+            new SubmitSarCommand(kyc.Id, narrative, "analyst1", IsUrgent: false), CancellationToken.None);
+
+        Assert.True(result.IsQueued);
+        Assert.Equal(SarStatus.Pending, kyc.SarStatus);
+        Assert.StartsWith("SAR-QUEUE-", kyc.SarReferenceNumber);
+        queue.Verify(q => q.EnqueueAsync(It.IsAny<SarSubmissionWork>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

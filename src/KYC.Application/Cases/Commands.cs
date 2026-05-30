@@ -84,4 +84,6 @@ public record CreateScoringEngineConfigCommand(
 
 public record CreateDpiaRecordCommand(string Version, string DocumentPath, string ApprovedBy) : IRequest<Guid>;
 
+public record UploadDpiaDocumentCommand(string Version, Stream Content, string FileName) : IRequest<string>;
+
 public record CreateCustomerAcceptancePolicyCommand(string Version, string ApprovedBy) : IRequest<Guid>;

@@ -20,6 +20,11 @@ public record SuspiciousActivityReport(
     string SubmittedByAnalystName,
     DateTime DetectedAt);
 
-public record UifSubmissionResult(bool IsSuccess, string? ReferenceNumber, string? ErrorMessage, DateTime SubmittedAt);
+public record UifSubmissionResult(
+    bool IsSuccess,
+    string? ReferenceNumber,
+    string? ErrorMessage,
+    DateTime SubmittedAt,
+    bool IsQueued = false);
 
 public record UifSubmissionStatus(string ReferenceNumber, string Status, DateTime? LastUpdated);

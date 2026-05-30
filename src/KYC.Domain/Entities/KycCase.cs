@@ -108,6 +108,13 @@ public class KycCase
         FundsOriginDocumentId = documentId;
     }
 
+    public void RecordSarQueued(string queueReference, string analystId)
+    {
+        SarStatus = SarStatus.Pending;
+        SarReferenceNumber = queueReference;
+        AppendAudit(AuditEntry.Create(Id, "SarQueued", analystId, "User", queueReference));
+    }
+
     public void RecordSarSubmitted(string referenceNumber, string analystId)
     {
         SarStatus = SarStatus.Submitted;
