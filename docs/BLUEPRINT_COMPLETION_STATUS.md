@@ -55,7 +55,7 @@
 |------|--------|-------|
 | Dashboard SignalR | ✅ | |
 | CaseDetail scan progress | ✅ | |
-| UBO graph UI | 🟡 | Dados existem; visualização pode ser melhorada |
+| UBO graph UI | ✅ | `UboGraphView`, layout hierárquico, embed CaseDetail |
 | Aprovação 4-eyes EDD | ✅ | `SecondApproverId` |
 | Export PDF relatório | ✅ | Puppeteer |
 | Audit log Admin | ✅ | `AuditLog.razor` |
