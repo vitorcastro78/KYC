@@ -40,4 +40,22 @@
 
 ## Evidências
 
-Anexar ao dossier: prints UI, export XML RPB, entradas `AuditTrail` (SAR, IdentityVerified, RcbeDiscrepancyReported).
+Anexar ao dossier (`docs/dossier/`): prints UI, export XML RPB, entradas `AuditTrail` (SAR, IdentityVerified, RcbeDiscrepancyReported).
+
+## Registo de execução (preencher em homologação)
+
+| # | Cenário | Data | Executor | Resultado | Evidência (ficheiro) |
+|---|---------|------|----------|-----------|----------------------|
+| 1 | PAC arranque | | | ☐ OK ☐ Falha | `docs/dossier/01-pac/` |
+| 2 | Identidade + webhook | | | ☐ OK ☐ Falha | `docs/dossier/06-identidade/` |
+| 3 | SAR | | | ☐ OK ☐ Falha | `docs/dossier/05-sar-uif/` |
+| 4 | EDD 4-eyes | | | ☐ OK ☐ Falha | |
+| 5 | RPB Admin | | | ☐ OK ☐ Falha | `docs/dossier/04-rpb/` |
+
+## Testes automatizados (pré-requisito)
+
+```bash
+dotnet test
+```
+
+Cobertura compliance relevante: `ComplianceHandlersIntegrationTests`, `ComplianceFlowTests`, `SarEligibilityTests`, `IdentityWebhookHttpTests`.

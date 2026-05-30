@@ -31,29 +31,10 @@ public sealed class AmlComplianceReportService(
             .ToListAsync(ct);
 
         var scoring = await scoringRepo.GetActiveAsync(ct);
+        var reviewsCompleted = await db.AuditEntries.CountAsync(
+            a => a.Action == "PeriodicReviewCompleted" && a.Timestamp >= start && a.Timestamp < end, ct);
         var report = AmlComplianceReport.CreateDraft(year, requestedBy);
-        report.PopulateMetrics(
-            totalCases: cases.Count,
-            approved: cases.Count(c => c.Status == KycStatus.Approved),
-            rejected: cases.Count(c => c.Status == KycStatus.Rejected),
-            underReview: cases.Count(c => c.Status == KycStatus.UnderReview),
-            low: cases.Count(c => c.Score?.Level == RiskLevel.Low),
-            medium: cases.Count(c => c.Score?.Level == RiskLevel.Medium),
-            high: cases.Count(c => c.Score?.Level == RiskLevel.High),
-            critical: cases.Count(c => c.Score?.Level == RiskLevel.Critical),
-            signals: cases.Sum(c => c.RiskSignals.Count),
-            sanctions: cases.Sum(c => c.RiskSignals.Count(s => s.Type == SignalType.Sanction)),
-            peps: cases.Count(c => c.Parties.Any(p => p.IsPep)),
-            sars: cases.Count(c => c.SarStatus == SarStatus.Submitted),
-            freezes: cases.Count(c => c.AssetFreezeNotified),
-            simplified: cases.Count(c => c.DueDiligenceLevel == DueDiligenceLevel.Simplified),
-            standard: cases.Count(c => c.DueDiligenceLevel == DueDiligenceLevel.Standard),
-            enhanced: cases.Count(c => c.DueDiligenceLevel == DueDiligenceLevel.Enhanced),
-            reviewsCompleted: await db.AuditEntries.CountAsync(
-                a => a.Action == "PeriodicReviewCompleted" && a.Timestamp >= start && a.Timestamp < end, ct),
-            reviewsOverdue: cases.Count(c => c.NextReviewDue < DateTime.UtcNow && c.Status == KycStatus.Approved),
-            platformVersion: "1.0.0",
-            aiModelsJson: BuildOllamaOnlyModelsJson(scoring));
+        AmlComplianceMetricsBuilder.Apply(report, cases, reviewsCompleted, scoring);
 
         await reportRepo.AddAsync(report, ct);
         log.LogInformation("RPB {Year} generated with {Count} cases.", year, cases.Count);

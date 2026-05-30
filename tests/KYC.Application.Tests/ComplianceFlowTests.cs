@@ -48,6 +48,22 @@ public class ComplianceFlowTests
     }
 
     [Fact]
+    public async Task Submit_sar_rejects_low_risk_without_eligibility()
+    {
+        var kyc = KycCase.Start("123456789", "Acme", "u1", CreditAmount.Eur(1000));
+        kyc.SetScore(new RiskScore { Overall = 20, Justification = "Baixo" });
+
+        var repo = new Mock<IKycCaseRepository>();
+        repo.Setup(r => r.GetByIdAsync(kyc.Id, It.IsAny<CancellationToken>())).ReturnsAsync(kyc);
+
+        var handler = new SubmitSarCommandHandler(repo.Object, new Mock<IUifReportingService>().Object);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(
+                new SubmitSarCommand(kyc.Id, new string('n', 200), "analyst1", false),
+                CancellationToken.None));
+    }
+
+    [Fact]
     public async Task Submit_sar_records_reference_on_success()
     {
         var kyc = KycCase.Start("123456789", "Acme", "u1", CreditAmount.Eur(50000));

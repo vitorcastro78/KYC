@@ -1,5 +1,7 @@
 using System.Text.Json;
 using KYC.Domain.Entities;
+using KYC.Domain.Enums;
+using KYC.Domain.ValueObjects;
 using KYC.Infrastructure.Compliance;
 
 namespace KYC.Application.Tests;
@@ -7,35 +9,22 @@ namespace KYC.Application.Tests;
 public class AmlComplianceReportTests
 {
     [Fact]
-    public void PopulateMetrics_reflects_aggregated_counts()
+    public void Metrics_builder_reflects_aggregated_counts()
     {
-        var report = AmlComplianceReport.CreateDraft(2025, "tester");
-        report.PopulateMetrics(
-            totalCases: 100,
-            approved: 60,
-            rejected: 10,
-            underReview: 30,
-            low: 40,
-            medium: 35,
-            high: 20,
-            critical: 5,
-            signals: 250,
-            sanctions: 3,
-            peps: 8,
-            sars: 2,
-            freezes: 1,
-            simplified: 20,
-            standard: 50,
-            enhanced: 30,
-            reviewsCompleted: 15,
-            reviewsOverdue: 4,
-            platformVersion: "1.0.0",
-            aiModelsJson: AmlComplianceReportService.BuildOllamaOnlyModelsJson(null));
+        var cases = new List<KycCase>();
+        for (var i = 0; i < 60; i++)
+        {
+            var k = KycCase.Start($"5000000{i:D2}", $"Co{i}", "u", CreditAmount.Eur(1000));
+            k.SetScore(new RiskScore { Overall = 25, Justification = "low" });
+            cases.Add(k);
+        }
 
-        Assert.Equal(100, report.TotalCasesProcessed);
-        Assert.Equal(60, report.TotalCasesApproved);
-        Assert.Equal(250, report.TotalRiskSignalsDetected);
-        Assert.Equal(30, report.CasesEnhancedDd);
+        var report = AmlComplianceReport.CreateDraft(2025, "tester");
+        AmlComplianceMetricsBuilder.Apply(report, cases, reviewsCompleted: 15, scoring: null);
+
+        Assert.Equal(60, report.TotalCasesProcessed);
+        Assert.Equal(60, report.CasesLowRisk);
+        Assert.Equal(15, report.PeriodicReviewsCompleted);
     }
 
     [Fact]
