@@ -126,3 +126,20 @@ public class GetCriticalAlertsQueryHandler(IKycAnalyticsRepository analytics)
     public Task<IReadOnlyList<CriticalAlertDto>> Handle(GetCriticalAlertsQuery request, CancellationToken cancellationToken) =>
         analytics.GetCriticalAlertsLast24hAsync(cancellationToken);
 }
+
+public class ListAmlComplianceReportsQueryHandler(IAmlComplianceReportRepository reports)
+    : IRequestHandler<ListAmlComplianceReportsQuery, IReadOnlyList<AmlComplianceReportListItemDto>>
+{
+    public async Task<IReadOnlyList<AmlComplianceReportListItemDto>> Handle(
+        ListAmlComplianceReportsQuery request,
+        CancellationToken cancellationToken)
+    {
+        var list = await reports.ListAsync(cancellationToken);
+        return list.Select(r => new AmlComplianceReportListItemDto(
+            r.Id,
+            r.ReportingYear,
+            r.Status,
+            r.GeneratedAt,
+            r.BdpReferenceNumber)).ToList();
+    }
+}

@@ -55,4 +55,9 @@ public record KycCaseDetailDto(
     DateTime? NextReviewDue = null,
     string? FundsOriginDescription = null,
     bool SuggestSar = false,
-    string? CanApproveMessage = null);
+    string? CanApproveMessage = null,
+    RelationshipType RelationshipType = RelationshipType.Ongoing,
+    string? LegalBasisRef = null,
+    bool AssetFreezeNotified = false,
+    DateTime? AssetFreezeNotifiedAt = null,
+    string? AssetFreezeConfirmationRef = null);

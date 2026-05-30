@@ -51,4 +51,26 @@ public class CustomerAcceptancePolicy
     }
 
     public void Deactivate() => IsActive = false;
+
+    public static CustomerAcceptancePolicy CreateSuccessor(string version, string approvedBy, CustomerAcceptancePolicy source) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            Version = version,
+            EffectiveFrom = DateTime.UtcNow,
+            ApprovedBy = approvedBy,
+            IsActive = true,
+            OccasionalThreshold = source.OccasionalThreshold,
+            EnhancedDdThreshold = source.EnhancedDdThreshold,
+            HighRiskJurisdictionsJson = source.HighRiskJurisdictionsJson,
+            ProhibitedJurisdictionsJson = source.ProhibitedJurisdictionsJson,
+            ProhibitedCaeActivitiesJson = source.ProhibitedCaeActivitiesJson,
+            BlockShellCompanies = source.BlockShellCompanies,
+            BlockOffshoreAboveThreshold = source.BlockOffshoreAboveThreshold,
+            OffshoreBlockThreshold = source.OffshoreBlockThreshold,
+            ReviewDaysLowRisk = source.ReviewDaysLowRisk,
+            ReviewDaysMediumRisk = source.ReviewDaysMediumRisk,
+            ReviewDaysHighRisk = source.ReviewDaysHighRisk,
+            ReviewDaysCriticalRisk = source.ReviewDaysCriticalRisk
+        };
 }

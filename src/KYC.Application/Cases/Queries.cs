@@ -20,3 +20,5 @@ public record GetKycCaseScanProgressQuery(Guid CaseId) : IRequest<KycCaseScanPro
 public record GetDashboardSummaryQuery : IRequest<DashboardSummaryDto>;
 
 public record GetCriticalAlertsQuery : IRequest<IReadOnlyList<CriticalAlertDto>>;
+
+public record ListAmlComplianceReportsQuery : IRequest<IReadOnlyList<AmlComplianceReportListItemDto>>;

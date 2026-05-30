@@ -161,6 +161,8 @@ public sealed class KycStructuredReportComposer : IKycReportComposer
         body.AppendLine("<li><strong>Retenção:</strong> 7 anos após encerramento do relacionamento (conforme política interna).</li>");
         body.AppendLine("<li><strong>Direitos do titular:</strong> acesso, rectificação, oposição limitada — contacto DPO da instituição.</li>");
         body.AppendLine("</ul>");
+        body.AppendLine("<h3>Limitações do modelo de IA</h3>");
+        body.AppendLine("<p>Scoring e narrativa assistidos por LLM local (Ollama). Não substituem diligência humana. Dimensões não avaliadas automaticamente: intenção criminal, contexto sectorial completo, fontes não indexadas, alterações posteriores ao relatório.</p>");
         if (!string.IsNullOrWhiteSpace(request.LegalBasisRef))
             body.AppendLine($"<p><strong>Referência PAC/base legal:</strong> {Enc(request.LegalBasisRef)}</p>");
     }

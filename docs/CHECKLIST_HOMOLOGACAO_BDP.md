@@ -22,8 +22,8 @@
 
 ## RGPD
 - [x] DPIA activa registada (Admin criar versão)
-- [ ] Audit trail imutável (trigger PostgreSQL)
-- [ ] Auto-approve apenas Low risk
+- [ ] Audit trail imutável (trigger PostgreSQL) — script em `docs/sql/audit_trail_immutable.sql`
+- [x] Auto-approve apenas Low risk (score ≤30, sem High/Critical/sanções)
 - [x] Secção explainability no relatório (Art. 22)
 
 ## Operacional

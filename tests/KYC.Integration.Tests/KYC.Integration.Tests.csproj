@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\KYC.Application\KYC.Application.csproj" />
     <ProjectReference Include="..\..\src\KYC.Infrastructure\KYC.Infrastructure.csproj" />
   </ItemGroup>
 

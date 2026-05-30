@@ -20,6 +20,18 @@
             <label class="form-label">Montante solicitado (EUR)</label>
             <InputNumber class="form-control" @bind-Value="_model.Amount" />
         </div>
+        <div class="mb-3">
+            <label class="form-label">Tipo de relação</label>
+            <InputSelect class="form-select" @bind-Value="_model.RelationshipType">
+                <option value="@RelationshipType.Ongoing">Relação continuada</option>
+                <option value="@RelationshipType.Occasional">Transação ocasional</option>
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">CAE (opcional)</label>
+            <InputText class="form-control" @bind-Value="_model.CaeCode" placeholder="Ex.: 62010" maxlength="5" />
+            <div class="form-text">Validado contra a PAC activa (sectores proibidos são rejeitados).</div>
+        </div>
         <button class="btn btn-primary" type="submit" disabled="@_isProcessing">
             @if (_isProcessing)
             {
@@ -83,12 +95,25 @@
 
         try
         {
-            var id = await Mediator.Send(new StartKycCaseCommand(_model.Nif, "dev-user", CreditAmount.Eur(_model.Amount)));
+            var id = await Mediator.Send(new StartKycCaseCommand(
+                _model.Nif,
+                "dev-user",
+                CreditAmount.Eur(_model.Amount),
+                _model.RelationshipType,
+                string.IsNullOrWhiteSpace(_model.CaeCode) ? null : _model.CaeCode.Trim()));
             _pendingCaseId = id;
             _scan.ApplyNewCaseCreatedHint();
 
             await TryConnectHubAsync(id);
             StartPolling(id);
+        }
+        catch (PolicyViolationException pex)
+        {
+            _error = string.Join(" ", pex.Violations);
+            _isProcessing = false;
+            _pendingCaseId = null;
+            _scan.ResetAfterFailure();
+            StopPolling();
         }
         catch (Exception ex)
         {
@@ -284,5 +309,7 @@
     {
         public string Nif { get; set; } = "";
         public decimal Amount { get; set; } = 100000;
+        public RelationshipType RelationshipType { get; set; } = RelationshipType.Ongoing;
+        public string? CaeCode { get; set; }
     }
 }

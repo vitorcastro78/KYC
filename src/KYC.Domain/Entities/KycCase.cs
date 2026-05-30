@@ -280,11 +280,18 @@ public class KycCase
         Nif = "000000000";
     }
 
+    public bool CanAutoApproveLowRisk() =>
+        Score is { Level: RiskLevel.Low, Overall: <= 30 }
+        && !RiskSignals.Any(s => s.Severity >= SignalSeverity.High)
+        && !RiskSignals.Any(s => s.Type == SignalType.Sanction && s.IsConfirmed)
+        && !Parties.Any(p => p.IsSanctioned);
+
     public void AutoApproveLowRisk(string actorId)
     {
         EnsureStatus(KycStatus.InProgress);
-        if (Score?.Level > RiskLevel.Low)
-            throw new InvalidOperationException("Auto-approve apenas para risco Low.");
+        if (!CanAutoApproveLowRisk())
+            throw new InvalidOperationException(
+                "Auto-approve apenas para risco Low (score ≤30), sem sinais High/Critical nem sanções.");
 
         var check = CanApprove();
         if (!check.IsSuccess)

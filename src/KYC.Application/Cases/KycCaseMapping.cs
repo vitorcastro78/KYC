@@ -69,6 +69,11 @@ internal static class KycCaseMapping
 
         var suggestSar = new SarEligibilityEvaluator().ShouldSuggestSar(c);
         var canApprove = c.CanApprove();
+        var freezeRef = c.AuditTrail
+            .Where(a => a.Action == "AssetFreezeNotificationSent")
+            .OrderByDescending(a => a.Timestamp)
+            .Select(a => a.Details)
+            .FirstOrDefault();
 
         return new KycCaseDetailDto(
             c.Id,
@@ -93,7 +98,12 @@ internal static class KycCaseMapping
             c.NextReviewDue,
             c.FundsOriginDescription,
             suggestSar,
-            canApprove.IsSuccess ? null : canApprove.Error);
+            canApprove.IsSuccess ? null : canApprove.Error,
+            c.RelationshipType,
+            c.LegalBasisRef,
+            c.AssetFreezeNotified,
+            c.AssetFreezeNotifiedAt,
+            freezeRef);
     }
 
     public static CaseDocumentDto ToDocumentDto(CaseDocument d)

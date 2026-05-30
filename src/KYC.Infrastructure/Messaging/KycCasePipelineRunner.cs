@@ -144,7 +144,7 @@ public class KycCasePipelineRunner(
         var report = await llm.GenerateNarrativeReportAsync(ctx, score, composeRequest, ct);
         kyc.SetFinalReport(report);
 
-        if (score.Level == RiskLevel.Low && !kyc.RiskSignals.Any(x => x.Severity >= SignalSeverity.High))
+        if (kyc.CanAutoApproveLowRisk())
             kyc.AutoApproveLowRisk(actorId);
         else
             kyc.MarkHumanReviewAfterScan(actorId);

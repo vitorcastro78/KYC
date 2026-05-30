@@ -34,6 +34,28 @@
                 </div>
             </div>
 
+            <div class="row g-2 mb-3 small">
+                <div class="col-md-4">
+                    <span class="text-muted">Relação:</span> @RelationshipLabel(Case.RelationshipType)
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Case.LegalBasisRef))
+                {
+                    <div class="col-md-8"><span class="text-muted">Base legal:</span> @Case.LegalBasisRef</div>
+                }
+            </div>
+
+            @if (Case.AssetFreezeNotified)
+            {
+                <div class="alert alert-danger">
+                    <strong>Congelamento de ativos notificado</strong>
+                    @(Case.AssetFreezeNotifiedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "")
+                    @if (!string.IsNullOrWhiteSpace(Case.AssetFreezeConfirmationRef))
+                    {
+                        <span> — Ref: @Case.AssetFreezeConfirmationRef</span>
+                    }
+                </div>
+            }
+
             @if (Case.SuggestSar)
             {
                 <div class="alert alert-warning">
@@ -180,6 +202,12 @@
         if (Case?.SuggestSar == true && string.IsNullOrWhiteSpace(_sarNarrative))
             _sarNarrative = string.Join("\n", Case.Signals.Where(s => s.Severity >= SignalSeverity.High).Select(s => s.Description));
     }
+
+    private static string RelationshipLabel(RelationshipType t) => t switch
+    {
+        RelationshipType.Occasional => "Ocasional",
+        _ => "Continuada"
+    };
 
     private string SarBadgeClass => Case?.SarStatus switch
     {

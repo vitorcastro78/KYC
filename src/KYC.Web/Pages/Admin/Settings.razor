@@ -2,6 +2,8 @@
 @attribute [Authorize(Policy = "Admin")]
 @inject ICustomerAcceptancePolicyRepository PolicyRepo
 @inject IDpiaRecordRepository DpiaRepo
+@inject IMediator Mediator
+@inject ToastService Toast
 
 <PageTitle>Configurações</PageTitle>
 <h1>Configurações da plataforma</h1>
@@ -43,10 +45,20 @@
 @code {
     private KYC.Domain.Entities.CustomerAcceptancePolicy? _policy;
     private KYC.Domain.Entities.DpiaRecord? _dpia;
+    private string _newPacVersion = "1.1.0";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
     {
         _policy = await PolicyRepo.GetActiveAsync();
         _dpia = await DpiaRepo.GetActiveAsync();
+    }
+
+    private async Task CreatePacVersion()
+    {
+        await Mediator.Send(new CreateCustomerAcceptancePolicyCommand(_newPacVersion, "admin"));
+        Toast.Show($"PAC {_newPacVersion} activa.", ToastLevel.Success);
+        await ReloadAsync();
     }
 }

@@ -30,6 +30,23 @@ public class CreateDpiaRecordCommandHandler(IDpiaRecordRepository repo)
     }
 }
 
+public class CreateCustomerAcceptancePolicyCommandHandler(ICustomerAcceptancePolicyRepository repo)
+    : IRequestHandler<CreateCustomerAcceptancePolicyCommand, Guid>
+{
+    public async Task<Guid> Handle(CreateCustomerAcceptancePolicyCommand request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Version))
+            throw new ArgumentException("Versão da PAC é obrigatória.");
+
+        var current = await repo.GetActiveAsync(cancellationToken);
+        var source = current ?? CustomerAcceptancePolicy.CreateV1(request.ApprovedBy);
+        var policy = CustomerAcceptancePolicy.CreateSuccessor(request.Version, request.ApprovedBy, source);
+
+        await repo.AddAsync(policy, cancellationToken);
+        return policy.Id;
+    }
+}
+
 public class SubmitAmlReportToBdpCommandHandler(IAmlComplianceReportService service)
     : IRequestHandler<SubmitAmlReportToBdpCommand, string>
 {
