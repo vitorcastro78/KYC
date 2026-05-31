@@ -2,6 +2,14 @@
 
 > **Índice mestre** para gerar documentação da aplicação, catálogo de funcionalidades e materiais de homologação BdP.
 
+## Requisitos institucionais (homologação BdP / COMEX)
+
+| Documento | Conteúdo |
+|-----------|----------|
+| [**MATRIZ_REQUISITOS_INSTITUCIONAIS.md**](MATRIZ_REQUISITOS_INSTITUCIONAIS.md) | Checklist §2.1–2.6 com estado ✅/🟡/🔴 e evidências |
+| [governanca/](governanca/) | Políticas PSI, criptografia, PCN, PRD, riscos, liveness, retenção |
+| [api/README.md](api/README.md) | Swagger OpenAPI |
+
 ## Documentos unificados (usar para documentação oficial)
 
 | Documento | Conteúdo |

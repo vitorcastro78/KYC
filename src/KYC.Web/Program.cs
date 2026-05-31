@@ -8,6 +8,7 @@ using KYC.Infrastructure;
 using MediatR;
 using KYC.Web.Endpoints;
 using KYC.Web.Hubs;
+using KYC.Web.OpenApi;
 using KYC.Web.Security;
 using KYC.Web.Services;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -134,6 +135,7 @@ builder.Services.AddSignalR();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ApplicationUser>>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddKycOpenApiDocumentation();
 
 var app = builder.Build();
 var hasHttpsEndpointConfigured =
@@ -173,6 +175,27 @@ app.MapFallbackToPage("/_Host");
 app.MapHealthChecks("/health");
 
 app.MapIdentityWebhookEndpoints();
+
+app.MapGet("/api/admin/compliance/metrics", async (IComplianceMetricsService metrics, CancellationToken ct) =>
+{
+    var bundle = await metrics.GetMetricsAsync(ct);
+    return Results.Ok(bundle);
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Admin", "KYC.Auditor"))
+.WithName("GetComplianceMetrics")
+.WithTags("Compliance", "Admin")
+.WithSummary("Métricas de triagem (FP/FN) e biometria (FRR, liveness)")
+.Produces(StatusCodes.Status200OK);
+
+app.MapGet("/api/openapi/info", () => Results.Ok(new
+{
+    title = "KYC AI Platform API",
+    version = "v1",
+    swagger = "/swagger",
+    spec = "/swagger/v1/swagger.json",
+    health = "/health"
+})).AllowAnonymous()
+.WithName("OpenApiInfo")
+.WithTags("Meta");
 
 app.MapGet("/api/admin/aml-reports/{reportId:guid}/export", async (
     Guid reportId,

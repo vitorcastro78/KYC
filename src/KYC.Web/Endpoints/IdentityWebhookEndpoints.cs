@@ -46,7 +46,8 @@ public static class IdentityWebhookEndpoints
                 payload.SessionId,
                 payload.Verified,
                 payload.FailureReason,
-                payload.EidasLevel), ct);
+                payload.EidasLevel,
+                payload.LivenessScore), ct);
 
             return Results.Ok();
         }).AllowAnonymous();
@@ -60,4 +61,5 @@ public sealed record IdentityWebhookPayload(
     string SessionId,
     bool Verified,
     string? FailureReason,
-    string? EidasLevel);
+    string? EidasLevel,
+    string? LivenessScore = null);

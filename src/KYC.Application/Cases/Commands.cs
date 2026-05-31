@@ -57,7 +57,8 @@ public record RecordVerificationResultCommand(
     string SessionId,
     bool IsVerified,
     string? FailureReason,
-    string? EidasLevel) : IRequest<Unit>;
+    string? EidasLevel,
+    string? LivenessScore = null) : IRequest<Unit>;
 
 public record ReportRcbeDiscrepancyCommand(Guid CaseId, Guid PartyId, string AnalystId) : IRequest<Unit>;
 

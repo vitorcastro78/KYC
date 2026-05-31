@@ -39,7 +39,8 @@ public sealed class IdentityVerificationPollingService(
                 row.VerificationSessionId,
                 result.IsVerified,
                 result.FailureReason,
-                result.EidasLevel), ct);
+                result.EidasLevel,
+                result.LivenessScore), ct);
             processed++;
         }
 

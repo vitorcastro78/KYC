@@ -147,13 +147,19 @@ public class RecordVerificationResultCommandHandler(
         var kyc = match.Value.Case;
         var party = match.Value.Party;
         var method = party.VerificationMethod;
-        party.RecordVerificationResult(request.IsVerified, method);
+        party.RecordVerificationResult(request.IsVerified, method, request.LivenessScore, request.EidasLevel);
+        var auditDetail = string.Join(" | ", new[]
+        {
+            request.FailureReason,
+            request.EidasLevel is not null ? $"eIDAS:{request.EidasLevel}" : null,
+            request.LivenessScore is not null ? $"liveness:{request.LivenessScore}" : null
+        }.Where(x => !string.IsNullOrWhiteSpace(x)));
         kyc.AppendAudit(AuditEntry.Create(
             kyc.Id,
             request.IsVerified ? "IdentityVerified" : "IdentityVerificationFailed",
             "System",
             "Agent",
-            request.FailureReason ?? request.EidasLevel));
+            string.IsNullOrWhiteSpace(auditDetail) ? null : auditDetail));
         await repository.UpdateAsync(kyc, cancellationToken);
 
         if (request.IsVerified)

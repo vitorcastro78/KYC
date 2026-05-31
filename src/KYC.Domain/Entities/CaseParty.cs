@@ -27,6 +27,10 @@ public class CaseParty
     public string? VerificationSessionId { get; private set; }
     public string? VerificationUrl { get; private set; }
     public IdentityVerificationStatus VerificationStatus { get; private set; } = IdentityVerificationStatus.Pending;
+    /// <summary>Score de liveness do prestador (ISO/IEC 30107-3 — prova de vida).</summary>
+    public string? LivenessScore { get; private set; }
+    /// <summary>Nível eIDAS reportado (Substantial, High, etc.).</summary>
+    public string? EidasLevel { get; private set; }
     public DateTime? RcbeVerifiedAt { get; private set; }
     public bool RcbeDiscrepancyDetected { get; private set; }
     public bool RcbeDiscrepancyReported { get; private set; }
@@ -84,11 +88,19 @@ public class CaseParty
         VerificationStatus = IdentityVerificationStatus.Pending;
     }
 
-    public void RecordVerificationResult(bool verified, IdentityVerificationMethod method)
+    public void RecordVerificationResult(
+        bool verified,
+        IdentityVerificationMethod method,
+        string? livenessScore = null,
+        string? eidasLevel = null)
     {
         VerificationMethod = method;
         VerificationStatus = verified ? IdentityVerificationStatus.Verified : IdentityVerificationStatus.Failed;
         VerifiedAt = verified ? DateTime.UtcNow : null;
+        if (!string.IsNullOrWhiteSpace(livenessScore))
+            LivenessScore = livenessScore;
+        if (!string.IsNullOrWhiteSpace(eidasLevel))
+            EidasLevel = eidasLevel;
     }
 
     public void RecordPresentialVerification(string documentReference)

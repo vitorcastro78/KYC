@@ -1,7 +1,8 @@
 # Checklist — Pen test básico (homologação KYC)
 
 > Ferramenta sugerida: OWASP ZAP baseline scan ou revisão manual equivalente.  
-> Ambiente: **homologação** (nunca produção sem autorização).
+> Ambiente: **homologação** (nunca produção sem autorização).  
+> **Relatório formal:** preencher [governanca/RELATORIO_PEN_TEST_MODELO.md](governanca/RELATORIO_PEN_TEST_MODELO.md) e arquivar em `docs/dossier/10-seguranca/`.
 
 ## 1. Autenticação e autorização
 

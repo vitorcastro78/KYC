@@ -17,6 +17,8 @@ public class CasePartyConfiguration : IEntityTypeConfiguration<CaseParty>
         builder.Property(x => x.OffshoreJurisdiction).HasMaxLength(128);
         builder.Property(x => x.VerificationSessionId).HasMaxLength(256);
         builder.Property(x => x.VerificationUrl).HasMaxLength(2048);
+        builder.Property(x => x.LivenessScore).HasMaxLength(32);
+        builder.Property(x => x.EidasLevel).HasMaxLength(32);
         builder.Property(x => x.DataCollectionBasis).HasMaxLength(64).IsRequired();
 
         builder.OwnsOne(x => x.PartyScore, owned =>

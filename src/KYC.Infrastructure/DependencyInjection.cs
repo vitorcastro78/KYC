@@ -73,6 +73,8 @@ public static class DependencyInjection
         services.AddScoped<IIdentityVerificationService, DigitalSignIdentityVerificationService>();
         services.AddScoped<IUifReportingService, UifReportingService>();
         services.AddScoped<IAssetFreezeNotificationService, AssetFreezeNotificationService>();
+        services.AddScoped<IComplianceMetricsService, ComplianceMetricsService>();
+        services.Configure<DataRetentionOptions>(configuration.GetSection(DataRetentionOptions.SectionName));
 
         services.AddKycHealthChecks(configuration);
         var disableBackground = configuration.GetValue("Testing:DisableBackgroundServices", false);
@@ -214,8 +216,7 @@ public static class DependencyInjection
         services.AddHttpClient("icij", c => c.Timeout = TimeSpan.FromSeconds(45))
             .AddPolicyHandler(GetRetryPolicy());
 
-        if (configuration.GetValue("DataRetention:EnableHostedService", false))
-            services.AddHostedService<DataRetentionHostedService>();
+        services.AddHostedService<DataRetentionHostedService>();
 
         return services;
     }
