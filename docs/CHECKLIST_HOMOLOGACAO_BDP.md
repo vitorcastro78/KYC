@@ -34,7 +34,8 @@
 ## Execução homologação (evidências)
 
 - [x] E2E cenários 1–10 executados (testes auto + UI 2–5) — ver [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md) §Registo (2026-05-31)
-- [x] Dossier preenchido em `docs/dossier/` (parcial: falta `01-pac/` prints, `10-seguranca/`)
+- [x] Dossier preenchido em `docs/dossier/` (parcial: falta `10-seguranca/` pen test)
+- [x] Prints PAC em `docs/dossier/01-pac/` — [REGISTO_UI_PAC_20260531-181205.md](dossier/09-e2e/REGISTO_UI_PAC_20260531-181205.md)
 - [ ] Pen test — [SECURITY_PEN_TEST_CHECKLIST.md](SECURITY_PEN_TEST_CHECKLIST.md)
 
 _Data homologação:_ 2026-05-31 _Responsável:_ homologação técnica (auto + Playwright UI)

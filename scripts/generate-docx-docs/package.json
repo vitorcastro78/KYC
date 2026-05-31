@@ -1,0 +1,11 @@
+{
+  "name": "kyc-docx-generator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.5.0"
+  }
+}

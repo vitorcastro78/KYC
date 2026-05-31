@@ -57,7 +57,9 @@
         </div>
         <div class="mb-3">
             <label class="form-label">CAE (opcional)</label>
-            <InputText class="form-control" @bind-Value="_model.CaeCode" placeholder="Ex.: 62010" maxlength="5" />
+            <input type="text" class="form-control" maxlength="5" placeholder="Ex.: 62010"
+                   value="@_model.CaeCode"
+                   @onchange="@(e => _model.CaeCode = e.Value?.ToString())" />
             <div class="form-text">Validado contra a PAC activa (sectores proibidos são rejeitados).</div>
         </div>
         <button class="btn btn-primary" type="submit" disabled="@_isProcessing">
@@ -142,6 +144,14 @@
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
         }
+        catch (Exception)
+        {
+            await InvokeAsync(() =>
+            {
+                _resolutionPreview = null;
+                StateHasChanged();
+            });
+        }
     }
 
     private async Task Submit()
@@ -171,6 +181,14 @@
             StartPolling(id);
         }
         catch (PolicyViolationException pex)
+        {
+            _error = string.Join(" ", pex.Violations);
+            _isProcessing = false;
+            _pendingCaseId = null;
+            _scan.ResetAfterFailure();
+            StopPolling();
+        }
+        catch (Exception ex) when (ex.InnerException is PolicyViolationException pex)
         {
             _error = string.Join(" ", pex.Violations);
             _isProcessing = false;

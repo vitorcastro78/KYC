@@ -56,4 +56,18 @@
 
 ---
 
-**Como gerar documentação externa (Word/PDF/Confluence):** exportar `DOCUMENTACAO_APLICACAO.md` + `CATALOGO_FUNCIONALIDADES.md` como base; anexar `OPERACOES_E_HOMOLOGACAO.md` para anexos operacionais.
+## Documentação oficial (.docx)
+
+| Pasta | Conteúdo |
+|-------|----------|
+| [**docx/**](docx/) | **9 documentos Word** gerados a partir desta pasta (aplicação, catálogo, operações, matriz, testes E2E, checklist, manual, dossier evidências, governança) |
+
+Regenerar:
+
+```powershell
+cd scripts/generate-docx-docs
+npm install
+npm run generate
+```
+
+**Como gerar documentação externa (Word/PDF/Confluence):** usar `docs/docx/*.docx` ou exportar `DOCUMENTACAO_APLICACAO.md` + `CATALOGO_FUNCIONALIDADES.md` como base; anexar `OPERACOES_E_HOMOLOGACAO.md` para anexos operacionais.
