@@ -55,6 +55,7 @@
 | 5.2 | Integração listas sanções e PEP | ✅ | OFAC/EU workers, pipeline, UI sinais |
 | 5.3 | Prova de vida (Liveness) ISO/IEC 30107-3 | 🟡 | Prestador + `LivenessScore` em `CaseParty`; [governanca/LIVENESS_ISO_30107.md](governanca/LIVENESS_ISO_30107.md) — **certificado prestador** |
 | 5.4 | Relatório FAR/FRR biométrico | 🟡 | API métricas + [governanca/METRICAS_BIOMETRIA_FAR_FRR.md](governanca/METRICAS_BIOMETRIA_FAR_FRR.md); FAR=0 até lab prestador |
+| 5.5 | Contingência manual (APIs indisponíveis) | ✅ | Congelamento BdP, SAR UIF, identidade, sinais, denominação no arranque — [MANUAL_UTILIZADOR_TROUBLESHOOTING.md](MANUAL_UTILIZADOR_TROUBLESHOOTING.md) §2 |
 
 ---
 

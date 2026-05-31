@@ -168,15 +168,26 @@ Push/PR para `main`, `develop` ou `feature/*` → `.github/workflows/ci.yml` (Po
 2. Export `?format=bdp` → XML
 3. Submeter → referência BdP
 
+### Cenários 6–10 — Contingência manual (APIs indisponíveis)
+
+Detalhe passo-a-passo em **[E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)**:
+
+| # | Tema |
+|---|------|
+| 6 | Denominação social manual (sem RCBE/GLEIF) |
+| 7 | SAR urgente → Pending → ref. UIF manual |
+| 8 | Congelamento BdP manual pós-sanção |
+| 9 | Identidade manual (sem API) |
+| 10 | Sinais manuais + confirmar/descartar |
+
 ### Registo de execução
 
-| # | Cenário | Data | Executor | Resultado | Evidência |
-|---|---------|------|----------|-----------|-----------|
-| 1 | PAC arranque | | | ☐ OK ☐ Falha | `dossier/01-pac/` |
-| 2 | Identidade + webhook | | | ☐ OK ☐ Falha | `dossier/06-identidade/` |
-| 3 | SAR | | | ☐ OK ☐ Falha | `dossier/05-sar-uif/` |
-| 4 | EDD 4-eyes | | | ☐ OK ☐ Falha | |
-| 5 | RPB Admin | | | ☐ OK ☐ Falha | `dossier/04-rpb/` |
+> Tabela completa (10 linhas) e assinatura compliance: **[E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)** §Registo.
+
+| # | Cenário | Evidência |
+|---|---------|-----------|
+| 1–5 | Ver acima | `dossier/` conforme E2E |
+| 6–10 | Contingência manual | `01-pac/`, `05-sar-uif/`, `07-congelamento/`, `06-identidade/`, `09-e2e/` |
 
 ---
 

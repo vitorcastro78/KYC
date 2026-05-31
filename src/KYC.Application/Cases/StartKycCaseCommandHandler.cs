@@ -26,9 +26,26 @@ public class StartKycCaseCommandHandler(
                      ?? CustomerAcceptancePolicy.CreateV1("System");
 
         var resolved = await resolution.ResolveByNifAsync(nif, cancellationToken);
-        var companyName = resolved.UsedFallback ? request.Nif.Trim() : resolved.LegalName;
-        if (!resolved.Success || string.IsNullOrWhiteSpace(companyName))
+        if (!resolved.Success)
             throw new InvalidOperationException(resolved.ErrorMessage ?? "Não foi possível resolver a entidade.");
+
+        string companyName;
+        if (resolved.UsedFallback)
+        {
+            if (string.IsNullOrWhiteSpace(request.LegalCompanyName))
+                throw new ArgumentException(
+                    "RCBE/GLEIF indisponíveis — indique a denominação social manualmente para abrir o caso.");
+            companyName = request.LegalCompanyName.Trim();
+        }
+        else
+        {
+            companyName = !string.IsNullOrWhiteSpace(request.LegalCompanyName)
+                ? request.LegalCompanyName.Trim()
+                : resolved.LegalName;
+        }
+
+        if (string.IsNullOrWhiteSpace(companyName))
+            throw new InvalidOperationException("Denominação da entidade em falta.");
 
         var kyc = KycCase.Start(nif, companyName, request.RequestedBy, request.RequestedAmount, request.RelationshipType);
         kyc.SetLegalBasisRef(policy.ResolveLegalBasisRef());

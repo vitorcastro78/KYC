@@ -1,3 +1,4 @@
+using KYC.Application.Dtos;
 using KYC.Application.Interfaces;
 using KYC.Domain.Enums;
 using KYC.Domain.ValueObjects;
@@ -10,7 +11,10 @@ public record StartKycCaseCommand(
     string RequestedBy,
     CreditAmount RequestedAmount,
     RelationshipType? RelationshipType = null,
-    string? CaeCode = null) : IRequest<Guid>;
+    string? CaeCode = null,
+    string? LegalCompanyName = null) : IRequest<Guid>;
+
+public record GetEntityResolutionPreviewQuery(string Nif) : IRequest<EntityResolutionPreviewDto?>;
 
 public record ApproveKycCaseCommand(Guid CaseId, string AnalystId, string Notes, string? SecondApproverId = null) : IRequest<Unit>;
 
@@ -70,6 +74,27 @@ public record RegisterManualUifReferenceCommand(
     Guid CaseId,
     string ReferenceNumber,
     string AnalystId) : IRequest<Unit>;
+
+public record RegisterManualAssetFreezeReferenceCommand(
+    Guid CaseId,
+    string ConfirmationReference,
+    string AnalystId) : IRequest<Unit>;
+
+public record RecordManualIdentityVerificationCommand(
+    Guid CaseId,
+    Guid PartyId,
+    string AnalystId,
+    string Justification,
+    string? DocumentReference) : IRequest<Unit>;
+
+public record AddManualRiskSignalCommand(
+    Guid CaseId,
+    string AnalystId,
+    SignalType Type,
+    SignalSeverity Severity,
+    string Description,
+    string Source,
+    Guid? CasePartyId) : IRequest<Guid>;
 
 public record MarkSarNotRequiredCommand(Guid CaseId, string AnalystId, string Justification) : IRequest<Unit>;
 

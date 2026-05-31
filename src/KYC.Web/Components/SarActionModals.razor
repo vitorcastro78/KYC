@@ -100,6 +100,14 @@
                 await OnChanged.InvokeAsync();
                 await CloseSubmit();
             }
+            else if (_sarUrgent)
+            {
+                Toast.Show(
+                    result.ErrorMessage ?? "Submissão UIF falhou — registe a referência manualmente na secção SAR.",
+                    ToastLevel.Warning);
+                await OnChanged.InvokeAsync();
+                await CloseSubmit();
+            }
             else
                 Toast.Show(result.ErrorMessage ?? "Falha ao submeter SAR", ToastLevel.Error);
         }

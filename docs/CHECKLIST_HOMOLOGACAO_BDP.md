@@ -6,15 +6,20 @@
 - [x] EDD: origem de fundos obrigatória antes de aprovação
 - [x] Revisão periódica (`NextReviewDue`) após aprovação
 - [x] SAR/UIF com audit trail (`SarSubmitted`, referência UIF)
+- [x] SAR pendente + registo manual UIF (`SarApiFailedPendingManual`, `SarManualRegistered`)
+- [x] Denominação social manual se RCBE/GLEIF em falha (`LegalCompanyName` no arranque)
+- [x] Sinais de risco manuais + confirmação analista (`AddManualRiskSignalCommand`, `OverrideSignal`)
 
 ## Aviso BdP 1/2022
 - [x] Verificação identidade (webhook + polling + UI métodos)
+- [x] Verificação manual de contingência (`RecordManualIdentityVerificationCommand`)
 - [x] Bloqueio aprovação se UBO/admin não verificado
 - [x] 4-eyes em EDD (`SecondApproverId`)
 
 ## Lei 97/2017 — Congelamento
 - [x] Notificação automática ao confirmar sanção
 - [x] `AssetFreezeNotified` registado
+- [x] Registo manual ref. BdP se API falhar (`RegisterManualAssetFreezeReferenceCommand`)
 
 ## Instrução BdP 8/2024 — RPB
 - [x] Geração anual `AmlComplianceReport`
@@ -25,6 +30,14 @@
 - [x] Audit trail imutável (trigger `tr_audit_entries_immutable` na migration BdP)
 - [x] Auto-approve apenas Low risk (score ≤30, sem High/Critical/sanções)
 - [x] Secção explainability no relatório (Art. 22)
+
+## Execução homologação (evidências)
+
+- [x] E2E cenários 1–10 executados (testes auto + UI 2–5) — ver [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md) §Registo (2026-05-31)
+- [x] Dossier preenchido em `docs/dossier/` (parcial: falta `01-pac/` prints, `10-seguranca/`)
+- [ ] Pen test — [SECURITY_PEN_TEST_CHECKLIST.md](SECURITY_PEN_TEST_CHECKLIST.md)
+
+_Data homologação:_ 2026-05-31 _Responsável:_ homologação técnica (auto + Playwright UI)
 
 ## Operacional
 - [x] Health check `/health`

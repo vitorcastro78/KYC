@@ -15,12 +15,14 @@ Roles: `KYC.Analyst`, `KYC.Supervisor`, `KYC.Admin`, `KYC.Auditor`.
 
 ### Novo caso
 1. **Casos → Novo** — NIF, montante, relação, CAE
-2. Aguardar barra de progresso (triagem automática)
-3. Revisar sinais → confirmar ou descartar
+2. Se RCBE/GLEIF não resolverem a entidade, preencher **denominação social (manual)** (obrigatório)
+3. Aguardar barra de progresso (triagem automática)
+4. Revisar sinais → confirmar ou descartar; usar **Registar sinal manual** se APIs de triagem falharem
 
 ### Conformidade (card amarelo)
-- **Identidade** — Verificar UBO/órgão social; link portal se pendente
-- **SAR** — Narrativa ≥200 caracteres ou «não aplicável» ≥50
+- **Identidade** — Verificar UBO/órgão social; link portal se pendente; **Verificado manualmente (sem API)** se prestador indisponível
+- **SAR** — Narrativa ≥200 caracteres ou «não aplicável» ≥50; se urgente falhar na UIF, estado fica **Pendente** com registo manual da referência
+- **Congelamento BdP** — Após confirmar sanção; se API falhar, registo manual da ref. BdP no alerta vermelho
 - **EDD** — Origem fundos + segundo aprovador na aprovação
 
 ### Aprovar
@@ -36,7 +38,9 @@ Roles: `KYC.Analyst`, `KYC.Supervisor`, `KYC.Admin`, `KYC.Auditor`.
 | Triagem parada em % | Ollama indisponível | Verificar `OLLAMA_ENDPOINT`; reiniciar Ollama |
 | Webhook identidade 401 | HMAC incorrecto | Alinhar `IdentityVerification:WebhookSecret` |
 | PDF relatório erro | Puppeteer/Chromium | Logs `kyc-web`; reinstalar deps Docker |
-| SAR falha produção | UIF URL em falta | Configurar `Uif:BaseUrl` ou registo manual |
+| SAR falha produção | UIF URL em falta | Configurar `Uif:BaseUrl` ou registo manual na secção SAR (estado Pendente) |
+| Congelamento BdP falhou | `BdpAssetFreeze:BaseUrl` | Registar ref. manual após confirmar sanção |
+| Nome «Entidade {NIF}» | Sem RCBE/GLEIF | Corrigir no arranque (denominação manual) ou partes manuais |
 | Lista casos vazia | BD / migrations | `dotnet ef database update` |
 | SignalR sem updates | Proxy WebSocket | nginx: `Upgrade` headers para `/hubs/` |
 

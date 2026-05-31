@@ -33,6 +33,9 @@
                 <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => _showVerification = true">
                     Verificar identidade
                 </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => _showManualVerification = true">
+                    Verificado manualmente (sem API)
+                </button>
             }
             @if (Party.RcbeDiscrepancyDetected && !Party.RcbeDiscrepancyReported)
             {
@@ -43,6 +46,34 @@
         </div>
     </div>
 </div>
+
+@if (_showManualVerification)
+{
+    <div class="modal show d-block compliance-modal" tabindex="-1">
+        <div class="modal-backdrop fade show" @onclick="CloseManualVerificationModal"></div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Verificação manual — @Party.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseManualVerificationModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">
+                        Contingência quando o prestador digital falha e não há verificação presencial (Aviso 1/2022 BdP).
+                    </p>
+                    <label class="form-label">Justificação *</label>
+                    <textarea class="form-control" rows="3" @bind="_manualJustification" placeholder="Mín. 20 caracteres — fundamento e meios de verificação"></textarea>
+                    <label class="form-label mt-2">Referência documental (opcional)</label>
+                    <input class="form-control" @bind="_manualDocRef" placeholder="Ex.: BI/Cartão de cidadão n.º …" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseManualVerificationModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmManualVerification">Registar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @if (_showVerification)
 {
@@ -86,8 +117,11 @@
     [Parameter] public bool ShowName { get; set; } = true;
 
     private bool _showVerification;
+    private bool _showManualVerification;
     private IdentityVerificationMethod _verificationMethod = IdentityVerificationMethod.VideoConference;
     private string _presentialDocRef = "";
+    private string _manualJustification = "";
+    private string _manualDocRef = "";
 
     private string CompactClass => Compact ? "party-identity-panel--compact" : "";
 
@@ -107,6 +141,30 @@
     };
 
     private void CloseVerificationModal() => _showVerification = false;
+
+    private void CloseManualVerificationModal() => _showManualVerification = false;
+
+    private async Task ConfirmManualVerification()
+    {
+        try
+        {
+            await Mediator.Send(new RecordManualIdentityVerificationCommand(
+                CaseId,
+                Party.Id,
+                await AnalystIdAsync(),
+                _manualJustification,
+                string.IsNullOrWhiteSpace(_manualDocRef) ? null : _manualDocRef.Trim()));
+            Toast.Show("Verificação manual registada.", ToastLevel.Success);
+            _manualJustification = "";
+            _manualDocRef = "";
+            CloseManualVerificationModal();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show(ex.Message, ToastLevel.Error);
+        }
+    }
 
     private async Task ConfirmVerification()
     {

@@ -8,6 +8,39 @@ using MediatR;
 
 namespace KYC.Application.Cases;
 
+public class GetEntityResolutionPreviewQueryHandler(IEntityResolutionService resolution)
+    : IRequestHandler<GetEntityResolutionPreviewQuery, EntityResolutionPreviewDto?>
+{
+    public async Task<EntityResolutionPreviewDto?> Handle(
+        GetEntityResolutionPreviewQuery request,
+        CancellationToken cancellationToken)
+    {
+        if (!NifSanitizer.TryNormalizeCaseKey(request.Nif, out var nif))
+            return null;
+
+        var resolved = await resolution.ResolveByNifAsync(nif, cancellationToken);
+        var registry = resolved.UsedFallback
+            ? null
+            : resolved.Gleif is not null
+                ? "GLEIF"
+                : resolved.RegistryId is not null
+                    ? "RCBE/Registo"
+                    : "Wikidata";
+
+        var message = resolved.UsedFallback
+            ? "Sem correspondência RCBE/GLEIF — indique a denominação social manualmente."
+            : $"Resolvido: {resolved.LegalName}";
+
+        return new EntityResolutionPreviewDto(
+            nif,
+            resolved.LegalName,
+            resolved.UsedFallback,
+            resolved.Success,
+            registry,
+            message);
+    }
+}
+
 public class GetKycCaseQueryHandler(
     IKycCaseRepository repository,
     IEntityResolutionService resolution)

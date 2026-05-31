@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="48212fd5-f052-4069-a065-e8c409f1b7a9" name="vitor@SERVER01 2026-05-31 02:09:37" runUser="SERVER01\vitor" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-05-31T02:09:37.4851379+01:00" queuing="2026-05-31T02:09:37.4851383+01:00" start="2026-05-31T02:09:33.4513817+01:00" finish="2026-05-31T02:09:39.2524452+01:00" />
+  <TestSettings name="default" id="17beebc4-59e4-4d98-aedf-4dfaa3a740c6">
+    <Deployment runDeploymentRoot="vitor_SERVER01_2026-05-31_02_09_37" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="fc92130a-1b77-47f2-9071-c07d19b2b386" testId="56deb2b1-eda2-dee3-d5e5-9e993bd08e24" testName="E2E-01 PAC: CAE 92000 rejeitado" computerName="SERVER01" duration="00:00:00.2287603" startTime="2026-05-31T02:09:38.2389763+01:00" endTime="2026-05-31T02:09:38.2389769+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fc92130a-1b77-47f2-9071-c07d19b2b386" />
+    <UnitTestResult executionId="55743d6e-a35e-4084-b3d2-1e41345ad079" testId="b61458d4-1125-b96b-b364-aeabf906f0a2" testName="E2E-09 Identidade manual sem API" computerName="SERVER01" duration="00:00:00.1954799" startTime="2026-05-31T02:09:38.4348917+01:00" endTime="2026-05-31T02:09:38.4348920+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="55743d6e-a35e-4084-b3d2-1e41345ad079" />
+    <UnitTestResult executionId="a3d9e787-fb9e-480c-891b-d4512609bc06" testId="951b2031-607e-a771-f8b6-4ce68ad64ebb" testName="E2E-08 Sanção + falha BdP → congelamento manual" computerName="SERVER01" duration="00:00:00.5550482" startTime="2026-05-31T02:09:38.0097074+01:00" endTime="2026-05-31T02:09:38.0097076+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a3d9e787-fb9e-480c-891b-d4512609bc06" />
+    <UnitTestResult executionId="b3968552-ae34-4271-9bb8-a8de0dd5e710" testId="21b70a5d-9b31-1619-80e0-6672ea56416f" testName="E2E-06 Nome legal manual em fallback RCBE/GLEIF" computerName="SERVER01" duration="00:00:02.7007681" startTime="2026-05-31T02:09:37.4529289+01:00" endTime="2026-05-31T02:09:37.4529492+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b3968552-ae34-4271-9bb8-a8de0dd5e710" />
+    <UnitTestResult executionId="3f097ea0-5af6-4e19-938b-32a5a3986727" testId="81452da1-7ac6-65cb-28fb-054c96f7c54e" testName="E2E-EXPORT gerar ficheiros de evidência no dossier" computerName="SERVER01" duration="00:00:00.2286147" startTime="2026-05-31T02:09:38.6640674+01:00" endTime="2026-05-31T02:09:38.6640678+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3f097ea0-5af6-4e19-938b-32a5a3986727" />
+    <UnitTestResult executionId="88b4a38b-97a4-44b8-a332-0b064e3b8bd2" testId="3e5faef9-b61f-a68b-03d7-901759098d93" testName="E2E-10 Sinal manual + confirmar sanção" computerName="SERVER01" duration="00:00:00.2234578" startTime="2026-05-31T02:09:39.1752562+01:00" endTime="2026-05-31T02:09:39.1752569+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="88b4a38b-97a4-44b8-a332-0b064e3b8bd2" />
+    <UnitTestResult executionId="e3d40b0c-3a70-4545-ad89-6b1413138199" testId="994126b4-cf92-3d54-7e55-64a328b05456" testName="E2E-07 SAR urgente falha → Pending → registo manual" computerName="SERVER01" duration="00:00:00.2866579" startTime="2026-05-31T02:09:38.9512952+01:00" endTime="2026-05-31T02:09:38.9512954+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e3d40b0c-3a70-4545-ad89-6b1413138199" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="E2E-09 Identidade manual sem API" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="b61458d4-1125-b96b-b364-aeabf906f0a2">
+      <Execution id="55743d6e-a35e-4084-b3d2-1e41345ad079" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e09_Manual_identity_verification" />
+    </UnitTest>
+    <UnitTest name="E2E-08 Sanção + falha BdP → congelamento manual" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="951b2031-607e-a771-f8b6-4ce68ad64ebb">
+      <Execution id="a3d9e787-fb9e-480c-891b-d4512609bc06" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e08_Sanction_freeze_api_fail_then_manual_ref" />
+    </UnitTest>
+    <UnitTest name="E2E-10 Sinal manual + confirmar sanção" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="3e5faef9-b61f-a68b-03d7-901759098d93">
+      <Execution id="88b4a38b-97a4-44b8-a332-0b064e3b8bd2" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e10_Manual_signal_and_override_confirm" />
+    </UnitTest>
+    <UnitTest name="E2E-01 PAC: CAE 92000 rejeitado" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="56deb2b1-eda2-dee3-d5e5-9e993bd08e24">
+      <Execution id="fc92130a-1b77-47f2-9071-c07d19b2b386" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e01_Pac_rejects_prohibited_cae" />
+    </UnitTest>
+    <UnitTest name="E2E-EXPORT gerar ficheiros de evidência no dossier" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="81452da1-7ac6-65cb-28fb-054c96f7c54e">
+      <Execution id="3f097ea0-5af6-4e19-938b-32a5a3986727" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e_export_dossier_evidence_files" />
+    </UnitTest>
+    <UnitTest name="E2E-06 Nome legal manual em fallback RCBE/GLEIF" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="21b70a5d-9b31-1619-80e0-6672ea56416f">
+      <Execution id="b3968552-ae34-4271-9bb8-a8de0dd5e710" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e06_Manual_legal_name_on_fallback_persists" />
+    </UnitTest>
+    <UnitTest name="E2E-07 SAR urgente falha → Pending → registo manual" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="994126b4-cf92-3d54-7e55-64a328b05456">
+      <Execution id="e3d40b0c-3a70-4545-ad89-6b1413138199" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e07_Sar_urgent_failure_then_manual_reference" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="56deb2b1-eda2-dee3-d5e5-9e993bd08e24" executionId="fc92130a-1b77-47f2-9071-c07d19b2b386" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b61458d4-1125-b96b-b364-aeabf906f0a2" executionId="55743d6e-a35e-4084-b3d2-1e41345ad079" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="951b2031-607e-a771-f8b6-4ce68ad64ebb" executionId="a3d9e787-fb9e-480c-891b-d4512609bc06" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="21b70a5d-9b31-1619-80e0-6672ea56416f" executionId="b3968552-ae34-4271-9bb8-a8de0dd5e710" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="81452da1-7ac6-65cb-28fb-054c96f7c54e" executionId="3f097ea0-5af6-4e19-938b-32a5a3986727" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3e5faef9-b61f-a68b-03d7-901759098d93" executionId="88b4a38b-97a4-44b8-a332-0b064e3b8bd2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="994126b4-cf92-3d54-7e55-64a328b05456" executionId="e3d40b0c-3a70-4545-ad89-6b1413138199" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Resultados que não estão em uma lista" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Todos os resultados carregados" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="7" executed="7" passed="7" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.16)&#xD;
+[xUnit.net 00:00:00.24]   Discovering: KYC.Web.Integration.Tests&#xD;
+[xUnit.net 00:00:00.31]   Discovered:  KYC.Web.Integration.Tests&#xD;
+[xUnit.net 00:00:00.32]   Starting:    KYC.Web.Integration.Tests&#xD;
+[xUnit.net 00:00:04.82]   Finished:    KYC.Web.Integration.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

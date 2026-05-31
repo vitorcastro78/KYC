@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="26250d22-96db-4fe3-b8f6-163ab71fa177" name="vitor@SERVER01 2026-05-31 02:04:58" runUser="SERVER01\vitor" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-05-31T02:04:58.5105860+01:00" queuing="2026-05-31T02:04:58.5105865+01:00" start="2026-05-31T02:04:54.3580496+01:00" finish="2026-05-31T02:05:01.4195289+01:00" />
+  <TestSettings name="default" id="b6c3c288-c471-49b0-8774-33d3d4e63b00">
+    <Deployment runDeploymentRoot="vitor_SERVER01_2026-05-31_02_04_58" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="acd23695-f9ef-4360-b3d9-2a681a065059" testId="994126b4-cf92-3d54-7e55-64a328b05456" testName="E2E-07 SAR urgente falha → Pending → registo manual" computerName="SERVER01" duration="00:00:00.2095334" startTime="2026-05-31T02:05:01.1171226+01:00" endTime="2026-05-31T02:05:01.1171228+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="acd23695-f9ef-4360-b3d9-2a681a065059" />
+    <UnitTestResult executionId="761e6ff1-7351-4e70-8e49-a5903be04e14" testId="a092defb-87d9-b02c-2bc7-5251f02be905" testName="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Identity_polling_processes_pending_session" computerName="SERVER01" duration="00:00:00.2282800" startTime="2026-05-31T02:05:00.7898358+01:00" endTime="2026-05-31T02:05:00.7898363+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="761e6ff1-7351-4e70-8e49-a5903be04e14">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 1&#xD;
+Actual:   2</Message>
+          <StackTrace>   at KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Identity_polling_processes_pending_session() in C:\Development\KYC\tests\KYC.Web.Integration.Tests\CompliancePostgresIntegrationTests.cs:line 150&#xD;
+   at KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Identity_polling_processes_pending_session() in C:\Development\KYC\tests\KYC.Web.Integration.Tests\CompliancePostgresIntegrationTests.cs:line 151&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="377248d6-b738-465e-9dc1-491bcba95c49" testId="9c5ce624-d198-c79a-e573-6829f278a1e3" testName="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Periodic_review_completed_audit_can_be_queried" computerName="SERVER01" duration="00:00:00.3199200" startTime="2026-05-31T02:05:00.2753577+01:00" endTime="2026-05-31T02:05:00.2753581+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="377248d6-b738-465e-9dc1-491bcba95c49" />
+    <UnitTestResult executionId="14be0ab1-7b48-41c7-a05b-c33f05ee0084" testId="7e368a3e-42b6-8f06-0ed5-47df78886dfe" testName="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Sar_submission_persists_submitted_status_and_audit" computerName="SERVER01" duration="00:00:00.2819930" startTime="2026-05-31T02:05:00.5580372+01:00" endTime="2026-05-31T02:05:00.5580374+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="14be0ab1-7b48-41c7-a05b-c33f05ee0084" />
+    <UnitTestResult executionId="7c2d5b45-8938-4fa7-94c9-8021b959f0fd" testId="81452da1-7ac6-65cb-28fb-054c96f7c54e" testName="E2E-EXPORT gerar ficheiros de evidência no dossier" computerName="SERVER01" duration="00:00:00.2608844" startTime="2026-05-31T02:05:00.9070311+01:00" endTime="2026-05-31T02:05:00.9070315+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7c2d5b45-8938-4fa7-94c9-8021b959f0fd" />
+    <UnitTestResult executionId="9046db0e-0a81-45aa-93d3-4c59d1c020cc" testId="56deb2b1-eda2-dee3-d5e5-9e993bd08e24" testName="E2E-01 PAC: CAE 92000 rejeitado" computerName="SERVER01" duration="00:00:00.4009514" startTime="2026-05-31T02:05:00.3841401+01:00" endTime="2026-05-31T02:05:00.3841403+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9046db0e-0a81-45aa-93d3-4c59d1c020cc" />
+    <UnitTestResult executionId="e7564267-c47c-4fe7-b7fc-67ec75298821" testId="bf59893d-dbcf-6e3a-543b-63d979cbaaab" testName="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Asset_freeze_flow_sets_under_review_in_database" computerName="SERVER01" duration="00:00:01.0744094" startTime="2026-05-31T02:04:59.9547432+01:00" endTime="2026-05-31T02:04:59.9547435+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e7564267-c47c-4fe7-b7fc-67ec75298821" />
+    <UnitTestResult executionId="012a55c0-302b-4bcf-a331-b6d69364a60f" testId="21b70a5d-9b31-1619-80e0-6672ea56416f" testName="E2E-06 Nome legal manual em fallback RCBE/GLEIF" computerName="SERVER01" duration="00:00:02.9631998" startTime="2026-05-31T02:04:58.8778362+01:00" endTime="2026-05-31T02:04:58.8778364+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="012a55c0-302b-4bcf-a331-b6d69364a60f">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: Exception type was not an exact match&#xD;
+Expected: typeof(System.ArgumentException)&#xD;
+Actual:   typeof(System.NullReferenceException)&#xD;
+---- System.NullReferenceException : Object reference not set to an instance of an object.</Message>
+          <StackTrace>   at KYC.Web.Integration.Tests.HomologationE2eAutomatedTests.E2e06_Manual_legal_name_on_fallback_persists() in C:\Development\KYC\tests\KYC.Web.Integration.Tests\HomologationE2eAutomatedTests.cs:line 74&#xD;
+   at KYC.Web.Integration.Tests.HomologationE2eAutomatedTests.E2e06_Manual_legal_name_on_fallback_persists() in C:\Development\KYC\tests\KYC.Web.Integration.Tests\HomologationE2eAutomatedTests.cs:line 84&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at KYC.Application.Cases.StartKycCaseCommandHandler.Handle(StartKycCaseCommand request, CancellationToken cancellationToken) in C:\Development\KYC\src\KYC.Application\Cases\StartKycCaseCommandHandler.cs:line 29</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5ccedbe0-faea-49aa-a155-8d1e11244552" testId="951b2031-607e-a771-f8b6-4ce68ad64ebb" testName="E2E-08 Sanção + falha BdP → congelamento manual" computerName="SERVER01" duration="00:00:01.1151411" startTime="2026-05-31T02:04:59.9826203+01:00" endTime="2026-05-31T02:04:59.9826204+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5ccedbe0-faea-49aa-a155-8d1e11244552" />
+    <UnitTestResult executionId="c4cca97c-75dd-45ef-80ff-b76dfa6ff2eb" testId="f2deee77-2d09-44fb-2843-8135a51c0a3e" testName="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Active_pac_exists_in_database" computerName="SERVER01" duration="00:00:00.4168377" startTime="2026-05-31T02:04:58.8798206+01:00" endTime="2026-05-31T02:04:58.8798214+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c4cca97c-75dd-45ef-80ff-b76dfa6ff2eb" />
+    <UnitTestResult executionId="74bdf9ac-fb21-4e99-9b7e-623ccc471684" testId="133614b5-13af-27b2-9383-28a2331b28ac" testName="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Delete_active_dpia_record_is_blocked_by_interceptor" computerName="SERVER01" duration="00:00:02.5741656" startTime="2026-05-31T02:04:58.4608584+01:00" endTime="2026-05-31T02:04:58.4608957+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="74bdf9ac-fb21-4e99-9b7e-623ccc471684" />
+    <UnitTestResult executionId="417f62cd-62da-4dc9-9bfa-492564d0e212" testId="3e5faef9-b61f-a68b-03d7-901759098d93" testName="E2E-10 Sinal manual + confirmar sanção" computerName="SERVER01" duration="00:00:00.2202331" startTime="2026-05-31T02:05:01.3378811+01:00" endTime="2026-05-31T02:05:01.3378814+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="417f62cd-62da-4dc9-9bfa-492564d0e212" />
+    <UnitTestResult executionId="f622ccb6-cb9d-44ca-a074-e5c497bc98af" testId="b61458d4-1125-b96b-b364-aeabf906f0a2" testName="E2E-09 Identidade manual sem API" computerName="SERVER01" duration="00:00:00.2609481" startTime="2026-05-31T02:05:00.6456198+01:00" endTime="2026-05-31T02:05:00.6456200+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f622ccb6-cb9d-44ca-a074-e5c497bc98af" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="E2E-09 Identidade manual sem API" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="b61458d4-1125-b96b-b364-aeabf906f0a2">
+      <Execution id="f622ccb6-cb9d-44ca-a074-e5c497bc98af" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e09_Manual_identity_verification" />
+    </UnitTest>
+    <UnitTest name="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Asset_freeze_flow_sets_under_review_in_database" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="bf59893d-dbcf-6e3a-543b-63d979cbaaab">
+      <Execution id="e7564267-c47c-4fe7-b7fc-67ec75298821" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests" name="Asset_freeze_flow_sets_under_review_in_database" />
+    </UnitTest>
+    <UnitTest name="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Sar_submission_persists_submitted_status_and_audit" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="7e368a3e-42b6-8f06-0ed5-47df78886dfe">
+      <Execution id="14be0ab1-7b48-41c7-a05b-c33f05ee0084" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests" name="Sar_submission_persists_submitted_status_and_audit" />
+    </UnitTest>
+    <UnitTest name="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Active_pac_exists_in_database" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="f2deee77-2d09-44fb-2843-8135a51c0a3e">
+      <Execution id="c4cca97c-75dd-45ef-80ff-b76dfa6ff2eb" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests" name="Active_pac_exists_in_database" />
+    </UnitTest>
+    <UnitTest name="E2E-08 Sanção + falha BdP → congelamento manual" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="951b2031-607e-a771-f8b6-4ce68ad64ebb">
+      <Execution id="5ccedbe0-faea-49aa-a155-8d1e11244552" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e08_Sanction_freeze_api_fail_then_manual_ref" />
+    </UnitTest>
+    <UnitTest name="E2E-10 Sinal manual + confirmar sanção" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="3e5faef9-b61f-a68b-03d7-901759098d93">
+      <Execution id="417f62cd-62da-4dc9-9bfa-492564d0e212" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e10_Manual_signal_and_override_confirm" />
+    </UnitTest>
+    <UnitTest name="E2E-01 PAC: CAE 92000 rejeitado" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="56deb2b1-eda2-dee3-d5e5-9e993bd08e24">
+      <Execution id="9046db0e-0a81-45aa-93d3-4c59d1c020cc" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e01_Pac_rejects_prohibited_cae" />
+    </UnitTest>
+    <UnitTest name="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Periodic_review_completed_audit_can_be_queried" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="9c5ce624-d198-c79a-e573-6829f278a1e3">
+      <Execution id="377248d6-b738-465e-9dc1-491bcba95c49" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests" name="Periodic_review_completed_audit_can_be_queried" />
+    </UnitTest>
+    <UnitTest name="E2E-EXPORT gerar ficheiros de evidência no dossier" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="81452da1-7ac6-65cb-28fb-054c96f7c54e">
+      <Execution id="7c2d5b45-8938-4fa7-94c9-8021b959f0fd" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e_export_dossier_evidence_files" />
+    </UnitTest>
+    <UnitTest name="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Identity_polling_processes_pending_session" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="a092defb-87d9-b02c-2bc7-5251f02be905">
+      <Execution id="761e6ff1-7351-4e70-8e49-a5903be04e14" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests" name="Identity_polling_processes_pending_session" />
+    </UnitTest>
+    <UnitTest name="E2E-06 Nome legal manual em fallback RCBE/GLEIF" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="21b70a5d-9b31-1619-80e0-6672ea56416f">
+      <Execution id="012a55c0-302b-4bcf-a331-b6d69364a60f" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e06_Manual_legal_name_on_fallback_persists" />
+    </UnitTest>
+    <UnitTest name="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Delete_active_dpia_record_is_blocked_by_interceptor" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="133614b5-13af-27b2-9383-28a2331b28ac">
+      <Execution id="74bdf9ac-fb21-4e99-9b7e-623ccc471684" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests" name="Delete_active_dpia_record_is_blocked_by_interceptor" />
+    </UnitTest>
+    <UnitTest name="E2E-07 SAR urgente falha → Pending → registo manual" storage="c:\development\kyc\tests\kyc.web.integration.tests\bin\debug\net9.0\kyc.web.integration.tests.dll" id="994126b4-cf92-3d54-7e55-64a328b05456">
+      <Execution id="acd23695-f9ef-4360-b3d9-2a681a065059" />
+      <TestMethod codeBase="C:\Development\KYC\tests\KYC.Web.Integration.Tests\bin\Debug\net9.0\KYC.Web.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="KYC.Web.Integration.Tests.HomologationE2eAutomatedTests" name="E2e07_Sar_urgent_failure_then_manual_reference" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="994126b4-cf92-3d54-7e55-64a328b05456" executionId="acd23695-f9ef-4360-b3d9-2a681a065059" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a092defb-87d9-b02c-2bc7-5251f02be905" executionId="761e6ff1-7351-4e70-8e49-a5903be04e14" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9c5ce624-d198-c79a-e573-6829f278a1e3" executionId="377248d6-b738-465e-9dc1-491bcba95c49" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7e368a3e-42b6-8f06-0ed5-47df78886dfe" executionId="14be0ab1-7b48-41c7-a05b-c33f05ee0084" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="81452da1-7ac6-65cb-28fb-054c96f7c54e" executionId="7c2d5b45-8938-4fa7-94c9-8021b959f0fd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="56deb2b1-eda2-dee3-d5e5-9e993bd08e24" executionId="9046db0e-0a81-45aa-93d3-4c59d1c020cc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bf59893d-dbcf-6e3a-543b-63d979cbaaab" executionId="e7564267-c47c-4fe7-b7fc-67ec75298821" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="21b70a5d-9b31-1619-80e0-6672ea56416f" executionId="012a55c0-302b-4bcf-a331-b6d69364a60f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="951b2031-607e-a771-f8b6-4ce68ad64ebb" executionId="5ccedbe0-faea-49aa-a155-8d1e11244552" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f2deee77-2d09-44fb-2843-8135a51c0a3e" executionId="c4cca97c-75dd-45ef-80ff-b76dfa6ff2eb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="133614b5-13af-27b2-9383-28a2331b28ac" executionId="74bdf9ac-fb21-4e99-9b7e-623ccc471684" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3e5faef9-b61f-a68b-03d7-901759098d93" executionId="417f62cd-62da-4dc9-9bfa-492564d0e212" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b61458d4-1125-b96b-b364-aeabf906f0a2" executionId="f622ccb6-cb9d-44ca-a074-e5c497bc98af" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Resultados que não estão em uma lista" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Todos os resultados carregados" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="13" executed="13" passed="11" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.16)&#xD;
+[xUnit.net 00:00:00.21]   Discovering: KYC.Web.Integration.Tests&#xD;
+[xUnit.net 00:00:00.30]   Discovered:  KYC.Web.Integration.Tests&#xD;
+[xUnit.net 00:00:00.31]   Starting:    KYC.Web.Integration.Tests&#xD;
+[xUnit.net 00:00:03.38]       Assert.Throws() Failure: Exception type was not an exact match&#xD;
+[xUnit.net 00:00:03.38]       Expected: typeof(System.ArgumentException)&#xD;
+[xUnit.net 00:00:03.38]       Actual:   typeof(System.NullReferenceException)&#xD;
+[xUnit.net 00:00:03.38]       ---- System.NullReferenceException : Object reference not set to an instance of an object.&#xD;
+[xUnit.net 00:00:03.38]       Stack Trace:&#xD;
+[xUnit.net 00:00:03.38]         C:\Development\KYC\tests\KYC.Web.Integration.Tests\HomologationE2eAutomatedTests.cs(74,0): at KYC.Web.Integration.Tests.HomologationE2eAutomatedTests.E2e06_Manual_legal_name_on_fallback_persists()&#xD;
+[xUnit.net 00:00:03.38]         C:\Development\KYC\tests\KYC.Web.Integration.Tests\HomologationE2eAutomatedTests.cs(84,0): at KYC.Web.Integration.Tests.HomologationE2eAutomatedTests.E2e06_Manual_legal_name_on_fallback_persists()&#xD;
+[xUnit.net 00:00:03.38]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:03.38]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:03.38]         C:\Development\KYC\src\KYC.Application\Cases\StartKycCaseCommandHandler.cs(29,0): at KYC.Application.Cases.StartKycCaseCommandHandler.Handle(StartKycCaseCommand request, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:05.29]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:05.29]       Expected: 1&#xD;
+[xUnit.net 00:00:05.29]       Actual:   2&#xD;
+[xUnit.net 00:00:05.29]       Stack Trace:&#xD;
+[xUnit.net 00:00:05.29]         C:\Development\KYC\tests\KYC.Web.Integration.Tests\CompliancePostgresIntegrationTests.cs(150,0): at KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Identity_polling_processes_pending_session()&#xD;
+[xUnit.net 00:00:05.30]         C:\Development\KYC\tests\KYC.Web.Integration.Tests\CompliancePostgresIntegrationTests.cs(151,0): at KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Identity_polling_processes_pending_session()&#xD;
+[xUnit.net 00:00:05.30]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:05.85]   Finished:    KYC.Web.Integration.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="SERVER01" outcome="Error" timestamp="2026-05-31T02:04:58.8728670+01:00">
+        <Text>[xUnit.net 00:00:03.38]     E2E-06 Nome legal manual em fallback RCBE/GLEIF [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="SERVER01" outcome="Error" timestamp="2026-05-31T02:05:00.7879465+01:00">
+        <Text>[xUnit.net 00:00:05.29]     KYC.Web.Integration.Tests.CompliancePostgresIntegrationTests.Identity_polling_processes_pending_session [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

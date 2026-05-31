@@ -111,6 +111,17 @@ public class CaseParty
         VerificationSessionId = documentReference;
     }
 
+    /// <summary>Verificação manual de contingência (prestador/API indisponível).</summary>
+    public void RecordManualVerification(string justification, string? documentReference)
+    {
+        VerificationMethod = IdentityVerificationMethod.ThirdPartyReliance;
+        VerificationStatus = IdentityVerificationStatus.Verified;
+        VerifiedAt = DateTime.UtcNow;
+        VerificationSessionId = string.IsNullOrWhiteSpace(documentReference)
+            ? $"manual-{DateTime.UtcNow:yyyyMMddHHmmss}"
+            : documentReference.Trim();
+    }
+
     public void RecordRcbeVerification(bool discrepancyDetected)
     {
         RcbeVerifiedAt = DateTime.UtcNow;

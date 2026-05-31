@@ -115,6 +115,19 @@ public class KycCase
         AppendAudit(AuditEntry.Create(Id, "SarQueued", analystId, "User", queueReference));
     }
 
+    /// <summary>SAR urgente falhou na API — pendente de registo manual UIF.</summary>
+    public void RecordSarPendingAfterApiFailure(string analystId, string? apiError)
+    {
+        SarStatus = SarStatus.Pending;
+        SarReferenceNumber = null;
+        AppendAudit(AuditEntry.Create(
+            Id,
+            "SarApiFailedPendingManual",
+            analystId,
+            "User",
+            apiError ?? "Submissão UIF falhou — registo manual necessário."));
+    }
+
     public void RecordSarSubmitted(string referenceNumber, string analystId)
     {
         SarStatus = SarStatus.Submitted;
@@ -135,6 +148,19 @@ public class KycCase
         AssetFreezeNotifiedAt = DateTime.UtcNow;
         Status = KycStatus.UnderReview;
         AppendAudit(AuditEntry.Create(Id, "AssetFreezeNotificationSent", "System", "Agent", confirmationNumber));
+    }
+
+    public void RecordManualAssetFreezeNotification(string confirmationReference, string analystId)
+    {
+        AssetFreezeNotified = true;
+        AssetFreezeNotifiedAt = DateTime.UtcNow;
+        Status = KycStatus.UnderReview;
+        AppendAudit(AuditEntry.Create(
+            Id,
+            "AssetFreezeManualRegistered",
+            analystId,
+            "User",
+            confirmationReference.Trim()));
     }
 
     public void ScheduleNextReview(CustomerAcceptancePolicy policy)

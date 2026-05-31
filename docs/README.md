@@ -42,7 +42,7 @@
 | [ANALISTA_QUICK_START.md](ANALISTA_QUICK_START.md) | Formação rápida analistas AML |
 | [DEPLOY_ONPREM.md](DEPLOY_ONPREM.md) | Deploy Docker on-prem |
 | [HOMOLOGACAO_RUNBOOK.md](HOMOLOGACAO_RUNBOOK.md) | Passos técnicos homologação |
-| [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md) | Cenários E2E com registo de execução |
+| [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md) | **10 cenários** E2E (incl. contingência manual) + registo de execução |
 | [CHECKLIST_HOMOLOGACAO_BDP.md](CHECKLIST_HOMOLOGACAO_BDP.md) | Checklist regulatório (capacidades) |
 | [PAC_RUNBOOK.md](PAC_RUNBOOK.md) | Política de aceitação de clientes |
 | [SECURITY_PEN_TEST_CHECKLIST.md](SECURITY_PEN_TEST_CHECKLIST.md) | Pen test homologação |

@@ -37,14 +37,30 @@ public class OverrideSignalCommandHandler(
                 request.AnalystId,
                 cancellationToken);
             if (notify.IsSuccess)
+            {
                 kyc.RecordAssetFreezeNotification(notify.ConfirmationNumber ?? "OK");
+                await notifier.NotifyComplianceAlertAsync(
+                    kyc.Id,
+                    "AssetFreeze",
+                    $"Sanção confirmada — congelamento notificado. Ref: {notify.ConfirmationNumber}",
+                    cancellationToken);
+            }
+            else
+            {
+                kyc.AppendAudit(AuditEntry.Create(
+                    kyc.Id,
+                    "AssetFreezeNotificationFailed",
+                    request.AnalystId,
+                    "User",
+                    notify.ErrorMessage ?? "API BdP indisponível — registo manual necessário."));
+                await notifier.NotifyComplianceAlertAsync(
+                    kyc.Id,
+                    "AssetFreeze",
+                    "Sanção confirmada — notificação BdP falhou; registe a referência manualmente.",
+                    cancellationToken);
+            }
 
             kyc.RequireSupervisorReviewAfterSanction(request.AnalystId, signal.Description);
-            await notifier.NotifyComplianceAlertAsync(
-                kyc.Id,
-                "AssetFreeze",
-                $"Sanção confirmada — congelamento notificado. Ref: {notify.ConfirmationNumber}",
-                cancellationToken);
         }
 
         await repository.UpdateAsync(kyc, cancellationToken);
@@ -237,5 +253,96 @@ public class RecordPresentialVerificationCommandHandler(
         party.RecordPresentialVerification(request.DocumentReference);
         await repository.UpdateAsync(kyc, cancellationToken);
         return Unit.Value;
+    }
+}
+
+public class RegisterManualAssetFreezeReferenceCommandHandler(IKycCaseRepository repository)
+    : IRequestHandler<RegisterManualAssetFreezeReferenceCommand, Unit>
+{
+    public async Task<Unit> Handle(RegisterManualAssetFreezeReferenceCommand request, CancellationToken cancellationToken)
+    {
+        if (request.ConfirmationReference.Length < 3)
+            throw new ArgumentException("Referência BdP inválida.");
+
+        var kyc = await repository.GetByIdAsync(request.CaseId, cancellationToken)
+                  ?? throw new KeyNotFoundException("Caso não encontrado.");
+
+        if (kyc.AssetFreezeNotified)
+            throw new InvalidOperationException("Congelamento já registado para este caso.");
+
+        var hasConfirmedSanction = kyc.RiskSignals.Any(s =>
+            s.Type == SignalType.Sanction && s.IsConfirmed);
+        if (!hasConfirmedSanction)
+            throw new InvalidOperationException(
+                "Registo manual de congelamento apenas após confirmação de sanção.");
+
+        kyc.RecordManualAssetFreezeNotification(request.ConfirmationReference.Trim(), request.AnalystId);
+        await repository.UpdateAsync(kyc, cancellationToken);
+        return Unit.Value;
+    }
+}
+
+public class RecordManualIdentityVerificationCommandHandler(IKycCaseRepository repository)
+    : IRequestHandler<RecordManualIdentityVerificationCommand, Unit>
+{
+    public async Task<Unit> Handle(RecordManualIdentityVerificationCommand request, CancellationToken cancellationToken)
+    {
+        if (request.Justification.Length < 20)
+            throw new ArgumentException("Justificação deve ter pelo menos 20 caracteres.");
+
+        var (kyc, party) = await repository.GetCaseWithPartyAsync(request.PartyId, cancellationToken)
+                           ?? throw new KeyNotFoundException("Parte não encontrada.");
+        if (kyc.Id != request.CaseId)
+            throw new InvalidOperationException("Parte não pertence ao caso.");
+
+        party.RecordManualVerification(request.Justification.Trim(), request.DocumentReference);
+        kyc.AppendAudit(AuditEntry.Create(
+            kyc.Id,
+            "IdentityManualVerified",
+            request.AnalystId,
+            "User",
+            $"{party.Name}: {request.Justification.Trim()}"));
+        await repository.UpdateAsync(kyc, cancellationToken);
+        return Unit.Value;
+    }
+}
+
+public class AddManualRiskSignalCommandHandler(IKycCaseRepository repository)
+    : IRequestHandler<AddManualRiskSignalCommand, Guid>
+{
+    public async Task<Guid> Handle(AddManualRiskSignalCommand request, CancellationToken cancellationToken)
+    {
+        if (request.Description.Length < 10)
+            throw new ArgumentException("Descrição deve ter pelo menos 10 caracteres.");
+        if (string.IsNullOrWhiteSpace(request.Source))
+            throw new ArgumentException("Fonte obrigatória.");
+
+        var kyc = await repository.GetByIdAsync(request.CaseId, cancellationToken)
+                  ?? throw new KeyNotFoundException("Caso não encontrado.");
+
+        if (request.CasePartyId is { } partyId &&
+            kyc.Parties.All(p => p.Id != partyId))
+            throw new InvalidOperationException("Parte não pertence ao caso.");
+
+        var source = request.Source.Trim();
+        if (!source.StartsWith("Manual:", StringComparison.OrdinalIgnoreCase))
+            source = $"Manual:{source}";
+
+        var signal = RiskSignal.Create(
+            kyc.Id,
+            request.CasePartyId,
+            request.Type,
+            request.Severity,
+            request.Description.Trim(),
+            source);
+        kyc.AddRiskSignal(signal);
+        kyc.AppendAudit(AuditEntry.Create(
+            kyc.Id,
+            "ManualRiskSignalAdded",
+            request.AnalystId,
+            "User",
+            $"{request.Type}/{request.Severity}: {request.Description.Trim()}"));
+        await repository.UpdateAsync(kyc, cancellationToken);
+        return signal.Id;
     }
 }

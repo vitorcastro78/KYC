@@ -22,3 +22,4 @@ coverage*.xml
 **/Data/AT/Devedores/**/*.tmp
 **/Data/cases/**
 **/DataProtection-Keys/
+scripts/e2e-ui/node_modules/

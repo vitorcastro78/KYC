@@ -1,0 +1,600 @@
+{
+  "GeneratedAtUtc": "2026-05-31T01:07:28.1991383Z",
+  "AnalystId": "e2e-homologation",
+  "Cases": [
+    {
+      "Id": "db9a6ee3-7492-497d-a6d3-0ac2e176e14a",
+      "Nif": "I828a4011",
+      "CompanyName": "Id E2E",
+      "Status": 0,
+      "SarStatus": 0,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "c6b1df2c-f3f3-41f5-9e42-048017c3cb65",
+      "Nif": "F0d8974d1",
+      "CompanyName": "Freeze E2E",
+      "Status": 4,
+      "SarStatus": 0,
+      "AssetFreezeNotified": true
+    },
+    {
+      "Id": "495fc426-4c42-4679-82e6-c3df056b882a",
+      "Nif": "526C0AE0E",
+      "CompanyName": "Empresa Manual E2E Lda",
+      "Status": 1,
+      "SarStatus": 0,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "8780ee54-d4e6-441e-9f9f-75c4b8d1b671",
+      "Nif": "Ma4e8fa98",
+      "CompanyName": "Signal E2E",
+      "Status": 4,
+      "SarStatus": 0,
+      "AssetFreezeNotified": true
+    },
+    {
+      "Id": "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+      "Nif": "Sacbb2ebe",
+      "CompanyName": "SAR E2E Co",
+      "Status": 0,
+      "SarStatus": 2,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "5f1a9f52-0f11-4857-8e2f-2279a862a7a5",
+      "Nif": "I723848cb",
+      "CompanyName": "Id E2E",
+      "Status": 0,
+      "SarStatus": 0,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "02daa23c-3550-4c6d-a0c4-604196936d39",
+      "Nif": "Fccdcc613",
+      "CompanyName": "Freeze E2E",
+      "Status": 4,
+      "SarStatus": 0,
+      "AssetFreezeNotified": true
+    },
+    {
+      "Id": "1b5a8f42-6bbf-46fd-906e-bc4f37ab05f2",
+      "Nif": "M1ca7bba0",
+      "CompanyName": "Signal E2E",
+      "Status": 4,
+      "SarStatus": 0,
+      "AssetFreezeNotified": true
+    },
+    {
+      "Id": "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+      "Nif": "S85eb423c",
+      "CompanyName": "SAR E2E Co",
+      "Status": 0,
+      "SarStatus": 2,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "7ad320a7-57ba-45e3-8936-8b9ba4489f44",
+      "Nif": "I808ccf4a",
+      "CompanyName": "Id E2E",
+      "Status": 0,
+      "SarStatus": 0,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "5e847842-1222-4690-a937-c494eefb4a3c",
+      "Nif": "Ff0a699fe",
+      "CompanyName": "Freeze E2E",
+      "Status": 4,
+      "SarStatus": 0,
+      "AssetFreezeNotified": true
+    },
+    {
+      "Id": "f1988d1d-ce85-42df-9157-bbe5b2fbc497",
+      "Nif": "Mb5487b41",
+      "CompanyName": "Signal E2E",
+      "Status": 4,
+      "SarStatus": 0,
+      "AssetFreezeNotified": true
+    },
+    {
+      "Id": "eed9170d-3885-4ca3-89d7-781157505df1",
+      "Nif": "Sc4342570",
+      "CompanyName": "SAR E2E Co",
+      "Status": 0,
+      "SarStatus": 2,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "2b92ef9d-120c-4ec1-bf43-918ff74ee867",
+      "Nif": "Ibf82e641",
+      "CompanyName": "Id E2E",
+      "Status": 0,
+      "SarStatus": 0,
+      "AssetFreezeNotified": false
+    },
+    {
+      "Id": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Nif": "Fa4ac01ee",
+      "CompanyName": "Freeze E2E",
+      "Status": 4,
+      "SarStatus": 0,
+      "AssetFreezeNotified": true
+    }
+  ],
+  "Parties": [
+    {
+      "Id": "65abab2d-4490-4c18-ac09-18002f3b2c5f",
+      "KycCaseId": "2b92ef9d-120c-4ec1-bf43-918ff74ee867",
+      "Name": "UBO E2E",
+      "VerificationStatus": 1,
+      "VerificationMethod": 5
+    },
+    {
+      "Id": "0d680370-10ab-44e1-be59-ff48a06d4936",
+      "KycCaseId": "5e847842-1222-4690-a937-c494eefb4a3c",
+      "Name": "Freeze E2E",
+      "VerificationStatus": 0,
+      "VerificationMethod": 0
+    },
+    {
+      "Id": "5f425ea9-5613-4ed2-b977-70aba3b23b18",
+      "KycCaseId": "7ad320a7-57ba-45e3-8936-8b9ba4489f44",
+      "Name": "UBO E2E",
+      "VerificationStatus": 1,
+      "VerificationMethod": 5
+    },
+    {
+      "Id": "dd39d38f-f33e-42b7-bcd1-a2c985a105b0",
+      "KycCaseId": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Name": "Freeze E2E",
+      "VerificationStatus": 1,
+      "VerificationMethod": 0
+    },
+    {
+      "Id": "06df43b4-4798-4bfe-a69c-0f0b81d913a7",
+      "KycCaseId": "02daa23c-3550-4c6d-a0c4-604196936d39",
+      "Name": "Freeze E2E",
+      "VerificationStatus": 0,
+      "VerificationMethod": 0
+    },
+    {
+      "Id": "7d27c09b-9624-4088-8180-4b576dd53f56",
+      "KycCaseId": "5f1a9f52-0f11-4857-8e2f-2279a862a7a5",
+      "Name": "UBO E2E",
+      "VerificationStatus": 1,
+      "VerificationMethod": 5
+    },
+    {
+      "Id": "d89aac23-21c6-4c14-8c5b-d81dd3627939",
+      "KycCaseId": "495fc426-4c42-4679-82e6-c3df056b882a",
+      "Name": "Empresa Manual E2E Lda",
+      "VerificationStatus": 0,
+      "VerificationMethod": 0
+    },
+    {
+      "Id": "b092242a-c029-428d-852a-b019b2113136",
+      "KycCaseId": "c6b1df2c-f3f3-41f5-9e42-048017c3cb65",
+      "Name": "Freeze E2E",
+      "VerificationStatus": 0,
+      "VerificationMethod": 0
+    },
+    {
+      "Id": "1247334c-1125-41df-81fa-6f4bde8168c6",
+      "KycCaseId": "db9a6ee3-7492-497d-a6d3-0ac2e176e14a",
+      "Name": "UBO E2E",
+      "VerificationStatus": 1,
+      "VerificationMethod": 5
+    }
+  ],
+  "AuditTrail": [
+    {
+      "KycCaseId": "db9a6ee3-7492-497d-a6d3-0ac2e176e14a",
+      "Action": "IdentityManualVerified",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:27.954912Z",
+      "Details": "UBO E2E: Verifica\u00E7\u00E3o presencial equivalente em conting\u00EAncia E2E homologa\u00E7\u00E3o."
+    },
+    {
+      "KycCaseId": "db9a6ee3-7492-497d-a6d3-0ac2e176e14a",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:27.936142Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "c6b1df2c-f3f3-41f5-9e42-048017c3cb65",
+      "Action": "AssetFreezeManualRegistered",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:27.411432Z",
+      "Details": "BDP-E2E-FREEZE-99"
+    },
+    {
+      "KycCaseId": "c6b1df2c-f3f3-41f5-9e42-048017c3cb65",
+      "Action": "SanctionConfirmedUnderReview",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:27.253448Z",
+      "Details": "Match"
+    },
+    {
+      "KycCaseId": "c6b1df2c-f3f3-41f5-9e42-048017c3cb65",
+      "Action": "AssetFreezeNotificationFailed",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:27.250457Z",
+      "Details": "BdP API down E2E"
+    },
+    {
+      "KycCaseId": "c6b1df2c-f3f3-41f5-9e42-048017c3cb65",
+      "Action": "AnalystOverride",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:27.249683Z",
+      "Details": "Signal f1a35af8-c90a-4a18-acd6-319942810a36 confirm=True"
+    },
+    {
+      "KycCaseId": "c6b1df2c-f3f3-41f5-9e42-048017c3cb65",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:27.052074Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "495fc426-4c42-4679-82e6-c3df056b882a",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:07:26.383103Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "8780ee54-d4e6-441e-9f9f-75c4b8d1b671",
+      "Action": "SanctionConfirmedUnderReview",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:02.156887Z",
+      "Details": "Sanction E2E"
+    },
+    {
+      "KycCaseId": "8780ee54-d4e6-441e-9f9f-75c4b8d1b671",
+      "Action": "AssetFreezeNotificationSent",
+      "ActorId": "System",
+      "Timestamp": "2026-05-31T01:06:02.156833Z",
+      "Details": "OK"
+    },
+    {
+      "KycCaseId": "8780ee54-d4e6-441e-9f9f-75c4b8d1b671",
+      "Action": "AnalystOverride",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:02.156477Z",
+      "Details": "Signal ec509703-8e4d-4f71-87bb-676494a6fea3 confirm=True"
+    },
+    {
+      "KycCaseId": "8780ee54-d4e6-441e-9f9f-75c4b8d1b671",
+      "Action": "ManualRiskSignalAdded",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:02.134223Z",
+      "Details": "AdverseMedia/High: Not\u00EDcia adversa registada manualmente em homologa\u00E7\u00E3o E2E."
+    },
+    {
+      "KycCaseId": "8780ee54-d4e6-441e-9f9f-75c4b8d1b671",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:02.121961Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+      "Action": "SarManualRegistered",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:01.926834Z",
+      "Details": "UIF-E2E-MANUAL-001"
+    },
+    {
+      "KycCaseId": "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+      "Action": "SarSubmitted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:01.926826Z",
+      "Details": "UIF-E2E-MANUAL-001"
+    },
+    {
+      "KycCaseId": "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+      "Action": "SarApiFailedPendingManual",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:01.903313Z",
+      "Details": "UIF indispon\u00EDvel E2E"
+    },
+    {
+      "KycCaseId": "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:01.834998Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "5f1a9f52-0f11-4857-8e2f-2279a862a7a5",
+      "Action": "IdentityManualVerified",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:01.418119Z",
+      "Details": "UBO E2E: Verifica\u00E7\u00E3o presencial equivalente em conting\u00EAncia E2E homologa\u00E7\u00E3o."
+    },
+    {
+      "KycCaseId": "5f1a9f52-0f11-4857-8e2f-2279a862a7a5",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:01.392641Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "02daa23c-3550-4c6d-a0c4-604196936d39",
+      "Action": "AssetFreezeManualRegistered",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:00.84992Z",
+      "Details": "BDP-E2E-FREEZE-99"
+    },
+    {
+      "KycCaseId": "02daa23c-3550-4c6d-a0c4-604196936d39",
+      "Action": "SanctionConfirmedUnderReview",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:00.640936Z",
+      "Details": "Match"
+    },
+    {
+      "KycCaseId": "02daa23c-3550-4c6d-a0c4-604196936d39",
+      "Action": "AssetFreezeNotificationFailed",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:00.640289Z",
+      "Details": "BdP API down E2E"
+    },
+    {
+      "KycCaseId": "02daa23c-3550-4c6d-a0c4-604196936d39",
+      "Action": "AnalystOverride",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:00.637821Z",
+      "Details": "Signal 547f01b8-9fd9-43ca-901c-41baec371276 confirm=True"
+    },
+    {
+      "KycCaseId": "02daa23c-3550-4c6d-a0c4-604196936d39",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:06:00.15948Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Action": "IdentityVerified",
+      "ActorId": "System",
+      "Timestamp": "2026-05-31T01:05:19.58352Z",
+      "Details": "eIDAS:High"
+    },
+    {
+      "KycCaseId": "1b5a8f42-6bbf-46fd-906e-bc4f37ab05f2",
+      "Action": "SanctionConfirmedUnderReview",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.326821Z",
+      "Details": "Sanction E2E"
+    },
+    {
+      "KycCaseId": "1b5a8f42-6bbf-46fd-906e-bc4f37ab05f2",
+      "Action": "AssetFreezeNotificationSent",
+      "ActorId": "System",
+      "Timestamp": "2026-05-31T01:05:01.326798Z",
+      "Details": "OK"
+    },
+    {
+      "KycCaseId": "1b5a8f42-6bbf-46fd-906e-bc4f37ab05f2",
+      "Action": "AnalystOverride",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.326646Z",
+      "Details": "Signal 8d7ee6e3-e90d-4e41-a190-b6b8375f4fee confirm=True"
+    },
+    {
+      "KycCaseId": "1b5a8f42-6bbf-46fd-906e-bc4f37ab05f2",
+      "Action": "ManualRiskSignalAdded",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.301026Z",
+      "Details": "AdverseMedia/High: Not\u00EDcia adversa registada manualmente em homologa\u00E7\u00E3o E2E."
+    },
+    {
+      "KycCaseId": "1b5a8f42-6bbf-46fd-906e-bc4f37ab05f2",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.290463Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+      "Action": "SarManualRegistered",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.108775Z",
+      "Details": "UIF-E2E-MANUAL-001"
+    },
+    {
+      "KycCaseId": "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+      "Action": "SarSubmitted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.108773Z",
+      "Details": "UIF-E2E-MANUAL-001"
+    },
+    {
+      "KycCaseId": "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+      "Action": "SarApiFailedPendingManual",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.094832Z",
+      "Details": "UIF indispon\u00EDvel E2E"
+    },
+    {
+      "KycCaseId": "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:01.085338Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "7ad320a7-57ba-45e3-8936-8b9ba4489f44",
+      "Action": "IdentityManualVerified",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:00.6115Z",
+      "Details": "UBO E2E: Verifica\u00E7\u00E3o presencial equivalente em conting\u00EAncia E2E homologa\u00E7\u00E3o."
+    },
+    {
+      "KycCaseId": "7ad320a7-57ba-45e3-8936-8b9ba4489f44",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:05:00.583568Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "5e847842-1222-4690-a937-c494eefb4a3c",
+      "Action": "AssetFreezeManualRegistered",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:04:59.974745Z",
+      "Details": "BDP-E2E-FREEZE-99"
+    },
+    {
+      "KycCaseId": "5e847842-1222-4690-a937-c494eefb4a3c",
+      "Action": "SanctionConfirmedUnderReview",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:04:59.795944Z",
+      "Details": "Match"
+    },
+    {
+      "KycCaseId": "5e847842-1222-4690-a937-c494eefb4a3c",
+      "Action": "AssetFreezeNotificationFailed",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:04:59.79508Z",
+      "Details": "BdP API down E2E"
+    },
+    {
+      "KycCaseId": "5e847842-1222-4690-a937-c494eefb4a3c",
+      "Action": "AnalystOverride",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:04:59.792241Z",
+      "Details": "Signal 4983f44f-a18b-41f0-9d25-b9be4a29deda confirm=True"
+    },
+    {
+      "KycCaseId": "5e847842-1222-4690-a937-c494eefb4a3c",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:04:59.24026Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "f1988d1d-ce85-42df-9157-bbe5b2fbc497",
+      "Action": "SanctionConfirmedUnderReview",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.240466Z",
+      "Details": "Sanction E2E"
+    },
+    {
+      "KycCaseId": "f1988d1d-ce85-42df-9157-bbe5b2fbc497",
+      "Action": "AssetFreezeNotificationSent",
+      "ActorId": "System",
+      "Timestamp": "2026-05-31T01:01:45.24044Z",
+      "Details": "OK"
+    },
+    {
+      "KycCaseId": "f1988d1d-ce85-42df-9157-bbe5b2fbc497",
+      "Action": "AnalystOverride",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.240332Z",
+      "Details": "Signal 1efcf46a-3d39-425b-bbcf-159ee251165f confirm=True"
+    },
+    {
+      "KycCaseId": "f1988d1d-ce85-42df-9157-bbe5b2fbc497",
+      "Action": "ManualRiskSignalAdded",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.217613Z",
+      "Details": "AdverseMedia/High: Not\u00EDcia adversa registada manualmente em homologa\u00E7\u00E3o E2E."
+    },
+    {
+      "KycCaseId": "f1988d1d-ce85-42df-9157-bbe5b2fbc497",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.20589Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "eed9170d-3885-4ca3-89d7-781157505df1",
+      "Action": "SarManualRegistered",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.02688Z",
+      "Details": "UIF-E2E-MANUAL-001"
+    },
+    {
+      "KycCaseId": "eed9170d-3885-4ca3-89d7-781157505df1",
+      "Action": "SarSubmitted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.026878Z",
+      "Details": "UIF-E2E-MANUAL-001"
+    },
+    {
+      "KycCaseId": "eed9170d-3885-4ca3-89d7-781157505df1",
+      "Action": "SarApiFailedPendingManual",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.013117Z",
+      "Details": "UIF indispon\u00EDvel E2E"
+    },
+    {
+      "KycCaseId": "eed9170d-3885-4ca3-89d7-781157505df1",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:45.003378Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "2b92ef9d-120c-4ec1-bf43-918ff74ee867",
+      "Action": "IdentityManualVerified",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:44.479503Z",
+      "Details": "UBO E2E: Verifica\u00E7\u00E3o presencial equivalente em conting\u00EAncia E2E homologa\u00E7\u00E3o."
+    },
+    {
+      "KycCaseId": "2b92ef9d-120c-4ec1-bf43-918ff74ee867",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:44.452196Z",
+      "Details": null
+    },
+    {
+      "KycCaseId": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Action": "AssetFreezeManualRegistered",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:44.048953Z",
+      "Details": "BDP-E2E-FREEZE-99"
+    },
+    {
+      "KycCaseId": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Action": "SanctionConfirmedUnderReview",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:43.885141Z",
+      "Details": "Match"
+    },
+    {
+      "KycCaseId": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Action": "AssetFreezeNotificationFailed",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:43.88507Z",
+      "Details": "BdP API down E2E"
+    },
+    {
+      "KycCaseId": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Action": "AnalystOverride",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:43.883901Z",
+      "Details": "Signal 8b9da569-6b33-49b7-8610-63227012d527 confirm=True"
+    },
+    {
+      "KycCaseId": "00b998bd-d3dc-4634-97f7-ddff7fb8bd09",
+      "Action": "CaseStarted",
+      "ActorId": "e2e-homologation",
+      "Timestamp": "2026-05-31T01:01:43.866454Z",
+      "Details": null
+    }
+  ],
+  "ScenariosCovered": [
+    "E2E-01 PAC",
+    "E2E-06 Nome manual",
+    "E2E-07 SAR manual",
+    "E2E-08 Congelamento manual",
+    "E2E-09 Identidade manual",
+    "E2E-10 Sinais manuais"
+  ]
+}

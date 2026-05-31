@@ -63,4 +63,6 @@ public record KycCaseDetailDto(
     bool AssetFreezeNotified = false,
     DateTime? AssetFreezeNotifiedAt = null,
     string? AssetFreezeConfirmationRef = null,
+    bool NeedsManualAssetFreezeRegistration = false,
+    string? SarPendingManualReason = null,
     IReadOnlyList<SarAuditEntryDto>? SarHistory = null);

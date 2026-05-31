@@ -1,6 +1,7 @@
 using KYC.Application.Dtos;
 using KYC.Application.Services;
 using KYC.Domain.Entities;
+using KYC.Domain.Enums;
 
 namespace KYC.Application.Cases;
 
@@ -71,8 +72,18 @@ internal static class KycCaseMapping
 
         var suggestSar = new SarEligibilityEvaluator().ShouldSuggestSar(c);
         var canApprove = c.CanApprove();
+        string[] freezeActions = ["AssetFreezeNotificationSent", "AssetFreezeManualRegistered"];
         var freezeRef = c.AuditTrail
-            .Where(a => a.Action == "AssetFreezeNotificationSent")
+            .Where(a => freezeActions.Contains(a.Action))
+            .OrderByDescending(a => a.Timestamp)
+            .Select(a => a.Details)
+            .FirstOrDefault();
+
+        var needsManualFreeze = !c.AssetFreezeNotified &&
+                                c.RiskSignals.Any(s => s.Type == SignalType.Sanction && s.IsConfirmed);
+
+        var sarPendingReason = c.AuditTrail
+            .Where(a => a.Action == "SarApiFailedPendingManual")
             .OrderByDescending(a => a.Timestamp)
             .Select(a => a.Details)
             .FirstOrDefault();
@@ -121,6 +132,8 @@ internal static class KycCaseMapping
             c.AssetFreezeNotified,
             c.AssetFreezeNotifiedAt,
             freezeRef,
+            needsManualFreeze,
+            sarPendingReason,
             sarHistory);
     }
 

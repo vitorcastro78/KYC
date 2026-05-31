@@ -1,0 +1,2 @@
+E2E-01: CAE 92000 rejeitado — evidência em test-results-*.trx (teste HomologationE2e E2E-01).
+E2E-06: caso "Empresa Manual E2E Lda" — ver audit-export-*.json (CompanyName manual em fallback).

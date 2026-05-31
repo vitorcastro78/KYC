@@ -243,8 +243,17 @@ else
     </div>
 
     <div class="card mb-3">
-        <div class="card-header"><h3 class="h6 mb-0">Sinais de risco</h3></div>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h3 class="h6 mb-0">Sinais de risco</h3>
+            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => _showManualSignal = true">
+                Registar sinal manual
+            </button>
+        </div>
         <div class="card-body">
+            <p class="small text-muted">
+                Triagem automática (media, judicial, sanções, etc.) pode falhar ou estar indisponível —
+                confirme ou descarte o que apareceu e registe sinais complementares quando necessário.
+            </p>
             @if (_case.Signals.Count == 0)
             {
                 <p class="text-muted mb-0">Sem sinais registados nesta execução.</p>
@@ -258,7 +267,7 @@ else
                     <h6 class="text-muted small text-uppercase mt-3 mb-2">@group.Key</h6>
                     @foreach (var s in group.OrderByDescending(x => x.DetectedAt))
                     {
-                        <SignalCard Signal="s" />
+                        <SignalCard Signal="s" CaseId="CaseId" OnChanged="Reload" />
                     }
                 }
             }
@@ -272,6 +281,62 @@ else
             {
                 <RiskTimeline Timeline="_timeline" />
             }
+        </div>
+    </div>
+}
+
+@if (_showManualSignal)
+{
+    <div class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sinal de risco manual</h5>
+                    <button type="button" class="btn-close" @onclick="() => _showManualSignal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" @bind="_manualSignalType">
+                            @foreach (var t in Enum.GetValues<SignalType>())
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Severidade</label>
+                        <select class="form-select" @bind="_manualSignalSeverity">
+                            @foreach (var s in Enum.GetValues<SignalSeverity>())
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Fonte</label>
+                        <input class="form-control" @bind="_manualSignalSource" placeholder="Ex.: Consulta judicial, imprensa" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control" rows="3" @bind="_manualSignalDescription" placeholder="Mín. 10 caracteres"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Parte associada (opcional)</label>
+                        <select class="form-select" @bind="_manualSignalPartyIdStr">
+                            <option value="">— Caso / entidade —</option>
+                            @foreach (var p in _case!.Parties)
+                            {
+                                <option value="@p.Id.ToString()">@p.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showManualSignal = false">Cancelar</button>
+                    <button type="button" class="btn btn-primary" disabled="@_manualSignalBusy" @onclick="SubmitManualSignalAsync">Registar</button>
+                </div>
+            </div>
         </div>
     </div>
 }
@@ -457,6 +522,13 @@ else
     private bool _disposed;
     private bool _showApprove, _showReject, _showReview, _showRescreen;
     private bool _showAddParty;
+    private bool _showManualSignal;
+    private bool _manualSignalBusy;
+    private SignalType _manualSignalType = SignalType.AdverseMedia;
+    private SignalSeverity _manualSignalSeverity = SignalSeverity.Medium;
+    private string _manualSignalSource = "";
+    private string _manualSignalDescription = "";
+    private string _manualSignalPartyIdStr = "";
     private bool _showUploadDocument;
     private bool _addPartyBusy;
     private bool _uploadBusy;
@@ -868,6 +940,43 @@ else
     }
 
     private Task Reload() => RunDataAsync(ReloadCoreAsync);
+
+    private async Task SubmitManualSignalAsync()
+    {
+        if (_case is null)
+            return;
+
+        _manualSignalBusy = true;
+        try
+        {
+            Guid? partyId = null;
+            if (Guid.TryParse(_manualSignalPartyIdStr, out var pid))
+                partyId = pid;
+
+            await Mediator.Send(new AddManualRiskSignalCommand(
+                CaseId,
+                await AnalystIdAsync(),
+                _manualSignalType,
+                _manualSignalSeverity,
+                _manualSignalDescription,
+                _manualSignalSource,
+                partyId));
+            Toast.Show("Sinal manual registado.", ToastLevel.Success);
+            _showManualSignal = false;
+            _manualSignalSource = "";
+            _manualSignalDescription = "";
+            _manualSignalPartyIdStr = "";
+            await ReloadCoreAsync();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show(ex.Message, ToastLevel.Error);
+        }
+        finally
+        {
+            _manualSignalBusy = false;
+        }
+    }
 
     private async Task ReloadCoreAsync()
     {

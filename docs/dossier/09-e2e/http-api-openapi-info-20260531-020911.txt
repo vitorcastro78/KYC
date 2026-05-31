@@ -1,0 +1,4 @@
+﻿GET http://localhost:5299/api/openapi/info
+Status: 200
+
+{"title":"KYC AI Platform API","version":"v1","swagger":"/swagger","spec":"/swagger/v1/swagger.json","health":"/health"}

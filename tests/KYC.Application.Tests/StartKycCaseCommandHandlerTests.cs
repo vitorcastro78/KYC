@@ -49,7 +49,7 @@ public class StartKycCaseCommandHandlerTests
     }
 
     [Fact]
-    public async Task Uses_trimmed_input_as_company_name_when_resolution_is_fallback()
+    public async Task Uses_manual_legal_name_when_resolution_is_fallback()
     {
         var repo = new Mock<IKycCaseRepository>();
         repo.Setup(r => r.GetByNifAsync("ACMETEST", It.IsAny<CancellationToken>())).ReturnsAsync((KycCase?)null);
@@ -67,11 +67,28 @@ public class StartKycCaseCommandHandlerTests
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler(repo, res, bus);
-        await handler.Handle(new StartKycCaseCommand("  Acme Test  ", "u1", CreditAmount.Eur(1000)), CancellationToken.None);
+        await handler.Handle(
+            new StartKycCaseCommand("ACMETEST", "u1", CreditAmount.Eur(1000), LegalCompanyName: "  Acme Test Lda  "),
+            CancellationToken.None);
 
         Assert.NotNull(captured);
-        Assert.Equal("Acme Test", captured!.CompanyName);
+        Assert.Equal("Acme Test Lda", captured!.CompanyName);
         Assert.Equal("ACMETEST", captured.Nif);
+    }
+
+    [Fact]
+    public async Task Throws_when_fallback_without_manual_legal_name()
+    {
+        var repo = new Mock<IKycCaseRepository>();
+        repo.Setup(r => r.GetByNifAsync("ACMETEST", It.IsAny<CancellationToken>())).ReturnsAsync((KycCase?)null);
+
+        var res = new Mock<IEntityResolutionService>();
+        res.Setup(s => s.ResolveByNifAsync("ACMETEST", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EntityResolutionResult("ACMETEST", "Entidade ACMETEST", null, "ACMETEST", true, null, true));
+
+        var handler = CreateHandler(repo, res, new Mock<IKycCaseMessageBus>());
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            handler.Handle(new StartKycCaseCommand("ACMETEST", "u1", CreditAmount.Eur(1000)), CancellationToken.None));
     }
 
     [Fact]

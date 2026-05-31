@@ -1,0 +1,86 @@
+﻿[
+    {
+        "KycCaseId":  "4e061c5e-302f-4293-afa7-fc66f58791ed",
+        "Action":  "SarManualRegistered",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:07:28.527693Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "4e061c5e-302f-4293-afa7-fc66f58791ed",
+        "Action":  "SarSubmitted",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:07:28.527691Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "4e061c5e-302f-4293-afa7-fc66f58791ed",
+        "Action":  "SarApiFailedPendingManual",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:07:28.506962Z",
+        "Details":  "UIF indisponível E2E"
+    },
+    {
+        "KycCaseId":  "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+        "Action":  "SarManualRegistered",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:06:01.926834Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+        "Action":  "SarSubmitted",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:06:01.926826Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "6c2eebb7-7664-4066-9a2f-97b4d6f818e1",
+        "Action":  "SarApiFailedPendingManual",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:06:01.903313Z",
+        "Details":  "UIF indisponível E2E"
+    },
+    {
+        "KycCaseId":  "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+        "Action":  "SarManualRegistered",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:05:01.108775Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+        "Action":  "SarSubmitted",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:05:01.108773Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "d82e6126-6640-445c-96dd-bc6b2ef7e417",
+        "Action":  "SarApiFailedPendingManual",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:05:01.094832Z",
+        "Details":  "UIF indisponível E2E"
+    },
+    {
+        "KycCaseId":  "eed9170d-3885-4ca3-89d7-781157505df1",
+        "Action":  "SarManualRegistered",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:01:45.02688Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "eed9170d-3885-4ca3-89d7-781157505df1",
+        "Action":  "SarSubmitted",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:01:45.026878Z",
+        "Details":  "UIF-E2E-MANUAL-001"
+    },
+    {
+        "KycCaseId":  "eed9170d-3885-4ca3-89d7-781157505df1",
+        "Action":  "SarApiFailedPendingManual",
+        "ActorId":  "e2e-homologation",
+        "Timestamp":  "2026-05-31T01:01:45.013117Z",
+        "Details":  "UIF indisponível E2E"
+    }
+]

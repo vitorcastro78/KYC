@@ -1,0 +1,3 @@
+POST http://localhost:5299/api/identity/webhook
+Status: 200
+Body: {"partyId":"c30f6531-1398-4935-ab2e-93a9d23fe29f","sessionId":"local-c3","verified":true,"eidasLevel":"High"}

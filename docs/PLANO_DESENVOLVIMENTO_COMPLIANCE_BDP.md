@@ -1,7 +1,7 @@
 # Plano de Desenvolvimento — Conformidade BdP 100%
 
 > **Base:** `BLUEPRINT_BdP_Compliance_Addendum.md` (sec. 13–22) + `docs/CHECKLIST_HOMOLOGACAO_BDP.md`  
-> **Estado actual (Maio 2026, commit `fc47caa`):** ~92% código produto (ver `docs/BLUEPRINT_COMPLETION_STATUS.md`); pendente integrações reais (UIF/BdP/identidade), template RPB oficial (X1) e **execução** de homologação (E2E, dossier, pen test).  
+> **Estado actual (Maio 2026):** ~95% código produto (ver `docs/BLUEPRINT_COMPLETION_STATUS.md`); contingências manuais ✅; pendente **execução** homologação (E2E 10 cenários, dossier, pen test) e credenciais X1–X4.  
 > **Objectivo:** 59 critérios de aceite (47 técnicos + 12 checklist) verificados em ambiente de homologação.  
 > **Documentação unificada:** `docs/README.md` → `DOCUMENTACAO_APLICACAO.md`, `CATALOGO_FUNCIONALIDADES.md`, `OPERACOES_E_HOMOLOGACAO.md`.
 
@@ -41,6 +41,11 @@ Um item só está **Done** quando:
 | D-17 | `ICurrentAnalystAccessor` + supervisores Entra Graph | `HttpContextAnalystAccessor`, `EntraGraphSupervisorUserDirectory` |
 | D-18 | Guards integrações produção | `ComplianceIntegrationOptions`, `RequireLiveIntegrations` |
 | D-19 | Registo manual ref. UIF (SAR pendente) | `RegisterManualUifReferenceCommand` |
+| D-21 | Congelamento BdP manual + falha API sanção | `RegisterManualAssetFreezeReferenceCommand` |
+| D-22 | SAR urgente → Pending pós-falha UIF | `RecordSarPendingAfterApiFailure` |
+| D-23 | Identidade manual contingência | `RecordManualIdentityVerificationCommand` |
+| D-24 | Sinais manuais + override UI | `AddManualRiskSignalCommand`, `SignalCard` |
+| D-25 | Nome legal + preview arranque | `LegalCompanyName`, `GetEntityResolutionPreviewQuery` |
 | D-20 | Testes UBO view builder | `UboGraphViewBuilderTests.cs` |
 | D-13 | Ollama-only LLM, OFAC SLS download | `KycLlmEngine`, Workers |
 | D-14 | Health checks, docker prod, CI | `HealthCheckExtensions`, `docker-compose.prod.yml` |
@@ -67,7 +72,7 @@ Ver **`docs/BLUEPRINT_COMPLETION_STATUS.md`** (mapa actualizado). Resumo: creden
 | **E9** RCBE | ✅ Done (E9-03 detecção pipeline P2) | — |
 | **E10** Homologação | 🟡 Testes auto ✅ | E2E manual, dossier, pen test 🔴 |
 
-**Percentagem global código:** ~92% (BdP addendum); homologação regulatória **0% evidências** até preencher `E2E_HOMOLOGACAO.md` e `dossier/`.
+**Percentagem global código:** ~95% (BdP addendum); homologação regulatória **0% evidências** até executar `E2E_HOMOLOGACAO.md` (10 cenários) e `dossier/`.
 
 ---
 

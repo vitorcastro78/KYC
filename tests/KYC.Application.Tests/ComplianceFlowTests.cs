@@ -168,6 +168,82 @@ public class ComplianceFlowTests
     }
 
     [Fact]
+    public async Task Urgent_sar_api_failure_sets_pending_for_manual_registration()
+    {
+        var kyc = KycCase.Start("123456789", "Acme", "u1", CreditAmount.Eur(50000));
+        kyc.SetScore(new RiskScore { Overall = 75, Justification = "Alto" });
+
+        var repo = new Mock<IKycCaseRepository>();
+        repo.Setup(r => r.GetByIdAsync(kyc.Id, It.IsAny<CancellationToken>())).ReturnsAsync(kyc);
+        repo.Setup(r => r.UpdateAsync(kyc, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var uif = new Mock<IUifReportingService>();
+        uif.Setup(u => u.SubmitSuspiciousActivityReportAsync(It.IsAny<SuspiciousActivityReport>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UifSubmissionResult(false, null, "UIF timeout", DateTime.UtcNow));
+
+        var processor = new SarSubmissionProcessor(repo.Object, uif.Object, new Mock<IMediator>().Object);
+        var narrative = new string('x', 200);
+        var result = await processor.SubmitAsync(kyc.Id, narrative, "analyst1", isUrgent: true, CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SarStatus.Pending, kyc.SarStatus);
+        Assert.Null(kyc.SarReferenceNumber);
+        Assert.Contains(kyc.AuditTrail, a => a.Action == "SarApiFailedPendingManual");
+    }
+
+    [Fact]
+    public async Task Register_manual_asset_freeze_after_confirmed_sanction()
+    {
+        var kyc = KycCase.Start("123456789", "Acme", "u1", CreditAmount.Eur(50000));
+        var signal = RiskSignal.Create(kyc.Id, null, SignalType.Sanction, SignalSeverity.Critical, "Match", "OFAC");
+        signal.OverrideConfirmation(true, "ok");
+        kyc.AddRiskSignal(signal);
+
+        var repo = new Mock<IKycCaseRepository>();
+        repo.Setup(r => r.GetByIdAsync(kyc.Id, It.IsAny<CancellationToken>())).ReturnsAsync(kyc);
+        repo.Setup(r => r.UpdateAsync(kyc, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var handler = new RegisterManualAssetFreezeReferenceCommandHandler(repo.Object);
+        await handler.Handle(
+            new RegisterManualAssetFreezeReferenceCommand(kyc.Id, "BDP-MAN-99", "analyst1"),
+            CancellationToken.None);
+
+        Assert.True(kyc.AssetFreezeNotified);
+        Assert.Contains(kyc.AuditTrail, a => a.Action == "AssetFreezeManualRegistered");
+    }
+
+    [Fact]
+    public async Task Override_sanction_freeze_failure_allows_manual_registration()
+    {
+        var kyc = KycCase.Start("123456789", "Acme", "u1", CreditAmount.Eur(50000));
+        var party = CaseParty.Create(kyc.Id, EntityType.Company, "Acme", "123456789",
+            EntityRole.Target, 100, 0, null);
+        kyc.AddParty(party);
+        var signal = RiskSignal.Create(kyc.Id, party.Id, SignalType.Sanction, SignalSeverity.Critical,
+            "OFAC match", "OFAC");
+        kyc.AddRiskSignal(signal);
+
+        var repo = new Mock<IKycCaseRepository>();
+        repo.Setup(r => r.GetCaseWithSignalAsync(signal.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((kyc, signal));
+        repo.Setup(r => r.UpdateAsync(kyc, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var freeze = new Mock<IAssetFreezeNotificationService>();
+        freeze.Setup(f => f.NotifyAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AssetFreezeNotificationResult(false, null, "API down", DateTime.UtcNow));
+
+        var notifier = new Mock<IKycCaseRealtimeNotifier>();
+        var handler = new OverrideSignalCommandHandler(repo.Object, freeze.Object, notifier.Object);
+        await handler.Handle(new OverrideSignalCommand(signal.Id, "analyst1", true, "Confirmado"), CancellationToken.None);
+
+        Assert.False(kyc.AssetFreezeNotified);
+        Assert.Equal(KycStatus.UnderReview, kyc.Status);
+        Assert.Contains(kyc.AuditTrail, a => a.Action == "AssetFreezeNotificationFailed");
+    }
+
+    [Fact]
     public void Policy_validator_rejects_prohibited_cae_at_start()
     {
         var policy = CustomerAcceptancePolicy.CreateV1("test");

@@ -80,6 +80,14 @@
 
                         <div class="mt-2">
 
+                            @if (!string.IsNullOrWhiteSpace(Case.SarPendingManualReason))
+
+                            {
+
+                                <div class="alert alert-warning py-1 px-2 small mb-2">@Case.SarPendingManualReason</div>
+
+                            }
+
                             <label class="form-label small mb-1">Registo manual UIF (API indisponível)</label>
 
                             <div class="input-group input-group-sm">
@@ -167,6 +175,26 @@
                         <span> — Ref: @Case.AssetFreezeConfirmationRef</span>
 
                     }
+
+                </div>
+
+            }
+
+            else if (Case.NeedsManualAssetFreezeRegistration)
+
+            {
+
+                <div class="alert alert-danger">
+
+                    <strong>Congelamento BdP pendente</strong> — a API falhou ou não está configurada. Registe a referência de confirmação manualmente.
+
+                    <div class="input-group input-group-sm mt-2">
+
+                        <input class="form-control" @bind="_manualFreezeRef" placeholder="Ref. confirmação BdP" />
+
+                        <button type="button" class="btn btn-outline-light" @onclick="RegisterManualFreeze">Registar</button>
+
+                    </div>
 
                 </div>
 
@@ -332,6 +360,8 @@
 
     private string _manualUifRef = "";
 
+    private string _manualFreezeRef = "";
+
 
 
     private string? _suggestedNarrative =>
@@ -393,6 +423,12 @@
         "SarQueued" => "SAR em fila",
 
         "SarManualRegistered" => "SAR manual UIF",
+
+        "SarApiFailedPendingManual" => "SAR pendente (falha API)",
+
+        "AssetFreezeManualRegistered" => "Congelamento manual BdP",
+
+        "AssetFreezeNotificationFailed" => "Congelamento API falhou",
 
         "SarNotRequired" => "SAR não aplicável",
 
@@ -471,6 +507,36 @@
         Toast.Show("Referência UIF registada.", ToastLevel.Success);
 
         _manualUifRef = "";
+
+        await OnChanged.InvokeAsync();
+
+    }
+
+
+
+    private async Task RegisterManualFreeze()
+
+    {
+
+        if (string.IsNullOrWhiteSpace(_manualFreezeRef))
+
+        {
+
+            Toast.Show("Indique a referência BdP.", ToastLevel.Warning);
+
+            return;
+
+        }
+
+
+
+        await Mediator.Send(new RegisterManualAssetFreezeReferenceCommand(
+
+            CaseId, _manualFreezeRef.Trim(), await AnalystIdAsync()));
+
+        Toast.Show("Congelamento BdP registado.", ToastLevel.Success);
+
+        _manualFreezeRef = "";
 
         await OnChanged.InvokeAsync();
 

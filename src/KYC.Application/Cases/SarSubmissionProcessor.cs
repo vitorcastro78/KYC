@@ -86,6 +86,19 @@ public sealed class SarSubmissionProcessor(
         }
         else
         {
+            if (kyc.SarStatus != SarStatus.Submitted)
+            {
+                if (isUrgent)
+                    kyc.RecordSarPendingAfterApiFailure(analystId, result.ErrorMessage);
+                else
+                    kyc.AppendAudit(AuditEntry.Create(
+                        kyc.Id,
+                        "SarApiFailedPendingManual",
+                        analystId,
+                        "User",
+                        result.ErrorMessage ?? "Submissão UIF em fila falhou — registo manual necessário."));
+            }
+
             await repository.UpdateAsync(kyc, ct);
         }
 
