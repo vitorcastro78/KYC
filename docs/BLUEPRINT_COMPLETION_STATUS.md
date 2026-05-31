@@ -1,6 +1,6 @@
 # Estado de conclusão dos Blueprints — KYC Platform
 
-> **Última actualização:** Maio 2026 · Branch `feature/kyc-document-ingestion`  
+> **Última actualização:** Maio 2026 · Branch `feature/kyc-document-ingestion` · Commit `fc47caa`  
 > **Objectivo:** aplicação **production-ready**, não protótipo.  
 > **Fontes:** `Blueprint.md` (v1.1) + `BLUEPRINT_BdP_Compliance_Addendum.md` + `docs/PLANO_DESENVOLVIMENTO_COMPLIANCE_BDP.md`
 
@@ -10,9 +10,9 @@
 
 | Blueprint | Código | Integrações reais | Homologação |
 |-----------|--------|-------------------|-------------|
-| **Blueprint.md** (core KYC) | **~88%** | Variável por ambiente | E2E manual pendente |
+| **Blueprint.md** (core KYC) | **~90%** | Variável por ambiente | E2E manual pendente |
 | **BdP Addendum** (compliance) | **~92%** | UIF / BdP freeze / identidade requerem URL + credenciais | Dossier + pen test pendentes |
-| **Global** | **~90%** | Configurar `.env` produção | Executar `docs/E2E_HOMOLOGACAO.md` |
+| **Global** | **~92%** código · **0%** evidências homologação | Configurar `.env` produção | Executar `docs/OPERACOES_E_HOMOLOGACAO.md` §4–7 |
 
 **Legenda:** ✅ Done · 🟡 Parcial / modo dev · 🔴 Pendente · 🌐 Externo (compliance/BdP)
 

@@ -10,12 +10,15 @@
 | [**CATALOGO_FUNCIONALIDADES.md**](CATALOGO_FUNCIONALIDADES.md) | Catálogo completo de features por módulo, estado e base legal |
 | [**OPERACOES_E_HOMOLOGACAO.md**](OPERACOES_E_HOMOLOGACAO.md) | Deploy, runbooks, E2E, checklists, pen test, dossier |
 
-## Estado e planeamento
+## Estado e planeamento (andamento do projeto)
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md) | Mapa de conclusão Blueprint.md + adenda BdP |
-| [PLANO_DESENVOLVIMENTO_COMPLIANCE_BDP.md](PLANO_DESENVOLVIMENTO_COMPLIANCE_BDP.md) | Épicos E1–E10, sprints, dependências externas |
+| Documento | Conteúdo | Actualizado? |
+|-----------|----------|--------------|
+| [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md) | **Fonte de verdade** — % conclusão por fase/épico | ✅ Maio 2026 |
+| [PLANO_DESENVOLVIMENTO_COMPLIANCE_BDP.md](PLANO_DESENVOLVIMENTO_COMPLIANCE_BDP.md) | Backlog E1–E10 + **§2.3 estado por épico** | ✅ §2 actualizado |
+| [CATALOGO_FUNCIONALIDADES.md](CATALOGO_FUNCIONALIDADES.md) | Features com estado ✅/🟡/🔴 | ✅ Maio 2026 |
+
+> **Nota:** Tabelas de tarefas E1–E10 no PLANO são especificação; o andamento está em §2.3 do PLANO e em `BLUEPRINT_COMPLETION_STATUS.md`.
 
 ## Especificações de origem (raiz do repositório)
 

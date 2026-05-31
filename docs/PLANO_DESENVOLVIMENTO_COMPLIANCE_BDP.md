@@ -1,8 +1,9 @@
 # Plano de Desenvolvimento — Conformidade BdP 100%
 
 > **Base:** `BLUEPRINT_BdP_Compliance_Addendum.md` (sec. 13–22) + `docs/CHECKLIST_HOMOLOGACAO_BDP.md`  
-> **Estado actual (Maio 2026):** ~90% código (ver `docs/BLUEPRINT_COMPLETION_STATUS.md`); pendente integrações reais (UIF/BdP/identidade), template RPB oficial e homologação (E2E, dossier, pen test).  
-> **Objectivo:** 59 critérios de aceite (47 técnicos + 12 checklist) verificados em ambiente de homologação.
+> **Estado actual (Maio 2026, commit `fc47caa`):** ~92% código produto (ver `docs/BLUEPRINT_COMPLETION_STATUS.md`); pendente integrações reais (UIF/BdP/identidade), template RPB oficial (X1) e **execução** de homologação (E2E, dossier, pen test).  
+> **Objectivo:** 59 critérios de aceite (47 técnicos + 12 checklist) verificados em ambiente de homologação.  
+> **Documentação unificada:** `docs/README.md` → `DOCUMENTACAO_APLICACAO.md`, `CATALOGO_FUNCIONALIDADES.md`, `OPERACOES_E_HOMOLOGACAO.md`.
 
 ---
 
@@ -34,8 +35,13 @@ Um item só está **Done** quando:
 | D-08 | Asset freeze no `OverrideSignalCommand` | `ComplianceCommandHandlers.cs` |
 | D-09 | `PeriodicReviewSchedulerJob` | `PeriodicReviewSchedulerJob.cs` |
 | D-10 | `IAmlComplianceReportService` + export JSON | `AmlComplianceReportService.cs` |
-| D-11 | UI parcial compliance | `ComplianceCaseSection.razor` |
-| D-12 | Admin leitura RPB / scoring / DPIA | `Pages/Admin/*` |
+| D-11 | UI compliance (SAR, identidade, EDD, badges) | `ComplianceCaseSection`, `PartyIdentityPanel`, `SarActionModals`, `EntityCard` |
+| D-12 | Admin RPB / scoring / DPIA + upload | `Pages/Admin/*` |
+| D-16 | Grafo UBO UI rico + merge partes caso | `UboGraphView`, `UboGraphViewBuilder` |
+| D-17 | `ICurrentAnalystAccessor` + supervisores Entra Graph | `HttpContextAnalystAccessor`, `EntraGraphSupervisorUserDirectory` |
+| D-18 | Guards integrações produção | `ComplianceIntegrationOptions`, `RequireLiveIntegrations` |
+| D-19 | Registo manual ref. UIF (SAR pendente) | `RegisterManualUifReferenceCommand` |
+| D-20 | Testes UBO view builder | `UboGraphViewBuilderTests.cs` |
 | D-13 | Ollama-only LLM, OFAC SLS download | `KycLlmEngine`, Workers |
 | D-14 | Health checks, docker prod, CI | `HealthCheckExtensions`, `docker-compose.prod.yml` |
 | D-15 | Testes `PolicyComplianceValidator` | `PolicyComplianceValidatorTests.cs` |
@@ -43,6 +49,25 @@ Um item só está **Done** quando:
 ### 2.2 Em falta (âmbito deste plano)
 
 Ver **`docs/BLUEPRINT_COMPLETION_STATUS.md`** (mapa actualizado). Resumo: credenciais externas X1–X6, homologação E10 (E2E, dossier, pen test), Claude/Blob (fase 2 blueprint principal).
+
+### 2.3 Estado por épico — código (Maio 2026)
+
+> As tabelas da secção 3 são **especificação/backlog**; esta secção reflecte o **andamento real**.
+
+| Épico | Código | Pendente (não código) |
+|-------|--------|------------------------|
+| **E1** PAC / arranque | ✅ Done | — |
+| **E2** Identidade | ✅ Done (E2-09 P2 opcional) | Credenciais prestador X3 em prod |
+| **E3** SAR / UIF | ✅ Done (E3-12 P2 SignalR opcional) | API UIF real X2; evidência homologação |
+| **E4** EDD | ✅ Done (E4-06 P2) | — |
+| **E5** Congelamento | ✅ Done | API BdP real X4 |
+| **E6** Explainability | ✅ Done | — |
+| **E7** RPB | 🟡 Export XML interno | Template oficial X1 (E7-01) |
+| **E8** Admin versões | ✅ Done | — |
+| **E9** RCBE | ✅ Done (E9-03 detecção pipeline P2) | — |
+| **E10** Homologação | 🟡 Testes auto ✅ | E2E manual, dossier, pen test 🔴 |
+
+**Percentagem global código:** ~92% (BdP addendum); homologação regulatória **0% evidências** até preencher `E2E_HOMOLOGACAO.md` e `dossier/`.
 
 ---
 
