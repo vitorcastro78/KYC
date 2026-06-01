@@ -1,3 +1,5 @@
+using KYC.Application.Common;
+
 namespace KYC.Application.Dtos;
 
 public record KycCaseScanProgressDto(
@@ -6,7 +8,10 @@ public record KycCaseScanProgressDto(
     int CompletedScans,
     int FailedScans)
 {
-    public int PercentComplete =>
-        TotalScans <= 0 ? 0 : Math.Clamp((int)Math.Round((double)CompletedScans * 100 / TotalScans), 0, 100);
+    public int PercentComplete => KycCaseScanProgressScale.UsesUiPercentScale(TotalScans)
+        ? Math.Clamp(CompletedScans, 0, 100)
+        : TotalScans <= 0
+            ? 0
+            : Math.Clamp((int)Math.Round((double)CompletedScans * 100 / TotalScans), 0, 100);
 }
 

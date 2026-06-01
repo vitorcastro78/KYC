@@ -175,3 +175,242 @@
         padding: 1.5rem 1.25rem;
     }
 }
+
+/* —— Identity app shell (Manage, Register, etc.) —— */
+.identity-app-layout {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--kyc-bg, #f4f7fb);
+    color: var(--kyc-text, #1f2f43);
+}
+
+.identity-topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--kyc-border, #d7e1ef);
+    box-shadow: 0 4px 14px rgba(15, 39, 70, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.identity-topbar-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.identity-brand {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.identity-brand:hover {
+    color: inherit;
+    opacity: 0.92;
+}
+
+.identity-brand-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #16324f;
+    letter-spacing: 0.02em;
+}
+
+.identity-brand-subtitle {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #5b728c;
+    margin-top: 0.1rem;
+}
+
+.identity-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.identity-user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--kyc-border, #d7e1ef);
+    border-radius: 999px;
+    background: #f9fbff;
+    color: #36516f;
+    font-size: 0.88rem;
+    max-width: 240px;
+}
+
+.identity-user-pill span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.identity-main {
+    flex: 1;
+    max-width: 1120px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.65rem 1.25rem 2rem;
+}
+
+.identity-footer {
+    text-align: center;
+    padding: 1rem 1.25rem 1.25rem;
+    font-size: 0.82rem;
+    color: #6a849c;
+    border-top: 1px solid #e6edf6;
+    background: #fff;
+}
+
+.identity-page-header {
+    margin-bottom: 1.35rem;
+}
+
+.identity-page-title {
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    margin-bottom: 0.35rem;
+    color: #16324f;
+}
+
+.identity-page-lead {
+    margin: 0;
+    color: #5b728c;
+    font-size: 0.98rem;
+    max-width: 42rem;
+}
+
+.identity-manage-grid {
+    display: grid;
+    grid-template-columns: minmax(200px, 260px) 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.identity-manage-aside {
+    position: sticky;
+    top: 5.5rem;
+}
+
+.identity-manage-nav {
+    background: #fff;
+    border: 1px solid var(--kyc-border, #d7e1ef);
+    border-radius: 0.65rem;
+    box-shadow: 0 8px 20px rgba(15, 39, 70, 0.06);
+    padding: 0.85rem 0.65rem;
+}
+
+.identity-manage-nav-label {
+    padding: 0 0.55rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #5b728c;
+}
+
+.identity-manage-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #2e4967;
+    font-weight: 600;
+    font-size: 0.92rem;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.65rem;
+}
+
+.identity-manage-nav .nav-link .oi {
+    color: #5b85b8;
+    width: 1.1rem;
+}
+
+.identity-manage-nav .nav-link:hover {
+    background: #f0f5fc;
+    color: #16324f;
+}
+
+.identity-manage-nav .nav-link.active {
+    background: linear-gradient(90deg, rgba(33, 110, 199, 0.14), rgba(31, 94, 158, 0.1));
+    color: #16324f;
+    box-shadow: inset 0 0 0 1px rgba(31, 94, 158, 0.22);
+}
+
+.identity-page-card {
+    background: #fff;
+    border: 1px solid var(--kyc-border, #d7e1ef);
+    border-radius: 0.65rem;
+    box-shadow: 0 8px 20px rgba(15, 39, 70, 0.06);
+    padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.identity-page-card > h1,
+.identity-page-card > h2,
+.identity-page-card > h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: #16324f;
+}
+
+.identity-page-card .form-group,
+.identity-page-card .mb-3 {
+    margin-bottom: 1rem;
+}
+
+.identity-page-card label {
+    font-weight: 600;
+    color: #2e4967;
+    font-size: 0.9rem;
+}
+
+.identity-page-card .text-danger {
+    font-size: 0.85rem;
+}
+
+.identity-page-card .btn-primary {
+    min-height: 2.5rem;
+}
+
+.identity-standalone-panel {
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0 1rem;
+}
+
+.identity-page-card--narrow {
+    width: 100%;
+    max-width: 480px;
+}
+
+@media (max-width: 768px) {
+    .identity-manage-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .identity-manage-aside {
+        position: static;
+    }
+
+    .identity-manage-nav .nav {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    .identity-user-pill {
+        display: none;
+    }
+}

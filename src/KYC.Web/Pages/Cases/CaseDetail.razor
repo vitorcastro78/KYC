@@ -15,6 +15,7 @@
 @inject ToastService Toast
 @inject IConfiguration Configuration
 @inject ICurrentAnalystAccessor AnalystAccessor
+@inject ICircuitDbGate DbGate
 
 <PageTitle>Caso</PageTitle>
 
@@ -50,11 +51,11 @@ else
 
     @if (!string.IsNullOrWhiteSpace(_case.CanApproveMessage))
     {
-        <div class="alert alert-danger py-2 mb-3">@_case.CanApproveMessage</div>
+        <div class="alert alert-danger py-2 mb-3">@ComplianceUiLabels.FormatApproveBlockMessage(_case.CanApproveMessage)</div>
     }
 
     <div id="compliance-section">
-        <ComplianceCaseSection Case="_case" CaseId="CaseId" OnChanged="Reload" />
+        <ComplianceCaseSection Case="_case" CaseId="CaseId" OnChanged="ReloadUngated" />
     </div>
 
     <div class="card mb-3">
@@ -267,7 +268,7 @@ else
                     <h6 class="text-muted small text-uppercase mt-3 mb-2">@group.Key</h6>
                     @foreach (var s in group.OrderByDescending(x => x.DetectedAt))
                     {
-                        <SignalCard Signal="s" CaseId="CaseId" OnChanged="Reload" />
+                        <SignalCard Signal="s" CaseId="CaseId" OnChanged="ReloadUngated" />
                     }
                 }
             }
@@ -427,7 +428,7 @@ else
                OnCancel="() => _showApprove = false">
     @if (!string.IsNullOrWhiteSpace(_case?.CanApproveMessage))
     {
-        <div class="alert alert-danger mb-0">@_case.CanApproveMessage</div>
+        <div class="alert alert-danger mb-0">@ComplianceUiLabels.FormatApproveBlockMessage(_case.CanApproveMessage)</div>
     }
     else
     {
@@ -516,8 +517,9 @@ else
     private KycCaseDetailDto? _case;
     private RiskTimelineDto? _timeline;
     private HubConnection? _hub;
-    private bool _hubConnectAttempted;
-    private readonly SemaphoreSlim _dataGate = new(1, 1);
+    private bool _hubHandlersRegistered;
+    private CancellationTokenSource? _pollCts;
+    private CancellationTokenSource? _reloadDebounceCts;
     private readonly ScanProgressTracker _scan = new();
     private bool _disposed;
     private bool _showApprove, _showReject, _showReview, _showRescreen;
@@ -553,7 +555,10 @@ else
         if (_uboExpanded && !_uboLoadStarted)
         {
             _uboLoadStarted = true;
-            _uboGraph = await Mediator.Send(new GetUboGraphQuery(CaseId));
+            await RunDataAsync(async () =>
+            {
+                _uboGraph = await Mediator.Send(new GetUboGraphQuery(CaseId));
+            });
         }
     }
 
@@ -578,31 +583,43 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        await DbGate.RunAsync(async () =>
         {
-            _supervisors = await Mediator.Send(new GetSupervisorUsersQuery());
-        }
-        catch
-        {
-            _supervisors = [];
-        }
-        await RunDataAsync(ReloadCoreAsync);
+            try
+            {
+                _supervisors = await Mediator.Send(new GetSupervisorUsersQuery());
+            }
+            catch
+            {
+                _supervisors = [];
+            }
+
+            await ReloadCoreAsync();
+        });
+
+        EnsureScanPollingIfNeeded();
+        await ConnectHubAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _hubConnectAttempted)
+        if (!firstRender)
             return;
 
-        _hubConnectAttempted = true;
         await ConnectHubAsync();
     }
 
     private async Task ConnectHubAsync()
     {
+        if (_hub?.State == HubConnectionState.Connected)
+            return;
+
         try
         {
-            _hub = HubFactory.Create();
+            _hub ??= HubFactory.Create();
+            if (!_hubHandlersRegistered)
+            {
+                _hubHandlersRegistered = true;
             _hub.On<Guid, string, int>("ScanProgressUpdated", (id, module, pct) =>
             {
                 if (id != CaseId || _disposed) return;
@@ -612,8 +629,9 @@ else
                     var result = _scan.ApplyHubUpdate(module, pct);
                     if (result == ScanProgressHubResult.Failed)
                     {
+                        StopScanPolling();
                         _actionError = "A triagem automática falhou. Consulte os logs do servidor ou tente novamente.";
-                        await RunDataAsync(ReloadCoreAsync);
+                        RequestDebouncedReloadAsync();
                         return;
                     }
 
@@ -621,7 +639,11 @@ else
                         return;
 
                     if (result == ScanProgressHubResult.Completed)
-                        await RunDataAsync(ReloadCoreAsync);
+                    {
+                        StopScanPolling();
+                        Toast.Show("Triagem automática concluída.", ToastLevel.Success);
+                        RequestDebouncedReloadAsync();
+                    }
 
                     StateHasChanged();
                 });
@@ -629,33 +651,47 @@ else
             _hub.On<Guid, string>("StatusChanged", (id, status) =>
             {
                 if (id != CaseId || _disposed) return;
-                _ = InvokeAsync(async () =>
+                _ = InvokeAsync(() =>
                 {
-                    if (_disposed) return;
-                    await RunDataAsync(ReloadCoreAsync);
+                    if (_disposed || _scan.InProgress)
+                        return Task.CompletedTask;
+
+                    RequestDebouncedReloadAsync();
+                    return Task.CompletedTask;
                 });
             });
             _hub.On<Guid, string>("ReportReady", (id, status) =>
             {
                 if (id != CaseId || _disposed) return;
-                _ = InvokeAsync(async () =>
+                _ = InvokeAsync(() =>
                 {
-                    if (_disposed) return;
-                    await RunDataAsync(ReloadCoreAsync);
+                    if (_disposed) return Task.CompletedTask;
+
+                    StopScanPolling();
+                    _scan.ApplyCompletedCaseView();
+                    Toast.Show("Relatório KYC disponível.", ToastLevel.Success);
+                    RequestDebouncedReloadAsync(immediate: true);
+                    return Task.CompletedTask;
                 });
             });
             _hub.On<Guid, Guid, string>("DocumentIngestionUpdated", (id, documentId, status) =>
             {
                 if (id != CaseId || _disposed) return;
-                _ = InvokeAsync(async () =>
+                _ = InvokeAsync(() =>
                 {
-                    if (_disposed) return;
-                    await RunDataAsync(ReloadCoreAsync);
+                    if (_disposed) return Task.CompletedTask;
+
+                    RequestDebouncedReloadAsync();
+                    return Task.CompletedTask;
                 });
             });
+            }
 
-            await _hub.StartAsync();
-            await _hub.SendAsync("JoinCaseGroup", CaseId);
+            if (_hub.State == HubConnectionState.Disconnected)
+                await _hub.StartAsync();
+
+            if (_hub.State == HubConnectionState.Connected)
+                await _hub.SendAsync("JoinCaseGroup", CaseId);
             try
             {
                 await _hub.SendAsync("JoinSupervisorsGroup");
@@ -674,6 +710,8 @@ else
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        StopScanPolling();
+        CancelReloadDebounce();
 
         if (_hub is not null)
         {
@@ -730,6 +768,8 @@ else
         _actionError = null;
         try
         {
+            await DbGate.RunAsync(async () =>
+            {
             Guid? parent = null;
             if (!string.IsNullOrWhiteSpace(_addForm.ParentPartyIdStr) &&
                 Guid.TryParse(_addForm.ParentPartyIdStr, out var pid))
@@ -748,7 +788,8 @@ else
                 string.IsNullOrWhiteSpace(_addForm.Nationality) ? null : _addForm.Nationality,
                 _addForm.RunScreeningAfterAdd));
             _showAddParty = false;
-            await Reload();
+            await ReloadCoreAsync();
+            });
         }
         catch (ValidationException vex)
         {
@@ -773,6 +814,8 @@ else
         _actionError = null;
         try
         {
+            await DbGate.RunAsync(async () =>
+            {
             Guid? partyId = null;
             if (Guid.TryParse(_uploadForm.CasePartyIdStr, out var pid))
                 partyId = pid;
@@ -791,7 +834,8 @@ else
             _showUploadDocument = false;
             _uploadFile = null;
             _uploadForm = new UploadDocumentFormModel();
-            await Reload();
+            await ReloadCoreAsync();
+            });
         }
         catch (ValidationException vex)
         {
@@ -841,23 +885,35 @@ else
         _rescreenBusy = true;
         _actionError = null;
         _scan.BeginRescreen();
+        StateHasChanged();
         try
         {
-            await Mediator.Send(new RerunKycCaseScreeningCommand(CaseId, await AnalystIdAsync()));
+            await DbGate.RunAsync(async () =>
+            {
+                await Mediator.Send(new RerunKycCaseScreeningCommand(CaseId, await AnalystIdAsync()));
+                await ReloadCoreAsync();
+            });
+
+            StartScanPolling();
+
+            if (_hub?.State == HubConnectionState.Connected)
+                await _hub.SendAsync("JoinCaseGroup", CaseId);
             _showRescreen = false;
-            await RunDataAsync(ReloadCoreAsync);
+            Toast.Show("Triagem automática iniciada — acompanhe o progresso abaixo.", ToastLevel.Info);
         }
         catch (ValidationException vex)
         {
             _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
             _showRescreen = false;
             _scan.ResetAfterFailure();
+            StopScanPolling();
         }
         catch (Exception ex)
         {
             _actionError = ex.Message;
             _showRescreen = false;
             _scan.ResetAfterFailure();
+            StopScanPolling();
         }
         finally
         {
@@ -870,11 +926,17 @@ else
         _actionError = null;
         try
         {
+            var newSignals = 0;
             await RunDataAsync(async () =>
             {
-                await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, await AnalystIdAsync()));
+                newSignals = await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, await AnalystIdAsync()));
                 await ReloadCoreAsync();
             });
+            Toast.Show(
+                newSignals > 0
+                    ? $"Triagem concluída — {newSignals} sinal(is) novo(s)."
+                    : "Triagem concluída — sem novos sinais para esta parte.",
+                newSignals > 0 ? ToastLevel.Warning : ToastLevel.Success);
         }
         catch (ValidationException vex)
         {
@@ -906,40 +968,78 @@ else
     {
         if (!CanConfirmApprove())
             return;
-        await RunDataAsync(async () =>
+
+        _actionError = null;
+        try
         {
-            await Mediator.Send(new ApproveKycCaseCommand(
-                CaseId,
-                await AnalystIdAsync(),
-                "Aprovado",
-                string.IsNullOrWhiteSpace(_secondApproverId) ? null : _secondApproverId.Trim()));
-            _secondApproverId = "";
-            _showApprove = false;
-            await ReloadCoreAsync();
-        });
+            await RunDataAsync(async () =>
+            {
+                await Mediator.Send(new ApproveKycCaseCommand(
+                    CaseId,
+                    await AnalystIdAsync(),
+                    "Aprovado",
+                    string.IsNullOrWhiteSpace(_secondApproverId) ? null : _secondApproverId.Trim()));
+                _secondApproverId = "";
+                _showApprove = false;
+                await ReloadCoreAsync();
+            });
+            Toast.Show("Caso aprovado.", ToastLevel.Success);
+        }
+        catch (ValidationException vex)
+        {
+            _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+        }
     }
 
     private async Task Reject()
     {
-        await RunDataAsync(async () =>
+        _actionError = null;
+        try
         {
-            await Mediator.Send(new RejectKycCaseCommand(CaseId, await AnalystIdAsync(), _rejectReason));
-            _showReject = false;
-            await ReloadCoreAsync();
-        });
+            await RunDataAsync(async () =>
+            {
+                await Mediator.Send(new RejectKycCaseCommand(CaseId, await AnalystIdAsync(), _rejectReason));
+                _showReject = false;
+                await ReloadCoreAsync();
+            });
+            Toast.Show("Caso rejeitado.", ToastLevel.Info);
+        }
+        catch (ValidationException vex)
+        {
+            _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+        }
     }
 
     private async Task Review()
     {
-        await RunDataAsync(async () =>
+        _actionError = null;
+        try
         {
-            await Mediator.Send(new RequestManualReviewCommand(CaseId, _reviewReason));
-            _showReview = false;
-            await ReloadCoreAsync();
-        });
+            await RunDataAsync(async () =>
+            {
+                await Mediator.Send(new RequestManualReviewCommand(CaseId, _reviewReason));
+                _showReview = false;
+                await ReloadCoreAsync();
+            });
+            Toast.Show("Revisão manual registada.", ToastLevel.Info);
+        }
+        catch (ValidationException vex)
+        {
+            _actionError = string.Join(" ", vex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception ex)
+        {
+            _actionError = ex.Message;
+        }
     }
-
-    private Task Reload() => RunDataAsync(ReloadCoreAsync);
 
     private async Task SubmitManualSignalAsync()
     {
@@ -949,24 +1049,27 @@ else
         _manualSignalBusy = true;
         try
         {
-            Guid? partyId = null;
-            if (Guid.TryParse(_manualSignalPartyIdStr, out var pid))
-                partyId = pid;
+            await DbGate.RunAsync(async () =>
+            {
+                Guid? partyId = null;
+                if (Guid.TryParse(_manualSignalPartyIdStr, out var pid))
+                    partyId = pid;
 
-            await Mediator.Send(new AddManualRiskSignalCommand(
-                CaseId,
-                await AnalystIdAsync(),
-                _manualSignalType,
-                _manualSignalSeverity,
-                _manualSignalDescription,
-                _manualSignalSource,
-                partyId));
+                await Mediator.Send(new AddManualRiskSignalCommand(
+                    CaseId,
+                    await AnalystIdAsync(),
+                    _manualSignalType,
+                    _manualSignalSeverity,
+                    _manualSignalDescription,
+                    _manualSignalSource,
+                    partyId));
+                await ReloadCoreAsync();
+            });
             Toast.Show("Sinal manual registado.", ToastLevel.Success);
             _showManualSignal = false;
             _manualSignalSource = "";
             _manualSignalDescription = "";
             _manualSignalPartyIdStr = "";
-            await ReloadCoreAsync();
         }
         catch (Exception ex)
         {
@@ -978,6 +1081,123 @@ else
         }
     }
 
+    private void StartScanPolling()
+    {
+        StopScanPolling();
+        _pollCts = new CancellationTokenSource();
+        _ = PollScanProgressLoopAsync(_pollCts.Token);
+    }
+
+    private void StopScanPolling()
+    {
+        try
+        {
+            _pollCts?.Cancel();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _pollCts?.Dispose();
+        _pollCts = null;
+    }
+
+    private async Task PollScanProgressLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested && !_disposed && _scan.InProgress)
+            {
+                var completed = false;
+                await DbGate.RunAsync(async () =>
+                {
+                    var active = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
+                    var pct = active?.PercentComplete ?? 0;
+                    var hubConnected = _hub?.State == HubConnectionState.Connected;
+                    _scan.TryApplyDatabaseFallback(pct, hubConnected);
+
+                    if (active is not null && active.PercentComplete >= 100)
+                    {
+                        await ReloadCoreAsync();
+                        _scan.ApplyCompletedCaseView();
+                        completed = true;
+                    }
+                });
+
+                if (completed)
+                {
+                    StopScanPolling();
+                    if (!_disposed)
+                    {
+                        Toast.Show("Triagem automática concluída.", ToastLevel.Success);
+                        await InvokeAsync(StateHasChanged);
+                    }
+
+                    return;
+                }
+
+                if (!_disposed)
+                    await InvokeAsync(StateHasChanged);
+
+                await Task.Delay(2000, ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // encerramento normal
+        }
+    }
+
+    private void CancelReloadDebounce()
+    {
+        try
+        {
+            _reloadDebounceCts?.Cancel();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _reloadDebounceCts?.Dispose();
+        _reloadDebounceCts = null;
+    }
+
+    private void RequestDebouncedReloadAsync(bool immediate = false)
+    {
+        if (_disposed)
+            return;
+
+        CancelReloadDebounce();
+        _reloadDebounceCts = new CancellationTokenSource();
+        var token = _reloadDebounceCts.Token;
+
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                if (!immediate)
+                    await Task.Delay(300, token);
+
+                if (_disposed || token.IsCancellationRequested)
+                    return;
+
+                await RunDataAsync(async () =>
+                {
+                    await ReloadCoreAsync();
+                });
+                EnsureScanPollingIfNeeded();
+                if (!_disposed)
+                    StateHasChanged();
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // debounce substituído
+            }
+        });
+    }
+
     private async Task ReloadCoreAsync()
     {
         _case = await Mediator.Send(new GetKycCaseQuery(CaseId));
@@ -985,29 +1205,23 @@ else
         await RefreshScanProgressAsync();
     }
 
-    private async Task RunDataAsync(Func<Task> action)
+    private void EnsureScanPollingIfNeeded()
+    {
+        if (!_disposed && _scan.InProgress && _pollCts is null)
+            StartScanPolling();
+    }
+
+    private Task RunDataAsync(Func<Task> action)
     {
         if (_disposed)
-            return;
+            return Task.CompletedTask;
 
-        await _dataGate.WaitAsync();
-        try
-        {
-            if (!_disposed)
-                await action();
-        }
-        finally
-        {
-            try
-            {
-                _dataGate.Release();
-            }
-            catch (ObjectDisposedException)
-            {
-                // componento já destruído
-            }
-        }
+        return DbGate.RunAsync(action);
     }
+
+    private Task Reload() => RunDataAsync(ReloadCoreAsync);
+
+    private Task ReloadUngated() => ReloadCoreAsync();
 
     private async Task RefreshScanProgressAsync()
     {
@@ -1018,16 +1232,12 @@ else
 
         if (_scan.InProgress)
         {
-            if (!hubConnected)
-            {
-                var active = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
-                _scan.TryApplyDatabaseFallback(active?.PercentComplete ?? 0, hubConnected: false);
-            }
-
+            var active = await Mediator.Send(new GetKycCaseScanProgressQuery(CaseId));
+            _scan.TryApplyDatabaseFallback(active?.PercentComplete ?? 0, hubConnected);
             return;
         }
 
-        if (IsScanFinished(_case.Status))
+        if (IsScanFinished(_case.Status) && !_scan.InProgress)
         {
             _scan.ApplyCompletedCaseView();
             return;

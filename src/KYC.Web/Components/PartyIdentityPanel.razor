@@ -6,6 +6,7 @@
 @inject IMediator Mediator
 @inject ToastService Toast
 @inject ICurrentAnalystAccessor AnalystAccessor
+@inject ICircuitDbGate DbGate
 
 <div class="party-identity-panel @CompactClass">
     <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
@@ -148,17 +149,21 @@
     {
         try
         {
-            await Mediator.Send(new RecordManualIdentityVerificationCommand(
-                CaseId,
-                Party.Id,
-                await AnalystIdAsync(),
-                _manualJustification,
-                string.IsNullOrWhiteSpace(_manualDocRef) ? null : _manualDocRef.Trim()));
+            await DbGate.RunAsync(async () =>
+            {
+                await Mediator.Send(new RecordManualIdentityVerificationCommand(
+                    CaseId,
+                    Party.Id,
+                    await AnalystIdAsync(),
+                    _manualJustification,
+                    string.IsNullOrWhiteSpace(_manualDocRef) ? null : _manualDocRef.Trim()));
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+            });
             Toast.Show("Verificação manual registada.", ToastLevel.Success);
             _manualJustification = "";
             _manualDocRef = "";
             CloseManualVerificationModal();
-            await OnChanged.InvokeAsync();
         }
         catch (Exception ex)
         {
@@ -168,31 +173,53 @@
 
     private async Task ConfirmVerification()
     {
-        if (_verificationMethod == IdentityVerificationMethod.Presential)
+        try
         {
-            await Mediator.Send(new RecordPresentialVerificationCommand(
-                CaseId, Party.Id, await AnalystIdAsync(), _presentialDocRef));
-            Toast.Show("Verificação presencial registada.", ToastLevel.Success);
-        }
-        else
-        {
-            var session = await Mediator.Send(new InitiateEntityVerificationCommand(
-                CaseId, Party.Id, _verificationMethod, await AnalystIdAsync()));
-            Toast.Show(
-                string.IsNullOrWhiteSpace(session.VerificationUrl)
-                    ? "Sessão de verificação iniciada."
-                    : "Sessão iniciada — use «Abrir portal de verificação».",
-                ToastLevel.Success);
-        }
+            await DbGate.RunAsync(async () =>
+            {
+                if (_verificationMethod == IdentityVerificationMethod.Presential)
+                {
+                    await Mediator.Send(new RecordPresentialVerificationCommand(
+                        CaseId, Party.Id, await AnalystIdAsync(), _presentialDocRef));
+                }
+                else
+                {
+                    await Mediator.Send(new InitiateEntityVerificationCommand(
+                        CaseId, Party.Id, _verificationMethod, await AnalystIdAsync()));
+                }
 
-        CloseVerificationModal();
-        await OnChanged.InvokeAsync();
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+            });
+
+            Toast.Show(
+                _verificationMethod == IdentityVerificationMethod.Presential
+                    ? "Verificação presencial registada."
+                    : "Sessão de verificação iniciada.",
+                ToastLevel.Success);
+            CloseVerificationModal();
+        }
+        catch (Exception ex)
+        {
+            Toast.Show(ex.Message, ToastLevel.Error);
+        }
     }
 
     private async Task ReportRcbe()
     {
-        await Mediator.Send(new ReportRcbeDiscrepancyCommand(CaseId, Party.Id, await AnalystIdAsync()));
-        Toast.Show("Discrepância RCBE reportada.", ToastLevel.Success);
-        await OnChanged.InvokeAsync();
+        try
+        {
+            await DbGate.RunAsync(async () =>
+            {
+                await Mediator.Send(new ReportRcbeDiscrepancyCommand(CaseId, Party.Id, await AnalystIdAsync()));
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+            });
+            Toast.Show("Discrepância RCBE reportada.", ToastLevel.Success);
+        }
+        catch (Exception ex)
+        {
+            Toast.Show(ex.Message, ToastLevel.Error);
+        }
     }
 }

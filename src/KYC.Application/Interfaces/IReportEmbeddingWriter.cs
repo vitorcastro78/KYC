@@ -6,4 +6,6 @@ public interface IReportEmbeddingWriter
     Task StoreChunksAsync(Guid kycCaseId, IReadOnlyList<(string Chunk, float[] Vector)> chunks, CancellationToken ct = default);
 
     Task EmbedReportTextAsync(Guid kycCaseId, string markdown, CancellationToken ct = default);
+
+    Task ClearEmbeddingsAsync(Guid kycCaseId, CancellationToken ct = default);
 }

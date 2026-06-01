@@ -5,6 +5,8 @@
 @inject IMediator Mediator
 @inject NavigationManager Nav
 @inject ICurrentAnalystAccessor AnalystAccessor
+@inject ToastService Toast
+@inject ICircuitDbGate DbGate
 
 <PageTitle>Parte do caso</PageTitle>
 
@@ -101,9 +103,10 @@ else
     private List<RiskSignalDetailDto> _partySignals = [];
     private string? _actionError;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync() =>
+        await DbGate.RunAsync(LoadCoreAsync);
 
-    private async Task LoadAsync()
+    private async Task LoadCoreAsync()
     {
         _case = await Mediator.Send(new GetKycCaseQuery(CaseId));
         if (_case is null)
@@ -115,15 +118,24 @@ else
             .ToList();
     }
 
-    private Task ReloadPartyAsync() => LoadAsync();
+    private Task ReloadPartyAsync() => DbGate.RunAsync(LoadCoreAsync);
 
     private async Task TriagemParteAsync(Guid partyId)
     {
         _actionError = null;
         try
         {
-            await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, await AnalystAccessor.GetAnalystIdAsync()));
-            await LoadAsync();
+            var newSignals = 0;
+            await DbGate.RunAsync(async () =>
+            {
+                newSignals = await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, await AnalystAccessor.GetAnalystIdAsync()));
+                await LoadCoreAsync();
+            });
+            Toast.Show(
+                newSignals > 0
+                    ? $"Triagem concluída — {newSignals} sinal(is) novo(s)."
+                    : "Triagem concluída — sem novos sinais.",
+                newSignals > 0 ? ToastLevel.Warning : ToastLevel.Success);
         }
         catch (Exception ex)
         {

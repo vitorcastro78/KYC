@@ -1,4 +1,5 @@
 using KYC.Application.Interfaces;
+using KYC.Application.Common;
 using KYC.Infrastructure.Persistence;
 using KYC.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,7 @@ public class KycReportPdfGenerator(
             .Include(c => c.FinalReport)
             .FirstOrDefaultAsync(c => c.Id == caseId, ct);
 
-        var html = kyc?.FinalReport?.NarrativeHtml;
+        var html = LlmChatOutputSanitizer.CleanStoredReportHtml(kyc?.FinalReport?.NarrativeHtml);
         if (string.IsNullOrWhiteSpace(html))
         {
             var title = kyc?.CompanyName ?? caseId.ToString();

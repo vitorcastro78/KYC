@@ -37,7 +37,7 @@ public record AddManualCasePartyCommand(
     string? Nationality,
     bool RunScreeningAfterAdd) : IRequest<Guid>;
 
-public record ScreenCasePartyCommand(Guid CaseId, Guid PartyId, string ActorId) : IRequest<Unit>;
+public record ScreenCasePartyCommand(Guid CaseId, Guid PartyId, string ActorId) : IRequest<int>;
 
 public record UploadCaseDocumentCommand(
     Guid CaseId,

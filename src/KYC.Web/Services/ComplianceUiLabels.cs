@@ -58,4 +58,15 @@ public static class ComplianceUiLabels
         SarStatus.NotRequired => "N/A",
         _ => "—"
     };
+
+    public static string FormatApproveBlockMessage(string? canApproveMessage)
+    {
+        if (string.IsNullOrWhiteSpace(canApproveMessage))
+            return string.Empty;
+
+        const string prefix = "Aprovação bloqueada:";
+        return canApproveMessage.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? canApproveMessage.Trim()
+            : $"{prefix} {canApproveMessage.Trim()}";
+    }
 }

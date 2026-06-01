@@ -43,12 +43,12 @@ public class KycCasePipelineRunner(
         {
             kyc.PrepareForAutomaticRescreen(actorId);
             EnsureTargetPartyExists(kyc);
+            await embeddingWriter.ClearEmbeddingsAsync(caseId, ct);
             await cases.UpdateAsync(kyc, ct);
-            await progress.UpsertAsync(new KycCaseScanProgressState(caseId, 1, 0, 0), ct);
-            await notifier.NotifyScanProgressAsync(caseId, "A iniciar", 0, ct);
+            await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "A iniciar", 0, ct);
         }
 
-        await notifier.NotifyScanProgressAsync(caseId, "EntityResolution", 5, ct);
+        await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "EntityResolution", 5, ct);
 
         await SyncGleifPartiesAsync(kyc, ct);
 
@@ -58,8 +58,21 @@ public class KycCasePipelineRunner(
         if (policyResult.AutoRejected)
         {
             kyc.RejectByPolicy(string.Join("; ", policyResult.Violations));
-            await cases.UpdateAsync(kyc, ct);
-            await notifier.NotifyStatusChangedAsync(kyc.Id, kyc.Status, ct);
+            var policyScore = new RiskScore
+            {
+                Overall = 95,
+                Justification = "Caso auto-rejeitado pela política de aceitação (PAC)."
+            };
+            await PersistReportAndCompleteScanAsync(
+                kyc,
+                caseId,
+                actorId,
+                isRescreen,
+                signalCount: 0,
+                policyScore,
+                scoringConfig: null,
+                applyReviewTransition: false,
+                ct);
             log.LogWarning("Caso {CaseId} auto-rejeitado pela PAC: {Violations}", caseId, string.Join("; ", policyResult.Violations));
             return;
         }
@@ -88,20 +101,17 @@ public class KycCasePipelineRunner(
         }
 
         var parties = kyc.Parties.ToList();
-        var total = Math.Max(1, parties.Count);
-        await progress.UpsertAsync(new KycCaseScanProgressState(caseId, total, 0, 0), ct);
-
         var signals = new List<RiskSignal>();
         var pct = 10;
+        await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "Sanctions", pct, ct);
         foreach (var party in parties)
         {
-            await notifier.NotifyScanProgressAsync(caseId, "Sanctions", pct, ct);
             var batch = await CasePartyScanOperations.CollectSignalsForPartyAsync(
                 kyc, party, sanctions, adverse, financial, judicial, icij, ct);
             signals.AddRange(batch);
 
             pct = Math.Min(90, pct + Math.Max(1, 80 / Math.Max(1, parties.Count)));
-            await progress.IncrementCompletedAsync(caseId, ct);
+            await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "Sanctions", pct, ct);
         }
 
         foreach (var sig in signals)
@@ -110,9 +120,9 @@ public class KycCasePipelineRunner(
         foreach (var docSignal in documentConsistency.Check(kyc))
             kyc.AddRiskSignal(docSignal);
 
-        await notifier.NotifyScanProgressAsync(caseId, "Documents", 91, ct);
+        await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "Documents", 91, ct);
 
-        await notifier.NotifyScanProgressAsync(caseId, "LLM", 92, ct);
+        await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "LLM", 92, ct);
 
         var eddCheck = kyc.CanProceedWithEnhancedDd();
         if (!eddCheck.IsSuccess)
@@ -128,17 +138,23 @@ public class KycCasePipelineRunner(
             if (kyc.DueDiligenceLevel == DueDiligenceLevel.Enhanced)
             {
                 kyc.MarkHumanReviewAfterScan(actorId);
-                if (sarEvaluator.ShouldSuggestSar(kyc) && kyc.SarStatus == SarStatus.None)
-                    kyc.AppendAudit(AuditEntry.Create(kyc.Id, "SarSuggested", "System", "Agent", "Condições SAR detectadas"));
-                if (isRescreen)
-                    kyc.RecordAutomaticRescreenCompleted(actorId, signals.Count);
-
-                await cases.UpdateAsync(kyc, ct);
-                await progress.UpsertAsync(new KycCaseScanProgressState(caseId, total, total, 0), ct);
-                await notifier.NotifyScanProgressAsync(caseId, "Concluído", 100, ct);
-                await notifier.NotifyStatusChangedAsync(caseId, kyc.Status, ct);
+                var eddScore = new RiskScore
+                {
+                    Overall = 70,
+                    Justification = eddCheck.Error ?? "EDD incompleta — revisão humana necessária."
+                };
+                await PersistReportAndCompleteScanAsync(
+                    kyc,
+                    caseId,
+                    actorId,
+                    isRescreen,
+                    signals.Count,
+                    eddScore,
+                    scoringConfig,
+                    applyReviewTransition: false,
+                    ct);
                 log.LogWarning(
-                    "Pipeline {Mode} caso {CaseId}: EDD incompleta — scoring IA omitido.",
+                    "Pipeline {Mode} caso {CaseId}: EDD incompleta — relatório estruturado gerado sem scoring LLM completo.",
                     isRescreen ? "re-triagem" : "inicial",
                     caseId);
                 return;
@@ -149,6 +165,7 @@ public class KycCasePipelineRunner(
         var score = await llm.ComputeRiskScoreAsync(ctx, ct);
         kyc.SetScore(score);
         AppendLlmAudit(kyc, "LlmRiskScored", score.Overall, score.Level.ToString(), scoringConfig);
+        await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "LLM", 95, ct);
 
         var consistency = await llm.CheckConsistencyAsync(ctx, ct);
         if (!consistency.IsConsistent)
@@ -162,29 +179,16 @@ public class KycCasePipelineRunner(
                 "ConsistencyEngine"));
         }
 
-        ctx = BuildContext(kyc);
-        var composeRequest = BuildReportRequest(kyc, ctx, score);
-        var report = await llm.GenerateNarrativeReportAsync(ctx, score, composeRequest, ct);
-        kyc.SetFinalReport(report);
-        AppendLlmAudit(kyc, "LlmReportGenerated", null, report.ModelUsed, scoringConfig);
-
-        if (kyc.CanAutoApproveLowRisk())
-            kyc.AutoApproveLowRisk(actorId);
-        else
-            kyc.MarkHumanReviewAfterScan(actorId);
-
-        if (sarEvaluator.ShouldSuggestSar(kyc) && kyc.SarStatus == SarStatus.None)
-            kyc.AppendAudit(AuditEntry.Create(kyc.Id, "SarSuggested", "System", "Agent", "Condições SAR detectadas"));
-
-        if (isRescreen)
-            kyc.RecordAutomaticRescreenCompleted(actorId, signals.Count);
-
-        await embeddingWriter.EmbedReportTextAsync(caseId, report.NarrativeHtml, ct);
-        await cases.UpdateAsync(kyc, ct);
-        await progress.UpsertAsync(new KycCaseScanProgressState(caseId, total, total, 0), ct);
-        await notifier.NotifyScanProgressAsync(caseId, "Concluído", 100, ct);
-        await notifier.NotifyReportReadyAsync(caseId, score.Level, ct);
-        await notifier.NotifyStatusChangedAsync(caseId, kyc.Status, ct);
+        await PersistReportAndCompleteScanAsync(
+            kyc,
+            caseId,
+            actorId,
+            isRescreen,
+            signals.Count,
+            score,
+            scoringConfig,
+            applyReviewTransition: true,
+            ct);
 
         log.LogInformation(
             "Pipeline {Mode} concluído para o caso {CaseId}: {SignalCount} sinais novos, estado {Status}.",
@@ -192,6 +196,62 @@ public class KycCasePipelineRunner(
             caseId,
             signals.Count,
             kyc.Status);
+    }
+
+    private async Task PersistReportAndCompleteScanAsync(
+        KycCase kyc,
+        Guid caseId,
+        string actorId,
+        bool isRescreen,
+        int signalCount,
+        RiskScore score,
+        ScoringEngineConfig? scoringConfig,
+        bool applyReviewTransition,
+        CancellationToken ct)
+    {
+        var ctx = BuildContext(kyc);
+        await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "LLM", 98, ct);
+        var report = await llm.GenerateNarrativeReportAsync(
+            ctx,
+            score,
+            BuildReportRequest(kyc, ctx, score),
+            ct);
+        kyc.SetScore(score);
+        kyc.SetFinalReport(report);
+        AppendLlmAudit(kyc, "LlmReportGenerated", null, report.ModelUsed, scoringConfig);
+
+        if (applyReviewTransition)
+        {
+            if (kyc.CanAutoApproveLowRisk())
+                kyc.AutoApproveLowRisk(actorId);
+            else
+                kyc.MarkHumanReviewAfterScan(actorId);
+        }
+
+        if (sarEvaluator.ShouldSuggestSar(kyc) && kyc.SarStatus == SarStatus.None)
+            kyc.AppendAudit(AuditEntry.Create(kyc.Id, "SarSuggested", "System", "Agent", "Condições SAR detectadas"));
+
+        if (isRescreen)
+            kyc.RecordAutomaticRescreenCompleted(actorId, signalCount);
+
+        await cases.UpdateAsync(kyc, ct);
+
+        try
+        {
+            await embeddingWriter.EmbedReportTextAsync(caseId, report.NarrativeHtml, ct);
+            await cases.UpdateAsync(kyc, ct);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(
+                ex,
+                "Embeddings do relatório falharam para o caso {CaseId}; o HTML do relatório foi gravado.",
+                caseId);
+        }
+
+        await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "Concluído", 100, ct);
+        await notifier.NotifyReportReadyAsync(caseId, score.Level, ct);
+        await notifier.NotifyStatusChangedAsync(caseId, kyc.Status, ct);
     }
 
     private async Task SyncGleifPartiesAsync(KycCase kyc, CancellationToken ct)

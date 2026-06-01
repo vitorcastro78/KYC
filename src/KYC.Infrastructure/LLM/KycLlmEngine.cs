@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using KYC.Application.Common;
 using KYC.Application.Interfaces;
 using KYC.Application.Models;
 using KYC.Domain.Entities;
@@ -198,7 +199,8 @@ public class KycLlmEngine(
             var local = await CallOllamaHtmlAsync(system, user, ct);
             if (IsUsefulLlmSection(local))
             {
-                return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, local),
+                var section = LlmChatOutputSanitizer.ExtractReportHtmlFragment(local);
+                return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, section),
                     $"{templateModel}+{model}");
             }
         }
@@ -225,7 +227,7 @@ public class KycLlmEngine(
             DateTime.UtcNow);
 
     private static bool IsUsefulLlmSection(string? text) =>
-        !string.IsNullOrWhiteSpace(text) && text.Trim().Length >= 80;
+        LlmChatOutputSanitizer.IsAcceptableReportHtml(text);
 
     private static string AppendLlmHtmlSection(string baselineHtml, string llmHtml)
     {
@@ -255,7 +257,8 @@ public class KycLlmEngine(
         using var response = await client.PostAsJsonAsync("/api/chat", payload, ct);
         response.EnsureSuccessStatusCode();
         var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-        return doc.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
+        var raw = doc.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
+        return LlmChatOutputSanitizer.StripChatArtifacts(raw);
     }
 
     public async Task<ConsistencyCheckResult> CheckConsistencyAsync(KycScanContext context, CancellationToken ct = default)

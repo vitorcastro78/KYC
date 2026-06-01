@@ -1,3 +1,4 @@
+using KYC.Application.Common;
 using KYC.Application.Interfaces;
 using KYC.Domain.Enums;
 using MediatR;
@@ -22,9 +23,8 @@ public class RerunKycCaseScreeningCommandHandler(
         }
 
         // Zera progresso antigo (ex.: 100% da triagem anterior) antes do worker arrancar.
-        await progress.UpsertAsync(new KycCaseScanProgressState(request.CaseId, 1, 0, 0), cancellationToken);
+        await progress.UpsertAsync(KycCaseScanProgressScale.UiPercent(request.CaseId, 0), cancellationToken);
         await notifier.NotifyScanProgressAsync(request.CaseId, "A iniciar", 0, cancellationToken);
-
         await messageBus.PublishCaseRescreenAsync(request.CaseId, request.ActorId, cancellationToken);
         return Unit.Value;
     }

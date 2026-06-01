@@ -1,0 +1,51 @@
+@using Microsoft.AspNetCore.Identity
+@using KYC.Web.Security
+@inject SignInManager<ApplicationUser> SignInManager
+@{
+    var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+}
+
+<nav class="identity-manage-nav">
+    <div class="identity-manage-nav-label">Definições</div>
+    <ul class="nav nav-pills flex-column gap-1">
+        <li class="nav-item">
+            <a class="nav-link @ManageNavPages.IndexNavClass(ViewContext)" id="profile" asp-page="./Index">
+                <span class="oi oi-person" aria-hidden="true"></span>
+                Perfil
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @ManageNavPages.EmailNavClass(ViewContext)" id="email" asp-page="./Email">
+                <span class="oi oi-envelope-closed" aria-hidden="true"></span>
+                Email
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">
+                <span class="oi oi-key" aria-hidden="true"></span>
+                Password
+            </a>
+        </li>
+        @if (hasExternalLogins)
+        {
+            <li class="nav-item">
+                <a class="nav-link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" id="external-login" asp-page="./ExternalLogins">
+                    <span class="oi oi-link-intact" aria-hidden="true"></span>
+                    Logins externos
+                </a>
+            </li>
+        }
+        <li class="nav-item">
+            <a class="nav-link @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)" id="two-factor" asp-page="./TwoFactorAuthentication">
+                <span class="oi oi-shield" aria-hidden="true"></span>
+                Autenticação 2FA
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @ManageNavPages.PersonalDataNavClass(ViewContext)" id="personal-data" asp-page="./PersonalData">
+                <span class="oi oi-hard-drive" aria-hidden="true"></span>
+                Dados pessoais
+            </a>
+        </li>
+    </ul>
+</nav>

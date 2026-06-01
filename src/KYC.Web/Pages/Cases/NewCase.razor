@@ -254,8 +254,6 @@
             return;
 
         var hubConnected = _hub?.State == HubConnectionState.Connected;
-        if (hubConnected)
-            return;
 
         var active = await Mediator.Send(new GetKycCaseScanProgressQuery(caseId));
         var pct = active?.PercentComplete ?? 0;
@@ -265,7 +263,7 @@
             if (_disposed)
                 return Task.CompletedTask;
 
-            _scan.TryApplyDatabaseFallback(pct, hubConnected: false);
+            _scan.TryApplyDatabaseFallback(pct, hubConnected);
             StateHasChanged();
             return Task.CompletedTask;
         });

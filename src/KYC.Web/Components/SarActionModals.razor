@@ -3,6 +3,7 @@
 @inject IMediator Mediator
 @inject ToastService Toast
 @inject ICurrentAnalystAccessor AnalystAccessor
+@inject ICircuitDbGate DbGate
 
 @if (ShowSubmit)
 {
@@ -89,7 +90,9 @@
         _submitting = true;
         try
         {
-            var result = await Mediator.Send(new SubmitSarCommand(CaseId, _sarNarrative, await AnalystIdAsync(), _sarUrgent));
+            var result = await DbGate.RunAsync(async () =>
+                await Mediator.Send(new SubmitSarCommand(CaseId, _sarNarrative, await AnalystIdAsync(), _sarUrgent)));
+
             if (result.IsSuccess)
             {
                 var msg = result.IsQueued
@@ -97,7 +100,8 @@
                     : $"SAR submetido à UIF: {result.ReferenceNumber}";
                 Toast.Show(msg, ToastLevel.Success);
                 _sarNarrative = "";
-                await OnChanged.InvokeAsync();
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
                 await CloseSubmit();
             }
             else if (_sarUrgent)
@@ -105,7 +109,8 @@
                 Toast.Show(
                     result.ErrorMessage ?? "Submissão UIF falhou — registe a referência manualmente na secção SAR.",
                     ToastLevel.Warning);
-                await OnChanged.InvokeAsync();
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
                 await CloseSubmit();
             }
             else
@@ -122,10 +127,14 @@
         _submitting = true;
         try
         {
-            await Mediator.Send(new MarkSarNotRequiredCommand(CaseId, await AnalystIdAsync(), _sarNotRequiredJustification));
+            await DbGate.RunAsync(async () =>
+            {
+                await Mediator.Send(new MarkSarNotRequiredCommand(CaseId, await AnalystIdAsync(), _sarNotRequiredJustification));
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+            });
             Toast.Show("SAR marcado como não aplicável.", ToastLevel.Success);
             _sarNotRequiredJustification = "";
-            await OnChanged.InvokeAsync();
             await CloseNotRequired();
         }
         finally

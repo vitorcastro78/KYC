@@ -58,6 +58,24 @@ public class GetKycCaseQueryHandler(
     }
 }
 
+public class GetCasePartyContextQueryHandler(IKycCaseRepository repository)
+    : IRequestHandler<GetCasePartyContextQuery, CasePartyContextDto?>
+{
+    public async Task<CasePartyContextDto?> Handle(GetCasePartyContextQuery request, CancellationToken cancellationToken)
+    {
+        var match = await repository.GetCaseWithPartyAsync(request.PartyId, cancellationToken);
+        if (match is null)
+            return null;
+
+        var (kyc, party) = match.Value;
+        var partyDto = KycCaseMapping.ToDetailDto(kyc)?.Parties.FirstOrDefault(p => p.Id == party.Id);
+        if (partyDto is null)
+            return null;
+
+        return new CasePartyContextDto(kyc.Id, kyc.CompanyName, partyDto);
+    }
+}
+
 public class ListKycCasesQueryHandler(IKycCaseRepository repository)
     : IRequestHandler<ListKycCasesQuery, PagedResult<KycCaseDto>>
 {
@@ -122,7 +140,7 @@ public class GetKycReportQueryHandler(IKycCaseRepository repository)
         if (c?.FinalReport is null) return null;
         return new KycReportDto(
             c.Id,
-            c.FinalReport.NarrativeHtml,
+            LlmChatOutputSanitizer.CleanStoredReportHtml(c.FinalReport.NarrativeHtml),
             c.FinalReport.ModelUsed,
             c.FinalReport.GeneratedAt);
     }

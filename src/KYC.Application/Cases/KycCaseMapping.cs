@@ -3,6 +3,8 @@ using KYC.Application.Services;
 using KYC.Domain.Entities;
 using KYC.Domain.Enums;
 
+using KYC.Application.Common;
+
 namespace KYC.Application.Cases;
 
 internal static class KycCaseMapping
@@ -63,7 +65,11 @@ internal static class KycCaseMapping
 
         var report = c.FinalReport is null
             ? null
-            : new KycReportDto(c.Id, c.FinalReport.NarrativeHtml, c.FinalReport.ModelUsed, c.FinalReport.GeneratedAt);
+            : new KycReportDto(
+                c.Id,
+                LlmChatOutputSanitizer.CleanStoredReportHtml(c.FinalReport.NarrativeHtml),
+                c.FinalReport.ModelUsed,
+                c.FinalReport.GeneratedAt);
 
         var documents = c.Documents
             .OrderByDescending(d => d.UploadedAt)

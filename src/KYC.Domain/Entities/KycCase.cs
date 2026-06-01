@@ -354,7 +354,6 @@ public class KycCase
             CompletedAt = null;
         }
 
-        Parties.Clear();
         RiskSignals.Clear();
         Score = null;
         AppendAudit(AuditEntry.Create(Id, "AutomaticRescreenRequested", actorId, "User"));

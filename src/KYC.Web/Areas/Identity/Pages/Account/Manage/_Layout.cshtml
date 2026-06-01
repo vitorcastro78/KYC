@@ -1,0 +1,27 @@
+@{
+    Layout = "/Areas/Identity/Pages/_Layout.cshtml";
+}
+
+<div class="identity-page-header">
+    <h1 class="identity-page-title">A minha conta</h1>
+    <p class="identity-page-lead">Gerir perfil, credenciais e dados de sessão na plataforma KYC.</p>
+</div>
+
+<div class="identity-manage-grid">
+    <aside class="identity-manage-aside" aria-label="Menu da conta">
+        <partial name="_ManageNav" />
+    </aside>
+    <div class="identity-manage-content">
+        <div class="identity-page-card">
+            @RenderBody()
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@section Head {
+    @await RenderSectionAsync("Head", required: false)
+}

@@ -14,6 +14,8 @@
 
 @inject ICurrentAnalystAccessor AnalystAccessor
 
+@inject ICircuitDbGate DbGate
+
 
 
 @if (Case is not null)
@@ -308,7 +310,7 @@
 
                 <div class="alert alert-danger mt-3 mb-0">
 
-                    <strong>Aprovação bloqueada:</strong> @Case.CanApproveMessage
+                    @ComplianceUiLabels.FormatApproveBlockMessage(Case.CanApproveMessage)
 
                 </div>
 
@@ -460,9 +462,12 @@
 
         {
 
-            _uifStatus = await Mediator.Send(new GetUifSubmissionStatusQuery(Case.SarReferenceNumber));
+            await DbGate.RunAsync(async () =>
+            {
+                _uifStatus = await Mediator.Send(new GetUifSubmissionStatusQuery(Case.SarReferenceNumber));
+            });
 
-            Toast.Show($"Estado UIF: {_uifStatus.Status}", ToastLevel.Info);
+            Toast.Show($"Estado UIF: {_uifStatus!.Status}", ToastLevel.Info);
 
         }
 
@@ -502,13 +507,16 @@
 
 
 
-        await Mediator.Send(new RegisterManualUifReferenceCommand(CaseId, _manualUifRef.Trim(), await AnalystIdAsync()));
+        await DbGate.RunAsync(async () =>
+        {
+            await Mediator.Send(new RegisterManualUifReferenceCommand(CaseId, _manualUifRef.Trim(), await AnalystIdAsync()));
+            if (OnChanged.HasDelegate)
+                await OnChanged.InvokeAsync();
+        });
 
         Toast.Show("Referência UIF registada.", ToastLevel.Success);
 
         _manualUifRef = "";
-
-        await OnChanged.InvokeAsync();
 
     }
 
@@ -530,15 +538,17 @@
 
 
 
-        await Mediator.Send(new RegisterManualAssetFreezeReferenceCommand(
-
-            CaseId, _manualFreezeRef.Trim(), await AnalystIdAsync()));
+        await DbGate.RunAsync(async () =>
+        {
+            await Mediator.Send(new RegisterManualAssetFreezeReferenceCommand(
+                CaseId, _manualFreezeRef.Trim(), await AnalystIdAsync()));
+            if (OnChanged.HasDelegate)
+                await OnChanged.InvokeAsync();
+        });
 
         Toast.Show("Congelamento BdP registado.", ToastLevel.Success);
 
         _manualFreezeRef = "";
-
-        await OnChanged.InvokeAsync();
 
     }
 
@@ -548,11 +558,14 @@
 
     {
 
-        await Mediator.Send(new SetFundsOriginCommand(CaseId, _fundsOrigin, true, null));
+        await DbGate.RunAsync(async () =>
+        {
+            await Mediator.Send(new SetFundsOriginCommand(CaseId, _fundsOrigin, true, null));
+            if (OnChanged.HasDelegate)
+                await OnChanged.InvokeAsync();
+        });
 
         Toast.Show("Origem dos fundos registada.", ToastLevel.Success);
-
-        await OnChanged.InvokeAsync();
 
     }
 

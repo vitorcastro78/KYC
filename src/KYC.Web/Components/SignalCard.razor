@@ -6,6 +6,7 @@
 @inject IMediator Mediator
 @inject ToastService Toast
 @inject ICurrentAnalystAccessor AnalystAccessor
+@inject ICircuitDbGate DbGate
 
 <div class="card mb-2 @CardClass">
     <div class="card-body py-2">
@@ -66,13 +67,17 @@
         try
         {
             var notes = confirm ? "Confirmado pelo analista" : "Descartado pelo analista";
-            await Mediator.Send(new OverrideSignalCommand(
-                Signal.Id,
-                await AnalystAccessor.GetAnalystIdAsync(),
-                confirm,
-                notes));
+            await DbGate.RunAsync(async () =>
+            {
+                await Mediator.Send(new OverrideSignalCommand(
+                    Signal.Id,
+                    await AnalystAccessor.GetAnalystIdAsync(),
+                    confirm,
+                    notes));
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+            });
             Toast.Show(confirm ? "Sinal confirmado." : "Sinal descartado.", ToastLevel.Success);
-            await OnChanged.InvokeAsync();
         }
         catch (Exception ex)
         {

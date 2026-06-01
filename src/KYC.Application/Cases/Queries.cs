@@ -7,6 +7,8 @@ namespace KYC.Application.Cases;
 
 public record GetKycCaseQuery(Guid CaseId) : IRequest<KycCaseDetailDto?>;
 
+public record GetCasePartyContextQuery(Guid PartyId) : IRequest<CasePartyContextDto?>;
+
 public record ListKycCasesQuery(KycCaseFilter Filter) : IRequest<PagedResult<KycCaseDto>>;
 
 public record GetUboGraphQuery(Guid CaseId) : IRequest<UboGraphViewDto?>;

@@ -11,6 +11,11 @@ public class ApproveKycCaseCommandHandler(
     {
         var kyc = await repository.GetByIdAsync(request.CaseId, cancellationToken)
                   ?? throw new KeyNotFoundException("Caso não encontrado.");
+
+        var canApprove = kyc.CanApprove();
+        if (!canApprove.IsSuccess)
+            throw new InvalidOperationException(canApprove.Error);
+
         kyc.Approve(request.AnalystId, request.SecondApproverId);
         var policy = await policyRepo.GetActiveAsync(cancellationToken);
         if (policy is not null)
