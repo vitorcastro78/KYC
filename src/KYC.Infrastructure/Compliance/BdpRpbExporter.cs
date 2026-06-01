@@ -9,6 +9,8 @@ namespace KYC.Infrastructure.Compliance;
 /// <summary>Export RPB (Instrução BdP 8/2024). Substituir mapeamento quando template oficial X1 estiver disponível.</summary>
 public sealed class BdpRpbExporter : IBdpRpbExporter
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
     private static readonly string[] RequiredSections =
     [
         "Metadados",
@@ -49,8 +51,7 @@ public sealed class BdpRpbExporter : IBdpRpbExporter
                 new XElement("DdcReforcada", report.CasesEnhancedDd),
                 new XElement("RevisoesPeriodicasConcluidas", report.PeriodicReviewsCompleted),
                 new XElement("RevisoesPeriodicasEmAtraso", report.PeriodicReviewsOverdue)),
-            new XElement("Secao5_TecnologiaIA",
-                new XElement("ModelosIa", report.AiModelsUsed)));
+            new XElement("Secao5_TecnologiaIA", BuildModelosIaXml(report.AiModelsUsed)));
 
         var doc = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), root);
         using var ms = new MemoryStream();
@@ -59,7 +60,7 @@ public sealed class BdpRpbExporter : IBdpRpbExporter
     }
 
     public byte[] ToInternalJson(AmlComplianceReport report) =>
-        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(ToExportPayload(report), JsonOptions));
 
     public BdpRpbValidationResult ValidateOfficialXml(byte[] xml)
     {
@@ -89,5 +90,118 @@ public sealed class BdpRpbExporter : IBdpRpbExporter
         }
 
         return new BdpRpbValidationResult(errors.Count == 0, errors);
+    }
+
+    private static object ToExportPayload(AmlComplianceReport report) => new
+    {
+        report.Id,
+        report.ReportingYear,
+        report.GeneratedAt,
+        report.GeneratedBy,
+        Status = report.Status.ToString(),
+        report.BdpReferenceNumber,
+        report.SubmittedAt,
+        report.TotalAmlAnalysts,
+        report.TotalCasesProcessed,
+        report.TotalCasesApproved,
+        report.TotalCasesRejected,
+        report.TotalCasesUnderReview,
+        report.CasesLowRisk,
+        report.CasesMediumRisk,
+        report.CasesHighRisk,
+        report.CasesCriticalRisk,
+        report.TotalRiskSignalsDetected,
+        report.SanctionMatches,
+        report.PepMatches,
+        report.SarsSubmitted,
+        report.AssetFreezeNotifications,
+        report.CasesSimplifiedDd,
+        report.CasesStandardDd,
+        report.CasesEnhancedDd,
+        report.PeriodicReviewsCompleted,
+        report.PeriodicReviewsOverdue,
+        report.PlatformVersion,
+        AiModelsUsed = ParseAiModelsJson(report.AiModelsUsed)
+    };
+
+    /// <summary>Converte o JSON persistido em coluna para objecto no export (evita string escapada).</summary>
+    internal static JsonElement ParseAiModelsJson(string? storedJson)
+    {
+        if (string.IsNullOrWhiteSpace(storedJson))
+            return CloneRoot("{}");
+
+        try
+        {
+            using var doc = JsonDocument.Parse(storedJson);
+            return doc.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return CloneRoot(JsonSerializer.Serialize(new { raw = storedJson, parseError = true }));
+        }
+    }
+
+    private static JsonElement CloneRoot(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.Clone();
+    }
+
+    private static XElement BuildModelosIaXml(string? storedJson)
+    {
+        var root = new XElement("ModelosIa");
+        if (string.IsNullOrWhiteSpace(storedJson))
+            return root;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(storedJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                root.Add(new XElement("Valor", doc.RootElement.ToString()));
+                return root;
+            }
+
+            foreach (var prop in doc.RootElement.EnumerateObject())
+                root.Add(new XElement(ToXmlElementName(prop.Name), FormatJsonValue(prop.Value)));
+        }
+        catch (JsonException)
+        {
+            root.Add(new XElement("Raw", storedJson));
+        }
+
+        return root;
+    }
+
+    private static string FormatJsonValue(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => value.GetString() ?? "",
+        JsonValueKind.Number => value.GetRawText(),
+        JsonValueKind.True => "true",
+        JsonValueKind.False => "false",
+        JsonValueKind.Null => "",
+        _ => value.GetRawText()
+    };
+
+    private static string ToXmlElementName(string jsonPropertyName)
+    {
+        if (string.IsNullOrEmpty(jsonPropertyName))
+            return "Campo";
+
+        var sb = new StringBuilder();
+        var upperNext = true;
+        foreach (var c in jsonPropertyName)
+        {
+            if (!char.IsLetterOrDigit(c))
+            {
+                upperNext = true;
+                continue;
+            }
+
+            sb.Append(upperNext ? char.ToUpperInvariant(c) : c);
+            upperNext = false;
+        }
+
+        return sb.Length > 0 ? sb.ToString() : "Campo";
     }
 }
