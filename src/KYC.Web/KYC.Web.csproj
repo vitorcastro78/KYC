@@ -25,7 +25,27 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Markdig" Version="0.38.0" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <DocsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\docs\'))</DocsRoot>
+    <HelpOnlineRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\docs\help-online\'))</HelpOnlineRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelpOnlineFile Include="$(HelpOnlineRoot)*.md" />
+    <HelpTechnicalFile Include="$(DocsRoot)CATALOGO_FUNCIONALIDADES.md" />
+    <HelpTechnicalFile Include="$(DocsRoot)DOCUMENTACAO_APLICACAO.md" />
+    <HelpTechnicalFile Include="$(DocsRoot)OPERACOES_E_HOMOLOGACAO.md" />
+  </ItemGroup>
+
+  <Target Name="SyncHelpDocsToWwwroot" BeforeTargets="Build">
+    <MakeDir Directories="$(ProjectDir)wwwroot\help-online" />
+    <MakeDir Directories="$(ProjectDir)wwwroot\help-technical" />
+    <Copy SourceFiles="@(HelpOnlineFile)" DestinationFolder="$(ProjectDir)wwwroot\help-online\" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(HelpTechnicalFile)" DestinationFolder="$(ProjectDir)wwwroot\help-technical\" SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\KYC.Application\KYC.Application.csproj" />

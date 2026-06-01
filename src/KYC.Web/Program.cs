@@ -37,6 +37,8 @@ builder.Services.AddKycProductionHosting(builder.Configuration, builder.Environm
 builder.Services.AddSingleton<IKycCaseRealtimeNotifier, HubKycCaseRealtimeNotifier>();
 builder.Services.AddScoped<KYC.Web.Services.KycHubConnectionFactory>();
 builder.Services.AddScoped<KYC.Web.Services.ICircuitDbGate, KYC.Web.Services.CircuitDbGate>();
+builder.Services.AddSingleton<KYC.Web.Services.Help.HelpMarkdownRenderer>();
+builder.Services.AddScoped<KYC.Web.Services.Help.IHelpDocumentationService, KYC.Web.Services.Help.HelpDocumentationService>();
 builder.Services.AddSingleton<ToastService>();
 
 var azureAd = builder.Configuration.GetSection("AzureAd");
