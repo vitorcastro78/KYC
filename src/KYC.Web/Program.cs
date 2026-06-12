@@ -157,6 +157,13 @@ if (hasHttpsEndpointConfigured)
     app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.Use(async (context, next) =>
+{
+    var ancestors = app.Configuration.GetSection("FinSight:EmbedAncestors").Get<string[]>();
+    if (ancestors is { Length: > 0 })
+        context.Response.Headers.ContentSecurityPolicy = $"frame-ancestors 'self' {string.Join(' ', ancestors)}";
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -176,6 +183,7 @@ app.MapControllers();
 app.MapFallbackToPage("/_Host");
 
 app.MapHealthChecks("/health");
+app.MapIntegrationEndpoints();
 
 app.MapIdentityWebhookEndpoints();
 
