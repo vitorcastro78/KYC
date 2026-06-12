@@ -1,76 +1,42 @@
 @page "/cases/{CaseId:guid}/ubo"
 @attribute [Authorize(Policy = "Analyst")]
+@using KYC.Application.Cases
+@using KYC.Application.Dtos
 @inject IMediator Mediator
+@inject NavigationManager Nav
 
-<PageTitle>Grafo UBO</PageTitle>
-<h1>Grafo de controlo</h1>
+<PageTitle>Grafo UBO — @(_graph?.CompanyName ?? "Caso")</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <a class="btn btn-link ps-0" href="/cases/@CaseId">← Voltar ao caso</a>
+        <h1 class="h4 mb-0">Grafo de controlo (UBO)</h1>
+    </div>
+    @if (_graph is not null)
+    {
+        <span class="badge @(_graph.HasGleifLevel2 ? "bg-success" : "bg-warning text-dark")">
+            @(_graph.HasGleifLevel2 ? "GLEIF Level 2" : "Dados GLEIF limitados — partes do caso incluídas")
+        </span>
+    }
+</div>
 
 @if (_graph is null)
 {
     <p>A carregar…</p>
 }
+else if (_graph.Nodes.Count == 0)
+{
+    <div class="alert alert-warning">Não foi possível construir o grafo para este NIF.</div>
+}
 else
 {
-    <div class="mb-2">
-        <label class="form-label">Profundidade máxima: @_depth</label>
-        <input type="range" class="form-range" min="1" max="7" @bind="_depth" @bind:event="oninput" />
-    </div>
-    <svg width="100%" height="420" class="border bg-white">
-        <defs>
-            <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto">
-                <polygon points="0 0, 10 3, 0 6" fill="#555" />
-            </marker>
-        </defs>
-        @{
-            var cx = 120;
-            var row = 80;
-            var y = 40;
-            var nodes = _graph.Graph.Nodes.Where(n => n.Depth <= _depth).ToList();
-        }
-        @foreach (var e in _graph.Graph.Edges)
-        {
-            var nFrom = nodes.FirstOrDefault(n => n.Id == e.FromId);
-            var nTo = nodes.FirstOrDefault(n => n.Id == e.ToId);
-            if (nFrom is null || nTo is null) continue;
-            var x1 = cx + nFrom.Depth * 180;
-            var y1 = y + nodes.IndexOf(nFrom) % 4 * row;
-            var x2 = cx + nTo.Depth * 180;
-            var y2 = y + nodes.IndexOf(nTo) % 4 * row;
-            <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="#555" stroke-width="@Stroke(e.OwnershipPct)" marker-end="url(#arrow)" />
-        }
-        @foreach (var n in nodes)
-        {
-            var x = cx + n.Depth * 180;
-            var yy = y + nodes.IndexOf(n) % 4 * row;
-            <circle cx="@x" cy="@yy" r="28" fill="@ColorFor(n.Type)" stroke="#333">
-                <title>@n.Name (@n.OwnershipPct%)</title>
-            </circle>
-        }
-    </svg>
-    <div class="small mt-2">
-        <span class="badge" style="background:#1f6feb">Empresa</span>
-        <span class="badge" style="background:#2ea043">Pessoa</span>
-        <span class="badge" style="background:#d4a017">Trust/Holding</span>
-        <span class="badge bg-danger">Offshore</span>
-    </div>
+    <UboGraphView Graph="_graph" CaseId="CaseId" />
 }
 
 @code {
     [Parameter] public Guid CaseId { get; set; }
-    private UboGraphDto? _graph;
-    private int _depth = 5;
+    private UboGraphViewDto? _graph;
 
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() =>
         _graph = await Mediator.Send(new GetUboGraphQuery(CaseId));
-    }
-
-    private static string ColorFor(string type) => type.ToLowerInvariant() switch
-    {
-        "individual" => "#2ea043",
-        "company" => "#1f6feb",
-        _ => "#d4a017"
-    };
-
-    private static int Stroke(decimal pct) => Math.Clamp((int)(pct / 5m), 1, 12);
 }

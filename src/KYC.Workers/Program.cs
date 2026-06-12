@@ -11,12 +11,11 @@ builder.Services.AddSingleton<IKycCaseRealtimeNotifier, NoOpKycCaseRealtimeNotif
 
 builder.Services.Configure<OfacSdnDailyDownloadOptions>(
     builder.Configuration.GetSection(OfacSdnDailyDownloadOptions.SectionKey));
+var ofacUserAgent = KYC.Infrastructure.ExternalSources.OfacSlsOptions.GetUserAgent(builder.Configuration);
 builder.Services.AddHttpClient("ofac-sdn-export", client =>
 {
     client.Timeout = TimeSpan.FromMinutes(20);
-    client.DefaultRequestHeaders.TryAddWithoutValidation(
-        "User-Agent",
-        "KYC-Workers/1.0 (+https://example.com; OFAC SDN daily sync)");
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(ofacUserAgent);
 });
 builder.Services.AddHostedService<OfacSdnDailyDownloadHostedService>();
 
@@ -30,6 +29,17 @@ builder.Services.AddHttpClient("eu-fsf-export", client =>
         "KYC-Workers/1.0 (+https://example.com; EU FSF XML daily sync)");
 });
 builder.Services.AddHostedService<EuFsfXmlDailyDownloadHostedService>();
+
+builder.Services.Configure<AtDebtorsDailyDownloadOptions>(
+    builder.Configuration.GetSection(AtDebtorsDailyDownloadOptions.SectionKey));
+builder.Services.AddHttpClient("at-devedores-export", client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(30);
+    client.DefaultRequestHeaders.TryAddWithoutValidation(
+        "User-Agent",
+        "KYC-Workers/1.0 (+https://example.com; AT devedores daily sync)");
+});
+builder.Services.AddHostedService<AtDebtorsDailyDownloadHostedService>();
 
 var provider = (builder.Configuration["Messaging:Provider"] ?? "InMemory").Trim();
 var sbCs = builder.Configuration["KYC_SERVICEBUS_CONNECTION"] ?? builder.Configuration["ServiceBus:ConnectionString"];

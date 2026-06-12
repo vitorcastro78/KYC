@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using KYC.Application.Common;
 using KYC.Application.Interfaces;
 using KYC.Application.Models;
 using KYC.Domain.Entities;
@@ -24,17 +25,22 @@ public class KycLlmEngine(
         return Convert.ToHexString(bytes);
     }
 
+    private bool UseOllamaForScoring =>
+        configuration.GetValue(
+            "LLM:UseOllamaForScoring",
+            string.Equals(configuration["LLM:Mode"], "LocalOnly", StringComparison.OrdinalIgnoreCase));
+
     public async Task<RiskScore> ComputeRiskScoreAsync(KycScanContext context, CancellationToken ct = default)
     {
-        if (!configuration.GetValue("LLM:UseOllamaForScoring", false))
+        if (!UseOllamaForScoring)
         {
-            logger.LogDebug("LLM scoring via Ollama desactivado; score heurùstico.");
+            logger.LogDebug("LLM scoring via Ollama desactivado; score heur?stico.");
             return ComputeHeuristicRiskScore(context);
         }
 
         if (!await IsOllamaReachableAsync(ct).ConfigureAwait(false))
         {
-            logger.LogWarning("Ollama indisponùvel em {Endpoint}; score heurùstico.",
+            logger.LogWarning("Ollama indispon?vel em {Endpoint}; score heur?stico.",
                 configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434");
             return ComputeHeuristicRiskScore(context);
         }
@@ -85,7 +91,7 @@ public class KycLlmEngine(
         };
 
     private static string Truncate(string text, int max) =>
-        text.Length <= max ? text : text[..max] + "ù";
+        text.Length <= max ? text : text[..max] + "?";
 
     private static RiskScore ComputeHeuristicRiskScore(KycScanContext context)
     {
@@ -94,7 +100,7 @@ public class KycLlmEngine(
             return new RiskScore
             {
                 Overall = 25,
-                Justification = "Sem sinais automùticos detetados (score heurùstico)."
+                Justification = "Sem sinais autom?ticos detetados (score heur?stico)."
             };
         }
 
@@ -117,7 +123,7 @@ public class KycLlmEngine(
         {
             Overall = overall,
             Justification =
-                $"Score heurùstico: {context.Signals.Count} sinais, severidade mùxima {maxSeverity}."
+                $"Score heur?stico: {context.Signals.Count} sinais, severidade m?xima {maxSeverity}."
         };
     }
 
@@ -161,7 +167,7 @@ public class KycLlmEngine(
         }
         catch
         {
-            return new RiskScore { Overall = 45, Justification = "Resposta LLM nùo estruturada." };
+            return new RiskScore { Overall = 45, Justification = "Resposta LLM n?o estruturada." };
         }
     }
 
@@ -182,43 +188,19 @@ public class KycLlmEngine(
         if (!tryLlm)
             return KycReport.Create(context.CaseId, baselineHtml, templateModel);
 
-        var mode = (configuration["LLM:Mode"] ?? "LocalOnly").Trim();
-        var localOnly = string.Equals(mode, "LocalOnly", StringComparison.OrdinalIgnoreCase);
-        var riskWarrantsCloud = score.Level is RiskLevel.High or RiskLevel.Critical;
-        var apiKey = configuration["Anthropic:ApiKey"];
-        var useCloud = !localOnly && riskWarrantsCloud && !string.IsNullOrWhiteSpace(apiKey);
-
-        var system = "Fornece APENAS o conteùdo interno HTML de <section class=\"ai-summary\"> com 1-3 parùgrafos curtos para analista KYC.";
+        var system = "Fornece APENAS HTML interno de <section class=\"ai-summary\"> com 1-3 paragrafos. Menciona factores de risco e que a decisao final e humana (Art. 22 RGPD). Sem markdown.";
         var user = JsonSerializer.Serialize(new { context, score });
         var hash = Sha256(system + user);
-        logger.LogInformation("LLM report enrich mode={Mode} risk={Risk} useCloud={UseCloud} hash={Hash}",
-            mode, score.Level, useCloud, hash);
-
-        if (useCloud)
-        {
-            try
-            {
-                var text = await CallAnthropicAsync(system, user, ct);
-                if (IsUsefulLlmSection(text))
-                {
-                    var model = configuration["LLM:CloudModel"];
-                    return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, text),
-                        $"{templateModel}+{model}");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Anthropic report enrich failed; trying local or template only.");
-            }
-        }
+        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        logger.LogInformation("LLM report enrich model={Model} risk={Risk} hash={Hash}", model, score.Level, hash);
 
         try
         {
             var local = await CallOllamaHtmlAsync(system, user, ct);
             if (IsUsefulLlmSection(local))
             {
-                var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
-                return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, local),
+                var section = LlmChatOutputSanitizer.ExtractReportHtmlFragment(local);
+                return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, section),
                     $"{templateModel}+{model}");
             }
         }
@@ -245,38 +227,17 @@ public class KycLlmEngine(
             DateTime.UtcNow);
 
     private static bool IsUsefulLlmSection(string? text) =>
-        !string.IsNullOrWhiteSpace(text) && text.Trim().Length >= 80;
+        LlmChatOutputSanitizer.IsAcceptableReportHtml(text);
 
     private static string AppendLlmHtmlSection(string baselineHtml, string llmHtml)
     {
         var trimmed = llmHtml.Trim();
         if (!trimmed.StartsWith("<section", StringComparison.OrdinalIgnoreCase))
         {
-            trimmed = $"<section class=\"ai-summary\"><h2>Sùntese assistida por IA</h2>{trimmed}</section>";
+            trimmed = $"<section class=\"ai-summary\"><h2>S?ntese assistida por IA</h2>{trimmed}</section>";
         }
 
         return baselineHtml.Replace("</main>", trimmed + "\n</main>", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private async Task<string> CallAnthropicAsync(string system, string user, CancellationToken ct)
-    {
-        var client = httpClientFactory.CreateClient("anthropic");
-        var model = configuration["LLM:CloudModel"] ?? "claude-sonnet-4-20250514";
-        var apiKey = configuration["Anthropic:ApiKey"]!;
-        using var req = new HttpRequestMessage(HttpMethod.Post, "v1/messages");
-        req.Headers.Add("x-api-key", apiKey);
-        req.Headers.Add("anthropic-version", "2023-06-01");
-        req.Content = JsonContent.Create(new
-        {
-            model,
-            max_tokens = 2000,
-            system,
-            messages = new[] { new { role = "user", content = user } }
-        });
-        using var res = await client.SendAsync(req, ct);
-        res.EnsureSuccessStatusCode();
-        var doc = await res.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-        return doc.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
     }
 
     private async Task<string> CallOllamaHtmlAsync(string system, string user, CancellationToken ct)
@@ -296,7 +257,8 @@ public class KycLlmEngine(
         using var response = await client.PostAsJsonAsync("/api/chat", payload, ct);
         response.EnsureSuccessStatusCode();
         var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-        return doc.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
+        var raw = doc.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
+        return LlmChatOutputSanitizer.StripChatArtifacts(raw);
     }
 
     public async Task<ConsistencyCheckResult> CheckConsistencyAsync(KycScanContext context, CancellationToken ct = default)
@@ -304,7 +266,21 @@ public class KycLlmEngine(
         await Task.CompletedTask;
         var issues = new List<string>();
         if (context.Parties.Count(p => p.Role.Contains("Ubo", StringComparison.OrdinalIgnoreCase)) == 0)
-            issues.Add("Sem UBO declarado vs. estrutura encontrada ù rever manualmente.");
+            issues.Add("Sem UBO declarado vs. estrutura encontrada ? rever manualmente.");
+
+        var docNif = context.DeclaredFacts
+            .FirstOrDefault(f => f.Key.Equals("Nif", StringComparison.OrdinalIgnoreCase))?.Value;
+        if (!string.IsNullOrWhiteSpace(docNif) && !string.IsNullOrWhiteSpace(context.Nif))
+        {
+            var normalizedDoc = new string(docNif.Where(char.IsDigit).ToArray());
+            var normalizedCase = new string(context.Nif.Where(char.IsDigit).ToArray());
+            if (normalizedDoc.Length == 9 && normalizedCase.Length == 9 &&
+                !string.Equals(normalizedDoc, normalizedCase, StringComparison.Ordinal))
+            {
+                issues.Add($"NIF documental ({docNif}) difere do NIF do caso ({context.Nif}).");
+            }
+        }
+
         return new ConsistencyCheckResult(issues.Count == 0, issues, issues.Count == 0 ? 90 : 60);
     }
 

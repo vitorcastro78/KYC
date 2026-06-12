@@ -1,0 +1,15 @@
+E2E com aplicação em execução — 2026-05-31T02:19
+
+App: http://localhost:5299
+BD: Host=195.179.193.136;Port=5433;Database=azureopsagent (via KYC_DB_CONNECTION / ConnectionStrings__KycDatabase)
+
+Endpoints verificados:
+- GET /health -> 200 (página login se não autenticado)
+- GET /api/openapi/info -> 200 JSON
+- POST /api/identity/webhook -> 200 (ver 06-identidade/webhook-20260531-021829.txt)
+
+Testes automatizados (mesma sessão):
+- HomologationE2e: 7/7 OK (BD remota)
+- ComplianceFlow + StartKycCase: 14/14 OK
+
+UI manual (cenários 2-5): abrir http://localhost:5299 e login admin@kyc.local

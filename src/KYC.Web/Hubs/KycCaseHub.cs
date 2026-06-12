@@ -12,5 +12,11 @@ public class KycCaseHub : Hub
     public async Task LeaveCaseGroup(Guid caseId) =>
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, CaseGroup(caseId));
 
+    [Authorize(Policy = "Supervisor")]
+    public async Task JoinSupervisorsGroup() =>
+        await Groups.AddToGroupAsync(Context.ConnectionId, SupervisorsGroup);
+
     public static string CaseGroup(Guid caseId) => $"case-{caseId}";
+
+    public const string SupervisorsGroup = "supervisors";
 }

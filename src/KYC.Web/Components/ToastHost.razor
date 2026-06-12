@@ -1,0 +1,41 @@
+@inject ToastService Toast
+
+@if (_visible)
+{
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+        <div class="toast show @CssClass" role="alert">
+            <div class="toast-body">@_message</div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+    private string _message = "";
+    private string CssClass => _level switch
+    {
+        ToastLevel.Success => "text-bg-success",
+        ToastLevel.Warning => "text-bg-warning",
+        ToastLevel.Error => "text-bg-danger",
+        _ => "text-bg-primary"
+    };
+    private ToastLevel _level;
+
+    protected override void OnInitialized()
+    {
+        Toast.OnShow += ShowToast;
+    }
+
+    private async void ShowToast(ToastMessage msg)
+    {
+        _message = msg.Text;
+        _level = msg.Level;
+        _visible = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(4000);
+        _visible = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Toast.OnShow -= ShowToast;
+}

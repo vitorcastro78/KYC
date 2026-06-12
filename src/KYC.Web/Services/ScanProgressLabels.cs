@@ -7,6 +7,7 @@ public static class ScanProgressLabels
     {
         "EntityResolution" => "Resolução de entidade",
         "Sanctions" => "Sanções e fontes",
+        "Documents" => "A processar documentos",
         "LLM" => "Score e relatório",
         "Concluído" => "Concluído",
         "A iniciar" => "A iniciar",

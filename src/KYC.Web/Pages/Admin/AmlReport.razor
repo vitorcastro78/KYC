@@ -1,0 +1,209 @@
+@page "/admin/aml-report"
+@attribute [Authorize(Policy = "Admin")]
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>RPB — Relatório BdP</PageTitle>
+<h1>Relatório de Prevenção do Branqueamento (Instrução BdP 8/2024)</h1>
+
+<div class="mb-3 d-flex gap-2 align-items-end">
+    <div>
+        <label class="form-label">Ano</label>
+        <input type="number" class="form-control" @bind="_year" min="2020" max="2100" />
+    </div>
+    <button class="btn btn-primary" @onclick="Generate">Gerar RPB</button>
+</div>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="alert alert-info">@_message</div>
+}
+
+@if (_reportId is not null)
+{
+    <div class="d-flex gap-2 mb-4">
+        <a class="btn btn-outline-secondary" href="@Nav.ToAbsoluteUri($"/api/admin/aml-reports/{_reportId}/export")" target="_blank">Exportar JSON (interno)</a>
+        <a class="btn btn-outline-primary" href="@Nav.ToAbsoluteUri($"/api/admin/aml-reports/{_reportId}/export?format=bdp")" target="_blank">Exportar XML BdP</a>
+        <button class="btn btn-success" @onclick="SubmitToBdp">Marcar submetido à BdP</button>
+    </div>
+}
+
+@if (_detail is not null)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">Secção 1 — Casos processados (@_detail.ReportingYear)</div>
+                <div class="card-body">
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                        <tr><td>Total</td><td class="text-end fw-bold">@_detail.TotalCasesProcessed</td></tr>
+                        <tr><td>Aprovados</td><td class="text-end">@_detail.TotalCasesApproved</td></tr>
+                        <tr><td>Rejeitados</td><td class="text-end">@_detail.TotalCasesRejected</td></tr>
+                        <tr><td>Em revisão</td><td class="text-end">@_detail.TotalCasesUnderReview</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="small text-muted mb-1">Distribuição por estado</p>
+                    @Bar("Aprovados", _detail.TotalCasesApproved, _detail.TotalCasesProcessed, "bg-success")
+                    @Bar("Rejeitados", _detail.TotalCasesRejected, _detail.TotalCasesProcessed, "bg-danger")
+                    @Bar("Em revisão", _detail.TotalCasesUnderReview, _detail.TotalCasesProcessed, "bg-warning")
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">Secção 2 — Distribuição de risco</div>
+                <div class="card-body">
+                    @{
+                        var riskTotal = Math.Max(1, _detail.CasesLowRisk + _detail.CasesMediumRisk + _detail.CasesHighRisk + _detail.CasesCriticalRisk);
+                    }
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                        <tr><td>Baixo</td><td class="text-end">@_detail.CasesLowRisk</td></tr>
+                        <tr><td>Médio</td><td class="text-end">@_detail.CasesMediumRisk</td></tr>
+                        <tr><td>Alto</td><td class="text-end">@_detail.CasesHighRisk</td></tr>
+                        <tr><td>Crítico</td><td class="text-end">@_detail.CasesCriticalRisk</td></tr>
+                        </tbody>
+                    </table>
+                    @Bar("Baixo", _detail.CasesLowRisk, riskTotal, "bg-success")
+                    @Bar("Médio", _detail.CasesMediumRisk, riskTotal, "bg-info")
+                    @Bar("Alto", _detail.CasesHighRisk, riskTotal, "bg-warning")
+                    @Bar("Crítico", _detail.CasesCriticalRisk, riskTotal, "bg-danger")
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">Secção 3 — Sinais e comunicações</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                        <tr><td>Sinais detectados</td><td class="text-end">@_detail.TotalRiskSignalsDetected</td></tr>
+                        <tr><td>Sanções</td><td class="text-end">@_detail.SanctionMatches</td></tr>
+                        <tr><td>PEP</td><td class="text-end">@_detail.PepMatches</td></tr>
+                        <tr><td>SAR UIF</td><td class="text-end">@_detail.SarsSubmitted</td></tr>
+                        <tr><td>Congelamentos BdP</td><td class="text-end">@_detail.AssetFreezeNotifications</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">Secção 4 — Diligência e revisões</div>
+                <div class="card-body">
+                    @{
+                        var ddTotal = Math.Max(1, _detail.CasesSimplifiedDd + _detail.CasesStandardDd + _detail.CasesEnhancedDd);
+                    }
+                    @Bar("DDC simplificada", _detail.CasesSimplifiedDd, ddTotal, "bg-secondary")
+                    @Bar("DDC standard", _detail.CasesStandardDd, ddTotal, "bg-primary")
+                    @Bar("DDC reforçada", _detail.CasesEnhancedDd, ddTotal, "bg-dark")
+                    <p class="mt-3 mb-0 small">
+                        Revisões concluídas: <strong>@_detail.PeriodicReviewsCompleted</strong> —
+                        em atraso: <strong class="text-danger">@_detail.PeriodicReviewsOverdue</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Secção 5 — Tecnologia e IA (apenas Ollama local)</div>
+                <div class="card-body">
+                    <p class="mb-1"><span class="text-muted">Plataforma</span> @_detail.PlatformVersion</p>
+                    <pre class="small bg-light p-2 mb-0">@_detail.AiModelsUsed</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">Histórico de relatórios</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead>
+            <tr><th>Ano</th><th>Estado</th><th>Gerado</th><th>Ref. BdP</th><th></th></tr>
+            </thead>
+            <tbody>
+            @foreach (var r in _reports)
+            {
+                <tr class="@(r.Id == _reportId ? "table-active" : "")">
+                    <td>@r.ReportingYear</td>
+                    <td><span class="badge @StatusBadge(r.Status)">@r.Status</span></td>
+                    <td>@r.GeneratedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                    <td>@(r.BdpReferenceNumber ?? "—")</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-link" @onclick="() => SelectReport(r.Id)">Seleccionar</button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private int _year = DateTime.UtcNow.Year;
+    private Guid? _reportId;
+    private string? _message;
+    private IReadOnlyList<AmlComplianceReportListItemDto> _reports = [];
+    private AmlComplianceReportDetailDto? _detail;
+
+    protected override async Task OnInitializedAsync() => await ReloadListAsync();
+
+    private async Task ReloadListAsync() =>
+        _reports = await Mediator.Send(new ListAmlComplianceReportsQuery());
+
+    private async Task SelectReport(Guid id)
+    {
+        _reportId = id;
+        _message = null;
+        _detail = await Mediator.Send(new GetAmlComplianceReportQuery(id));
+    }
+
+    private async Task Generate()
+    {
+        _reportId = await Mediator.Send(new GenerateAmlReportCommand(_year, "admin"));
+        _message = $"RPB {_year} gerado (id: {_reportId}).";
+        await ReloadListAsync();
+        if (_reportId is not null)
+            await SelectReport(_reportId.Value);
+    }
+
+    private async Task SubmitToBdp()
+    {
+        if (_reportId is null) return;
+        var reference = await Mediator.Send(new SubmitAmlReportToBdpCommand(_reportId.Value, "admin"));
+        _message = $"Submetido à BdP — referência {reference}.";
+        await ReloadListAsync();
+        await SelectReport(_reportId.Value);
+    }
+
+    private static string StatusBadge(AmlReportStatus status) => status switch
+    {
+        AmlReportStatus.Submitted => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static RenderFragment Bar(string label, int value, int total, string cssClass) => builder =>
+    {
+        var pct = total > 0 ? (int)Math.Round(100.0 * value / total) : 0;
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "mb-2");
+        builder.OpenElement(2, "div");
+        builder.AddAttribute(3, "class", "d-flex justify-content-between small");
+        builder.AddContent(4, label);
+        builder.AddContent(5, $"{value} ({pct}%)");
+        builder.CloseElement();
+        builder.OpenElement(6, "div");
+        builder.AddAttribute(7, "class", "progress");
+        builder.AddAttribute(8, "style", "height: 8px");
+        builder.OpenElement(9, "div");
+        builder.AddAttribute(10, "class", $"progress-bar {cssClass}");
+        builder.AddAttribute(11, "style", $"width: {pct}%");
+        builder.AddAttribute(12, "role", "progressbar");
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

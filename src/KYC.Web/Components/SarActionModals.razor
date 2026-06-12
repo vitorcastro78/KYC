@@ -1,0 +1,145 @@
+@using KYC.Application.Cases
+@using KYC.Application.Interfaces
+@inject IMediator Mediator
+@inject ToastService Toast
+@inject ICurrentAnalystAccessor AnalystAccessor
+@inject ICircuitDbGate DbGate
+
+@if (ShowSubmit)
+{
+    <div class="modal show d-block compliance-modal" tabindex="-1">
+        <div class="modal-backdrop fade show" @onclick="CloseSubmit"></div>
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Comunicação à UIF (SAR)</h5>
+                    <button type="button" class="btn-close" @onclick="CloseSubmit"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Narrativa da operação suspeita</label>
+                    <textarea class="form-control" rows="6" @bind="_sarNarrative" placeholder="Descreva os factos, entidades e fundamento (mín. 200 caracteres)"></textarea>
+                    <small class="text-muted @(_sarNarrative.Length >= 200 ? "text-success" : "")">@_sarNarrative.Length / 200 caracteres</small>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" @bind="_sarUrgent" id="sarUrgent_@_id" />
+                        <label class="form-check-label" for="sarUrgent_@_id">Urgente (comunicação imediata à UIF)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseSubmit">Cancelar</button>
+                    <button type="button" class="btn btn-danger" disabled="@(_sarNarrative.Length < 200 || _submitting)" @onclick="SubmitSar">
+                        @(_submitting ? "A submeter…" : "Submeter SAR")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowNotRequired)
+{
+    <div class="modal show d-block compliance-modal" tabindex="-1">
+        <div class="modal-backdrop fade show" @onclick="CloseNotRequired"></div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">SAR não aplicável</h5>
+                    <button type="button" class="btn-close" @onclick="CloseNotRequired"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Justificação</label>
+                    <textarea class="form-control" rows="4" @bind="_sarNotRequiredJustification" placeholder="Motivo pelo qual não comunica à UIF (mín. 50 caracteres)"></textarea>
+                    <small class="text-muted">@_sarNotRequiredJustification.Length / 50 caracteres</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseNotRequired">Cancelar</button>
+                    <button type="button" class="btn btn-primary" disabled="@(_sarNotRequiredJustification.Length < 50 || _submitting)" @onclick="MarkNotRequired">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid CaseId { get; set; }
+    [Parameter] public bool ShowSubmit { get; set; }
+    [Parameter] public bool ShowNotRequired { get; set; }
+    [Parameter] public string? SuggestedNarrative { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback OnCloseSubmit { get; set; }
+    [Parameter] public EventCallback OnCloseNotRequired { get; set; }
+
+    private readonly string _id = Guid.NewGuid().ToString("N")[..6];
+    private string _sarNarrative = "";
+    private string _sarNotRequiredJustification = "";
+    private bool _sarUrgent;
+    private bool _submitting;
+
+    protected override void OnParametersSet()
+    {
+        if (ShowSubmit && string.IsNullOrWhiteSpace(_sarNarrative) && !string.IsNullOrWhiteSpace(SuggestedNarrative))
+            _sarNarrative = SuggestedNarrative;
+    }
+
+    private async Task<string> AnalystIdAsync() => await AnalystAccessor.GetAnalystIdAsync();
+
+    private Task CloseSubmit() => OnCloseSubmit.InvokeAsync();
+    private Task CloseNotRequired() => OnCloseNotRequired.InvokeAsync();
+
+    private async Task SubmitSar()
+    {
+        _submitting = true;
+        try
+        {
+            var result = await DbGate.RunAsync(async () =>
+                await Mediator.Send(new SubmitSarCommand(CaseId, _sarNarrative, await AnalystIdAsync(), _sarUrgent)));
+
+            if (result.IsSuccess)
+            {
+                var msg = result.IsQueued
+                    ? $"SAR enfileirado: {result.ReferenceNumber}"
+                    : $"SAR submetido à UIF: {result.ReferenceNumber}";
+                Toast.Show(msg, ToastLevel.Success);
+                _sarNarrative = "";
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+                await CloseSubmit();
+            }
+            else if (_sarUrgent)
+            {
+                Toast.Show(
+                    result.ErrorMessage ?? "Submissão UIF falhou — registe a referência manualmente na secção SAR.",
+                    ToastLevel.Warning);
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+                await CloseSubmit();
+            }
+            else
+                Toast.Show(result.ErrorMessage ?? "Falha ao submeter SAR", ToastLevel.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task MarkNotRequired()
+    {
+        _submitting = true;
+        try
+        {
+            await DbGate.RunAsync(async () =>
+            {
+                await Mediator.Send(new MarkSarNotRequiredCommand(CaseId, await AnalystIdAsync(), _sarNotRequiredJustification));
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+            });
+            Toast.Show("SAR marcado como não aplicável.", ToastLevel.Success);
+            _sarNotRequiredJustification = "";
+            await CloseNotRequired();
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

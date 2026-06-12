@@ -2,7 +2,15 @@
 using KYC.Application.Interfaces;
 
 using KYC.Infrastructure.BackgroundJobs;
+using KYC.Application.Services;
+using KYC.Infrastructure.Compliance;
+using KYC.Infrastructure.Compliance.AssetFreeze;
+using KYC.Infrastructure.Compliance.Uif;
+using KYC.Infrastructure.Documents;
 using KYC.Infrastructure.ExternalSources;
+using KYC.Infrastructure.Health;
+using KYC.Infrastructure.Identity;
+using KYC.Infrastructure.ExternalSources.At;
 using KYC.Infrastructure.LLM;
 using KYC.Infrastructure.Messaging;
 using KYC.Infrastructure.Pdf;
@@ -11,6 +19,7 @@ using KYC.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Polly;
 using Polly.Extensions.Http;
@@ -27,8 +36,11 @@ public static class DependencyInjection
 
         // NpgsqlDataSource com UseVector() é necessário para serializar HalfVector/halfvec (EF Core 9 + pgvector 0.3).
         services.AddSingleton(_ => KycNpgsqlDataSource.Create(cs));
+        services.AddSingleton<RegulatoryVersionSaveChangesInterceptor>();
         services.AddDbContext<KycDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.UseVector()));
+            options
+                .UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.UseVector())
+                .AddInterceptors(sp.GetRequiredService<RegulatoryVersionSaveChangesInterceptor>()));
 
         services.AddScoped<IKycCaseRepository, KycCaseRepository>();
         services.AddScoped<IKycAnalyticsRepository, KycAnalyticsRepository>();
@@ -37,7 +49,9 @@ public static class DependencyInjection
         services.AddScoped<IEntityResolutionService, EntityResolutionService>();
         services.AddScoped<ISanctionsScreeningService, SanctionsScreeningService>();
         services.AddScoped<IAdverseMediaService, AdverseMediaService>();
+        services.AddSingleton<IAtDebtorsLocalIndex, AtDebtorsLocalIndex>();
         services.AddScoped<IFinancialHealthService, FinancialHealthService>();
+        services.AddScoped<ICitiusClient, CitiusClient>();
         services.AddScoped<IJudicialIntelligenceService, JudicialIntelligenceService>();
         services.AddScoped<IIcijOffshoreService, IcijOffshoreService>();
         services.AddScoped<IKycLlmEngine, KycLlmEngine>();
@@ -48,7 +62,52 @@ public static class DependencyInjection
         services.AddSingleton<IKycHtmlToPdfConverter, PuppeteerKycHtmlToPdfConverter>();
         services.AddScoped<IKycReportPdfGenerator, KycReportPdfGenerator>();
 
-        RegisterMessaging(services, configuration);
+        services.AddScoped<ICustomerAcceptancePolicyRepository, CustomerAcceptancePolicyRepository>();
+        services.AddScoped<IScoringEngineConfigRepository, ScoringEngineConfigRepository>();
+        services.AddScoped<IDpiaRecordRepository, DpiaRecordRepository>();
+        services.AddScoped<IAmlComplianceReportRepository, AmlComplianceReportRepository>();
+        services.AddScoped<IAmlComplianceReportService, AmlComplianceReportService>();
+        services.AddSingleton<IBdpRpbExporter, BdpRpbExporter>();
+        services.AddScoped<IRcbePartyVerificationService, RcbePartyVerificationService>();
+        services.AddScoped<IPeriodicReviewScheduler, PeriodicReviewScheduler>();
+        services.AddScoped<IIdentityVerificationService, DigitalSignIdentityVerificationService>();
+        services.AddScoped<IUifReportingService, UifReportingService>();
+        services.AddScoped<IAssetFreezeNotificationService, AssetFreezeNotificationService>();
+        services.AddScoped<IComplianceMetricsService, ComplianceMetricsService>();
+        services.Configure<DataRetentionOptions>(configuration.GetSection(DataRetentionOptions.SectionName));
+
+        services.AddKycHealthChecks(configuration);
+        var disableBackground = configuration.GetValue("Testing:DisableBackgroundServices", false);
+        if (!disableBackground)
+        {
+            services.AddHostedService<ComplianceSeedHostedService>();
+            if (configuration.GetValue("Compliance:EnablePeriodicReviewScheduler", true))
+                services.AddHostedService<PeriodicReviewSchedulerJob>();
+            if (configuration.GetValue("IdentityVerification:EnablePolling", true))
+            {
+                services.AddScoped<IdentityVerificationPollingService>();
+                services.AddHostedService<IdentityVerificationPollingHostedService>();
+            }
+        }
+
+        services.AddSingleton<SarSubmissionQueue>();
+        services.AddSingleton<ISarSubmissionQueue>(sp => sp.GetRequiredService<SarSubmissionQueue>());
+        if (!disableBackground)
+            services.AddHostedService<SarSubmissionHostedService>();
+
+        services.AddSingleton<ICaseDocumentStorage, LocalCaseDocumentStorage>();
+        services.AddSingleton<IDpiaDocumentStorage, LocalDpiaDocumentStorage>();
+        services.AddScoped<ICaseDocumentRepository, CaseDocumentRepository>();
+        services.AddSingleton<DocumentIngestionQueue>();
+        services.AddSingleton<IDocumentIngestionQueue>(sp => sp.GetRequiredService<DocumentIngestionQueue>());
+        services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
+        services.AddSingleton<DocumentVisionExtractor>();
+        services.AddSingleton<DocumentFieldExtractor>();
+        services.AddScoped<IDocumentConsistencyChecker, DocumentConsistencyChecker>();
+        if (!disableBackground)
+            services.AddHostedService<DocumentIngestionHostedService>();
+
+        RegisterMessaging(services, configuration, disableBackground);
 
         // http + porta explÃ­cita: https://localhost/rcbe/ usa 443 e falha sem reverse proxy local.
         var rcbeBase = configuration["ExternalSources:RcbeBaseUrl"] ?? "http://localhost:5055/rcbe/";
@@ -81,13 +140,19 @@ public static class DependencyInjection
         services.AddSingleton<OfacSdnXmlLocalIndex>();
         services.AddSingleton<EuFsfXmlLocalIndex>();
 
-        var ofacBase = configuration["ExternalSources:OfacBaseUrl"] ?? "http://localhost:5056/ofac/";
-        var ofacBuilder = services.AddHttpClient<IOfacClient, OfacClient>((_, c) =>
+        var ofacSlsBase = OfacSlsOptions.GetBaseUrl(configuration).TrimEnd('/') + "/";
+        var ofacUserAgent = OfacSlsOptions.GetUserAgent(configuration);
+        services.AddHttpClient("ofac-sls", c =>
         {
-            c.BaseAddress = new Uri(ofacBase);
+            c.BaseAddress = new Uri(ofacSlsBase);
+            c.Timeout = TimeSpan.FromSeconds(30);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd(ofacUserAgent);
         }).AddPolicyHandler(GetRetryPolicy());
-        if (!LocalDevEndpoint.LooksLikeLocalStub(ofacBase))
-            ofacBuilder.AddPolicyHandler(GetCircuitBreakerPolicy());
+
+        services.RemoveAll<IOfacClient>();
+        services.AddScoped<IOfacClient>(static sp => new OfacClient(
+            sp.GetRequiredService<OfacSdnXmlLocalIndex>(),
+            sp.GetRequiredService<ILogger<OfacClient>>()));
 
         var euSanctionsBase = configuration["ExternalSources:EuSanctionsBaseUrl"] ?? "http://localhost:5057/eu-sanctions/";
         var euBuilder = services.AddHttpClient<IEuSanctionsClient, EuSanctionsClient>((_, c) =>
@@ -130,12 +195,6 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(5);
         });
 
-        services.AddHttpClient("anthropic", c =>
-        {
-            c.BaseAddress = new Uri("https://api.anthropic.com/");
-            c.Timeout = TimeSpan.FromSeconds(120);
-        }).AddPolicyHandler(GetRetryPolicy());
-
         var newsBase = configuration["NewsApi:BaseUrl"] ?? "https://newsapi.org/";
         var newsUserAgent = configuration["NewsApi:UserAgent"]
                             ?? "KYC/1.0 (+https://github.com/; adverse-media)";
@@ -146,24 +205,44 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd(newsUserAgent);
         }).AddPolicyHandler(GetRetryPolicy());
 
-        if (configuration.GetValue("DataRetention:EnableHostedService", false))
-            services.AddHostedService<DataRetentionHostedService>();
+        services.AddHttpClient("identity-verification", c => c.Timeout = TimeSpan.FromSeconds(60))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("uif", c => c.Timeout = TimeSpan.FromSeconds(120))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("bdp-freeze", c => c.Timeout = TimeSpan.FromSeconds(60))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("citius", c => c.Timeout = TimeSpan.FromSeconds(45))
+            .AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient("icij", c => c.Timeout = TimeSpan.FromSeconds(45))
+            .AddPolicyHandler(GetRetryPolicy());
+
+        services.AddHostedService<DataRetentionHostedService>();
 
         return services;
     }
 
-    private static void RegisterMessaging(IServiceCollection services, IConfiguration configuration)
+    private static void RegisterMessaging(IServiceCollection services, IConfiguration configuration, bool disableBackground = false)
     {
         var provider = (configuration["Messaging:Provider"] ?? "InMemory").Trim();
         var sbCs = configuration["KYC_SERVICEBUS_CONNECTION"] ?? configuration["ServiceBus:ConnectionString"];
+        var rabbitCs = configuration["KYC_RABBITMQ_CONNECTION"] ?? configuration["RabbitMq:ConnectionString"];
         var useAzure = string.Equals(provider, "AzureServiceBus", StringComparison.OrdinalIgnoreCase)
                        && !string.IsNullOrWhiteSpace(sbCs);
+        var useRabbit = string.Equals(provider, "RabbitMq", StringComparison.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(rabbitCs);
 
         if (string.Equals(provider, "AzureServiceBus", StringComparison.OrdinalIgnoreCase)
             && string.IsNullOrWhiteSpace(sbCs))
         {
             throw new InvalidOperationException(
-                "Messaging:Provider estÃ¡ definido como AzureServiceBus mas falta KYC_SERVICEBUS_CONNECTION ou ServiceBus:ConnectionString.");
+                "Messaging:Provider está definido como AzureServiceBus mas falta KYC_SERVICEBUS_CONNECTION ou ServiceBus:ConnectionString.");
+        }
+
+        if (string.Equals(provider, "RabbitMq", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(rabbitCs))
+        {
+            throw new InvalidOperationException(
+                "Messaging:Provider está definido como RabbitMq mas falta KYC_RABBITMQ_CONNECTION ou RabbitMq:ConnectionString.");
         }
 
         if (useAzure)
@@ -172,9 +251,16 @@ public static class DependencyInjection
             return;
         }
 
+        if (useRabbit)
+        {
+            services.AddSingleton<IKycCaseMessageBus, RabbitMqKycCaseMessageBus>();
+            services.AddHostedService<RabbitMqKycCaseConsumerHostedService>();
+            return;
+        }
+
         services.AddSingleton<InMemoryCaseStartedQueue>();
         services.AddSingleton<IKycCaseMessageBus, InMemoryKycCaseMessageBus>();
-        if (configuration.GetValue("Messaging:HostInMemoryPipeline", true))
+        if (!disableBackground && configuration.GetValue("Messaging:HostInMemoryPipeline", true))
             services.AddHostedService<CaseStartedPipelineHostedService>();
     }
 

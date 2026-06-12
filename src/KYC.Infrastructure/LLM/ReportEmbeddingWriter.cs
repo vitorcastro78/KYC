@@ -38,6 +38,13 @@ public sealed class ReportEmbeddingWriter(
         return Task.CompletedTask;
     }
 
+    public async Task ClearEmbeddingsAsync(Guid kycCaseId, CancellationToken ct = default)
+    {
+        await db.ReportEmbeddings
+            .Where(e => e.KycCaseId == kycCaseId)
+            .ExecuteDeleteAsync(ct);
+    }
+
     /// <summary>Gera embeddings via Ollama (qwen3-embedding:8b por defeito); fallback determinístico para pseudo-vector.</summary>
     public async Task EmbedReportTextAsync(Guid kycCaseId, string markdown, CancellationToken ct = default)
     {

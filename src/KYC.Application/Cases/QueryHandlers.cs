@@ -2,10 +2,44 @@ using KYC.Application.Common;
 using KYC.Application.Dtos;
 using KYC.Application.Interfaces;
 using KYC.Application.Models;
+using KYC.Application.Services;
 using KYC.Domain.Enums;
 using MediatR;
 
 namespace KYC.Application.Cases;
+
+public class GetEntityResolutionPreviewQueryHandler(IEntityResolutionService resolution)
+    : IRequestHandler<GetEntityResolutionPreviewQuery, EntityResolutionPreviewDto?>
+{
+    public async Task<EntityResolutionPreviewDto?> Handle(
+        GetEntityResolutionPreviewQuery request,
+        CancellationToken cancellationToken)
+    {
+        if (!NifSanitizer.TryNormalizeCaseKey(request.Nif, out var nif))
+            return null;
+
+        var resolved = await resolution.ResolveByNifAsync(nif, cancellationToken);
+        var registry = resolved.UsedFallback
+            ? null
+            : resolved.Gleif is not null
+                ? "GLEIF"
+                : resolved.RegistryId is not null
+                    ? "RCBE/Registo"
+                    : "Wikidata";
+
+        var message = resolved.UsedFallback
+            ? "Sem correspondência RCBE/GLEIF — indique a denominação social manualmente."
+            : $"Resolvido: {resolved.LegalName}";
+
+        return new EntityResolutionPreviewDto(
+            nif,
+            resolved.LegalName,
+            resolved.UsedFallback,
+            resolved.Success,
+            registry,
+            message);
+    }
+}
 
 public class GetKycCaseQueryHandler(
     IKycCaseRepository repository,
@@ -24,6 +58,24 @@ public class GetKycCaseQueryHandler(
     }
 }
 
+public class GetCasePartyContextQueryHandler(IKycCaseRepository repository)
+    : IRequestHandler<GetCasePartyContextQuery, CasePartyContextDto?>
+{
+    public async Task<CasePartyContextDto?> Handle(GetCasePartyContextQuery request, CancellationToken cancellationToken)
+    {
+        var match = await repository.GetCaseWithPartyAsync(request.PartyId, cancellationToken);
+        if (match is null)
+            return null;
+
+        var (kyc, party) = match.Value;
+        var partyDto = KycCaseMapping.ToDetailDto(kyc)?.Parties.FirstOrDefault(p => p.Id == party.Id);
+        if (partyDto is null)
+            return null;
+
+        return new CasePartyContextDto(kyc.Id, kyc.CompanyName, partyDto);
+    }
+}
+
 public class ListKycCasesQueryHandler(IKycCaseRepository repository)
     : IRequestHandler<ListKycCasesQuery, PagedResult<KycCaseDto>>
 {
@@ -36,14 +88,14 @@ public class ListKycCasesQueryHandler(IKycCaseRepository repository)
 }
 
 public class GetUboGraphQueryHandler(IKycCaseRepository cases, IEntityResolutionService resolution)
-    : IRequestHandler<GetUboGraphQuery, UboGraphDto?>
+    : IRequestHandler<GetUboGraphQuery, UboGraphViewDto?>
 {
-    public async Task<UboGraphDto?> Handle(GetUboGraphQuery request, CancellationToken cancellationToken)
+    public async Task<UboGraphViewDto?> Handle(GetUboGraphQuery request, CancellationToken cancellationToken)
     {
         var kyc = await cases.GetByIdAsync(request.CaseId, cancellationToken);
         if (kyc is null) return null;
         var graph = await resolution.BuildUboGraphAsync(kyc.Nif, maxDepth: 5, cancellationToken);
-        return new UboGraphDto(graph);
+        return UboGraphViewBuilder.Build(kyc, graph);
     }
 }
 
@@ -88,7 +140,7 @@ public class GetKycReportQueryHandler(IKycCaseRepository repository)
         if (c?.FinalReport is null) return null;
         return new KycReportDto(
             c.Id,
-            c.FinalReport.NarrativeHtml,
+            LlmChatOutputSanitizer.CleanStoredReportHtml(c.FinalReport.NarrativeHtml),
             c.FinalReport.ModelUsed,
             c.FinalReport.GeneratedAt);
     }
@@ -125,4 +177,77 @@ public class GetCriticalAlertsQueryHandler(IKycAnalyticsRepository analytics)
 {
     public Task<IReadOnlyList<CriticalAlertDto>> Handle(GetCriticalAlertsQuery request, CancellationToken cancellationToken) =>
         analytics.GetCriticalAlertsLast24hAsync(cancellationToken);
+}
+
+public class ListAmlComplianceReportsQueryHandler(IAmlComplianceReportRepository reports)
+    : IRequestHandler<ListAmlComplianceReportsQuery, IReadOnlyList<AmlComplianceReportListItemDto>>
+{
+    public async Task<IReadOnlyList<AmlComplianceReportListItemDto>> Handle(
+        ListAmlComplianceReportsQuery request,
+        CancellationToken cancellationToken)
+    {
+        var list = await reports.ListAsync(cancellationToken);
+        return list.Select(r => new AmlComplianceReportListItemDto(
+            r.Id,
+            r.ReportingYear,
+            r.Status,
+            r.GeneratedAt,
+            r.BdpReferenceNumber)).ToList();
+    }
+}
+
+public class GetUifSubmissionStatusQueryHandler(IUifReportingService uif)
+    : IRequestHandler<GetUifSubmissionStatusQuery, UifSubmissionStatusDto>
+{
+    public async Task<UifSubmissionStatusDto> Handle(
+        GetUifSubmissionStatusQuery request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.ReferenceNumber))
+            throw new ArgumentException("Referência UIF obrigatória.");
+
+        var status = await uif.GetSubmissionStatusAsync(request.ReferenceNumber, cancellationToken);
+        return new UifSubmissionStatusDto(status.ReferenceNumber, status.Status, status.LastUpdated);
+    }
+}
+
+public class GetAmlComplianceReportQueryHandler(IAmlComplianceReportRepository reports)
+    : IRequestHandler<GetAmlComplianceReportQuery, AmlComplianceReportDetailDto?>
+{
+    public async Task<AmlComplianceReportDetailDto?> Handle(
+        GetAmlComplianceReportQuery request,
+        CancellationToken cancellationToken)
+    {
+        var r = await reports.GetByIdAsync(request.ReportId, cancellationToken);
+        if (r is null)
+            return null;
+
+        return new AmlComplianceReportDetailDto(
+            r.Id,
+            r.ReportingYear,
+            r.Status,
+            r.GeneratedAt,
+            r.GeneratedBy,
+            r.BdpReferenceNumber,
+            r.TotalCasesProcessed,
+            r.TotalCasesApproved,
+            r.TotalCasesRejected,
+            r.TotalCasesUnderReview,
+            r.CasesLowRisk,
+            r.CasesMediumRisk,
+            r.CasesHighRisk,
+            r.CasesCriticalRisk,
+            r.TotalRiskSignalsDetected,
+            r.SanctionMatches,
+            r.PepMatches,
+            r.SarsSubmitted,
+            r.AssetFreezeNotifications,
+            r.CasesSimplifiedDd,
+            r.CasesStandardDd,
+            r.CasesEnhancedDd,
+            r.PeriodicReviewsCompleted,
+            r.PeriodicReviewsOverdue,
+            r.PlatformVersion,
+            r.AiModelsUsed);
+    }
 }

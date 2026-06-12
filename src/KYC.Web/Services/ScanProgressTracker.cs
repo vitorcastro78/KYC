@@ -51,60 +51,54 @@ public sealed class ScanProgressTracker
             return ScanProgressHubResult.Failed;
         }
 
-        var pct = Math.Clamp(percent, 0, 100);
-        if (AwaitingFreshProgress && pct >= 100)
+        if (!ApplyServerProgress(module, percent, out var completed))
             return ScanProgressHubResult.IgnoredStale;
 
-        SetModulePercent(module, pct);
+        return completed ? ScanProgressHubResult.Completed : ScanProgressHubResult.Updated;
+    }
+
+    /// <summary>Aplica progresso vindo da BD (polling). Aceita aumentos monótonos mesmo com hub ligado.</summary>
+    public bool TryApplyDatabaseFallback(int percentComplete, bool hubConnected = false)
+    {
+        if (hubConnected && !InProgress)
+            return false;
+
+        return ApplyServerProgress(
+            ScanProgressLabels.ModuleKeyFromDatabasePercent(percentComplete),
+            percentComplete,
+            out _);
+    }
+
+    private bool ApplyServerProgress(string moduleKey, int percent, out bool completed)
+    {
+        completed = false;
+        var pct = Math.Clamp(percent, 0, 100);
+
+        if (AwaitingFreshProgress && pct >= 100)
+            return false;
+
+        if (pct > 0 && pct < Percent && !AwaitingFreshProgress)
+            return false;
+
+        SetModulePercent(moduleKey, pct);
 
         if (pct is 0 or (> 0 and < 100))
         {
             InProgress = true;
             if (pct > 0)
                 AwaitingFreshProgress = false;
-            return ScanProgressHubResult.Updated;
+            return true;
         }
 
         if (pct >= 100)
         {
             InProgress = false;
             AwaitingFreshProgress = false;
-            return ScanProgressHubResult.Completed;
-        }
-
-        return ScanProgressHubResult.Updated;
-    }
-
-    /// <summary>
-    /// Usado ao abrir o detalhe ou quando o hub está offline. Não sobrescreve estado activo alimentado pelo hub.
-    /// </summary>
-    public bool TryApplyDatabaseFallback(int percentComplete, bool hubConnected)
-    {
-        if (InProgress && hubConnected)
-            return false;
-
-        var pct = Math.Clamp(percentComplete, 0, 100);
-
-        if (AwaitingFreshProgress)
-        {
-            if (pct is 0 or >= 100)
-            {
-                SetModulePercent("A iniciar", 0);
-                return true;
-            }
-        }
-
-        if (pct is > 0 and < 100)
-        {
-            InProgress = true;
-            if (pct > 0)
-                AwaitingFreshProgress = false;
-            var key = ScanProgressLabels.ModuleKeyFromDatabasePercent(pct);
-            SetModulePercent(key, pct);
+            completed = true;
             return true;
         }
 
-        return false;
+        return true;
     }
 
     public void ApplyCompletedCaseView()

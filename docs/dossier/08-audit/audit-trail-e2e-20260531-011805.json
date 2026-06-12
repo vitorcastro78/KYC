@@ -1,0 +1,177 @@
+[
+  {
+    "KycCaseId": "2af420f6-dccd-4e74-bd2b-04db521b40a8",
+    "Action": "IdentityManualVerified",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:18:04.21452Z",
+    "Details": "UBO E2E: Verifica\u00E7\u00E3o presencial equivalente em conting\u00EAncia E2E homologa\u00E7\u00E3o."
+  },
+  {
+    "KycCaseId": "2af420f6-dccd-4e74-bd2b-04db521b40a8",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:18:03.686792Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "717477d5-ff2a-4778-bac3-c6a73ac546bb",
+    "Action": "AssetFreezeManualRegistered",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:18:01.519552Z",
+    "Details": "BDP-E2E-FREEZE-99"
+  },
+  {
+    "KycCaseId": "717477d5-ff2a-4778-bac3-c6a73ac546bb",
+    "Action": "SanctionConfirmedUnderReview",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:18:00.72519Z",
+    "Details": "Match"
+  },
+  {
+    "KycCaseId": "717477d5-ff2a-4778-bac3-c6a73ac546bb",
+    "Action": "AssetFreezeNotificationFailed",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:18:00.722655Z",
+    "Details": "BdP API down E2E"
+  },
+  {
+    "KycCaseId": "717477d5-ff2a-4778-bac3-c6a73ac546bb",
+    "Action": "AnalystOverride",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:18:00.72204Z",
+    "Details": "Signal 6e8f503a-1885-4016-a7ae-f40ee63d2660 confirm=True"
+  },
+  {
+    "KycCaseId": "717477d5-ff2a-4778-bac3-c6a73ac546bb",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:18:00.041111Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "811cd7e6-9539-4ce7-8517-5441a628b366",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:17:58.631968Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "20a0443e-94d3-4a99-9238-7e7ffd1cf5c0",
+    "Action": "SanctionConfirmedUnderReview",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:07.240364Z",
+    "Details": "Sanction E2E"
+  },
+  {
+    "KycCaseId": "20a0443e-94d3-4a99-9238-7e7ffd1cf5c0",
+    "Action": "AssetFreezeNotificationSent",
+    "ActorId": "System",
+    "Timestamp": "2026-05-31T01:12:07.240326Z",
+    "Details": "OK"
+  },
+  {
+    "KycCaseId": "20a0443e-94d3-4a99-9238-7e7ffd1cf5c0",
+    "Action": "AnalystOverride",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:07.239886Z",
+    "Details": "Signal 2dcd8672-7f07-40c2-8fb4-1af933f97756 confirm=True"
+  },
+  {
+    "KycCaseId": "20a0443e-94d3-4a99-9238-7e7ffd1cf5c0",
+    "Action": "ManualRiskSignalAdded",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:06.41088Z",
+    "Details": "AdverseMedia/High: Not\u00EDcia adversa registada manualmente em homologa\u00E7\u00E3o E2E."
+  },
+  {
+    "KycCaseId": "20a0443e-94d3-4a99-9238-7e7ffd1cf5c0",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:05.894233Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "3716379d-d56d-4339-8a0a-872b0b8670fc",
+    "Action": "SarManualRegistered",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:04.970197Z",
+    "Details": "UIF-E2E-MANUAL-001"
+  },
+  {
+    "KycCaseId": "3716379d-d56d-4339-8a0a-872b0b8670fc",
+    "Action": "SarSubmitted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:04.970195Z",
+    "Details": "UIF-E2E-MANUAL-001"
+  },
+  {
+    "KycCaseId": "3716379d-d56d-4339-8a0a-872b0b8670fc",
+    "Action": "SarApiFailedPendingManual",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:04.390539Z",
+    "Details": "UIF indispon\u00EDvel E2E"
+  },
+  {
+    "KycCaseId": "3716379d-d56d-4339-8a0a-872b0b8670fc",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:03.89778Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "234fbc46-39fc-46bd-8cba-1897d40c15d0",
+    "Action": "IdentityManualVerified",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:01.925232Z",
+    "Details": "UBO E2E: Verifica\u00E7\u00E3o presencial equivalente em conting\u00EAncia E2E homologa\u00E7\u00E3o."
+  },
+  {
+    "KycCaseId": "234fbc46-39fc-46bd-8cba-1897d40c15d0",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:12:01.378417Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "e3b01fb0-98e1-423c-9adc-5002f2716b4c",
+    "Action": "AssetFreezeManualRegistered",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:11:59.26511Z",
+    "Details": "BDP-E2E-FREEZE-99"
+  },
+  {
+    "KycCaseId": "e3b01fb0-98e1-423c-9adc-5002f2716b4c",
+    "Action": "SanctionConfirmedUnderReview",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:11:58.43247Z",
+    "Details": "Match"
+  },
+  {
+    "KycCaseId": "e3b01fb0-98e1-423c-9adc-5002f2716b4c",
+    "Action": "AssetFreezeNotificationFailed",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:11:58.429758Z",
+    "Details": "BdP API down E2E"
+  },
+  {
+    "KycCaseId": "e3b01fb0-98e1-423c-9adc-5002f2716b4c",
+    "Action": "AnalystOverride",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:11:58.428927Z",
+    "Details": "Signal 2e64c0dd-cd6e-453c-a775-e98c099e800f confirm=True"
+  },
+  {
+    "KycCaseId": "e3b01fb0-98e1-423c-9adc-5002f2716b4c",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:11:57.746091Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "f8e2f2fe-3a22-4411-8384-1edb9290e5f4",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-05-31T01:11:56.29597Z",
+    "Details": null
+  }
+]

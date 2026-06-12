@@ -13,7 +13,13 @@ public record CasePartyDto(
     decimal OwnershipPercentage,
     bool IsPep,
     bool IsSanctioned,
-    bool IsOffshore);
+    bool IsOffshore,
+    IdentityVerificationStatus VerificationStatus = IdentityVerificationStatus.Pending,
+    IdentityVerificationMethod VerificationMethod = IdentityVerificationMethod.NotYetVerified,
+    string? VerificationSessionId = null,
+    string? VerificationUrl = null,
+    bool RcbeDiscrepancyDetected = false,
+    bool RcbeDiscrepancyReported = false);
 
 public record RiskSignalDetailDto(
     Guid Id,
@@ -41,5 +47,22 @@ public record KycCaseDetailDto(
     IReadOnlyList<RiskSignalDetailDto> Signals,
     IReadOnlyList<AuditEntryDto> AuditTrail,
     KycReportDto? Report,
+    IReadOnlyList<CaseDocumentDto> Documents,
     GleifCompanySnapshot? Gleif = null,
-    IReadOnlyList<GleifRelatedParty>? GleifRelatedParties = null);
+    IReadOnlyList<GleifRelatedParty>? GleifRelatedParties = null,
+    DueDiligenceLevel DueDiligenceLevel = DueDiligenceLevel.Standard,
+    string? DueDiligenceJustification = null,
+    SarStatus SarStatus = SarStatus.None,
+    string? SarReferenceNumber = null,
+    DateTime? NextReviewDue = null,
+    string? FundsOriginDescription = null,
+    bool SuggestSar = false,
+    string? CanApproveMessage = null,
+    RelationshipType RelationshipType = RelationshipType.Ongoing,
+    string? LegalBasisRef = null,
+    bool AssetFreezeNotified = false,
+    DateTime? AssetFreezeNotifiedAt = null,
+    string? AssetFreezeConfirmationRef = null,
+    bool NeedsManualAssetFreezeRegistration = false,
+    string? SarPendingManualReason = null,
+    IReadOnlyList<SarAuditEntryDto>? SarHistory = null);

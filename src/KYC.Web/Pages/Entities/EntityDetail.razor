@@ -1,5 +1,7 @@
 @page "/entities/{PartyId:guid}"
 @attribute [Authorize(Policy = "Analyst")]
+@using KYC.Application.Cases
+@using KYC.Application.Dtos
 @inject IMediator Mediator
 @inject NavigationManager Nav
 
@@ -24,16 +26,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        foreach (var c in (await Mediator.Send(new ListKycCasesQuery(new KycCaseFilter(PageSize: 200)))).Items)
-        {
-            var detail = await Mediator.Send(new GetKycCaseQuery(c.Id));
-            var hit = detail?.Parties.FirstOrDefault(p => p.Id == PartyId);
-            if (hit is not null)
-            {
-                _party = hit;
-                _caseId = c.Id;
-                return;
-            }
-        }
+        var ctx = await Mediator.Send(new GetCasePartyContextQuery(PartyId));
+        if (ctx is null)
+            return;
+
+        _party = ctx.Party;
+        _caseId = ctx.CaseId;
     }
 }

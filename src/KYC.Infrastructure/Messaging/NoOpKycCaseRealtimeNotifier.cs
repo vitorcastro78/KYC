@@ -16,4 +16,21 @@ public class NoOpKycCaseRealtimeNotifier : IKycCaseRealtimeNotifier
 
     public Task NotifyStatusChangedAsync(Guid caseId, KycStatus newStatus, CancellationToken ct = default) =>
         Task.CompletedTask;
+
+    public Task NotifyDocumentIngestionUpdatedAsync(
+        Guid caseId,
+        Guid documentId,
+        DocumentIngestionStatus status,
+        CancellationToken ct = default) =>
+        Task.CompletedTask;
+
+    public Task NotifyComplianceAlertAsync(
+        Guid caseId,
+        string alertType,
+        string message,
+        CancellationToken ct = default) =>
+        Task.CompletedTask;
+
+    public Task NotifySupervisorsAsync(string alertType, string message, CancellationToken ct = default) =>
+        Task.CompletedTask;
 }

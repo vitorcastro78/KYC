@@ -31,6 +31,12 @@
                 <span class="nav-label">Novo caso</span>
             </NavLink>
         </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/help">
+                <span class="oi oi-book" aria-hidden="true"></span>
+                <span class="nav-label">Ajuda</span>
+            </NavLink>
+        </div>
 
         <AuthorizeView Policy="Admin">
             <div class="nav-section-label px-3 mt-3">Administração</div>
@@ -38,6 +44,24 @@
                 <NavLink class="nav-link" href="/admin/users">
                     <span class="oi oi-people" aria-hidden="true"></span>
                     <span class="nav-label">Utilizadores</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/admin/aml-report">
+                    <span class="oi oi-bar-chart" aria-hidden="true"></span>
+                    <span class="nav-label">RPB BdP</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/admin/scoring-config">
+                    <span class="oi oi-graph" aria-hidden="true"></span>
+                    <span class="nav-label">Scoring</span>
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/admin/dpia">
+                    <span class="oi oi-shield" aria-hidden="true"></span>
+                    <span class="nav-label">DPIA</span>
                 </NavLink>
             </div>
             <div class="nav-item px-3">

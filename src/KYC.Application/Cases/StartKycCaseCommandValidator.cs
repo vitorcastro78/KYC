@@ -14,5 +14,8 @@ public class StartKycCaseCommandValidator : AbstractValidator<StartKycCaseComman
         RuleFor(x => x.RequestedBy).NotEmpty();
         RuleFor(x => x.RequestedAmount.Amount).GreaterThan(0);
         RuleFor(x => x.RequestedAmount.Currency).NotEmpty().MaximumLength(8);
+        RuleFor(x => x.LegalCompanyName)
+            .MaximumLength(256)
+            .When(x => !string.IsNullOrWhiteSpace(x.LegalCompanyName));
     }
 }

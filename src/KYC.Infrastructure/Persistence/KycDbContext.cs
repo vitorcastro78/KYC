@@ -13,6 +13,13 @@ public class KycDbContext(DbContextOptions<KycDbContext> options) : DbContext(op
     public DbSet<KycReport> KycReports => Set<KycReport>();
     public DbSet<ReportEmbedding> ReportEmbeddings => Set<ReportEmbedding>();
     public DbSet<KycCaseScanProgressRow> KycCaseScanProgress => Set<KycCaseScanProgressRow>();
+    public DbSet<CaseDocument> CaseDocuments => Set<CaseDocument>();
+    public DbSet<DocumentExtractedFact> DocumentExtractedFacts => Set<DocumentExtractedFact>();
+    public DbSet<DocumentExtractedParty> DocumentExtractedParties => Set<DocumentExtractedParty>();
+    public DbSet<CustomerAcceptancePolicy> CustomerAcceptancePolicies => Set<CustomerAcceptancePolicy>();
+    public DbSet<ScoringEngineConfig> ScoringEngineConfigs => Set<ScoringEngineConfig>();
+    public DbSet<DpiaRecord> DpiaRecords => Set<DpiaRecord>();
+    public DbSet<AmlComplianceReport> AmlComplianceReports => Set<AmlComplianceReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

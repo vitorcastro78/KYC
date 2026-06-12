@@ -1,0 +1,67 @@
+@page "/admin/dpia"
+@attribute [Authorize(Policy = "Admin")]
+@using Microsoft.AspNetCore.Components.Forms
+@inject IDpiaRecordRepository Repo
+@inject IMediator Mediator
+@inject ToastService Toast
+
+<PageTitle>DPIA</PageTitle>
+<h1>Registo DPIA (RGPD Art. 35)</h1>
+
+@if (_active is not null)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div>Versão activa: <strong>@_active.Version</strong></div>
+            <div>Aprovado por: @_active.ApprovedBy em @_active.ApprovedAt.ToLocalTime()</div>
+            <div>Próxima revisão: @_active.NextReviewDue.ToLocalTime()</div>
+            <div class="small text-muted mt-2">Documento: @_active.DocumentStoragePath</div>
+        </div>
+    </div>
+}
+
+<div class="card mt-3">
+    <div class="card-header">Nova versão DPIA</div>
+    <div class="card-body row g-2">
+        <div class="col-md-2"><input class="form-control" @bind="_version" placeholder="Versão" /></div>
+        <div class="col-md-5">
+            <InputFile class="form-control" OnChange="OnPdfSelected" accept=".pdf,application/pdf" />
+            <small class="text-muted">@(_pdfFile?.Name ?? "Seleccione o PDF da DPIA")</small>
+        </div>
+        <div class="col-md-3"><button class="btn btn-primary w-100" disabled="@(_busy || _pdfFile is null)" @onclick="Create">Registar com upload</button></div>
+    </div>
+</div>
+
+@code {
+    private KYC.Domain.Entities.DpiaRecord? _active;
+    private string _version = "1.1";
+    private IBrowserFile? _pdfFile;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync() => _active = await Repo.GetActiveAsync();
+
+    private void OnPdfSelected(InputFileChangeEventArgs e) => _pdfFile = e.File;
+
+    private async Task Create()
+    {
+        if (_pdfFile is null) return;
+        _busy = true;
+        try
+        {
+            await using var stream = _pdfFile.OpenReadStream(maxAllowedSize: 26_214_400);
+            var path = await Mediator.Send(new UploadDpiaDocumentCommand(_version, stream, _pdfFile.Name));
+            await Mediator.Send(new CreateDpiaRecordCommand(_version, path, "admin"));
+            Toast.Show("DPIA registado com documento em storage.", ToastLevel.Success);
+            _active = await Repo.GetActiveAsync();
+            _pdfFile = null;
+        }
+        catch (Exception ex)
+        {
+            Toast.Show(ex.Message, ToastLevel.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

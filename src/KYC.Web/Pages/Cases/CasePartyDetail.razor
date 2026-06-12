@@ -1,7 +1,12 @@
 @page "/cases/{CaseId:guid}/parties/{PartyId:guid}"
 @attribute [Authorize(Policy = "Analyst")]
+@using KYC.Application.Interfaces
+@using KYC.Web.Services
 @inject IMediator Mediator
 @inject NavigationManager Nav
+@inject ICurrentAnalystAccessor AnalystAccessor
+@inject ToastService Toast
+@inject ICircuitDbGate DbGate
 
 <PageTitle>Parte do caso</PageTitle>
 
@@ -23,6 +28,16 @@ else
             <span> · NIF @_party.Nif</span>
         }
     </p>
+
+    @if (ComplianceUiLabels.RequiresIdentityVerification(_party.Role))
+    {
+        <div class="card mb-3">
+            <div class="card-header"><h3 class="h6 mb-0">Verificação de identidade</h3></div>
+            <div class="card-body">
+                <PartyIdentityPanel Party="_party" CaseId="CaseId" ShowName="false" OnChanged="ReloadPartyAsync" />
+            </div>
+        </div>
+    }
 
     <div class="row g-3 mb-3">
         <div class="col-md-6">
@@ -88,9 +103,10 @@ else
     private List<RiskSignalDetailDto> _partySignals = [];
     private string? _actionError;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync() =>
+        await DbGate.RunAsync(LoadCoreAsync);
 
-    private async Task LoadAsync()
+    private async Task LoadCoreAsync()
     {
         _case = await Mediator.Send(new GetKycCaseQuery(CaseId));
         if (_case is null)
@@ -102,13 +118,24 @@ else
             .ToList();
     }
 
+    private Task ReloadPartyAsync() => DbGate.RunAsync(LoadCoreAsync);
+
     private async Task TriagemParteAsync(Guid partyId)
     {
         _actionError = null;
         try
         {
-            await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, "dev-user"));
-            await LoadAsync();
+            var newSignals = 0;
+            await DbGate.RunAsync(async () =>
+            {
+                newSignals = await Mediator.Send(new ScreenCasePartyCommand(CaseId, partyId, await AnalystAccessor.GetAnalystIdAsync()));
+                await LoadCoreAsync();
+            });
+            Toast.Show(
+                newSignals > 0
+                    ? $"Triagem concluída — {newSignals} sinal(is) novo(s)."
+                    : "Triagem concluída — sem novos sinais.",
+                newSignals > 0 ? ToastLevel.Warning : ToastLevel.Success);
         }
         catch (Exception ex)
         {

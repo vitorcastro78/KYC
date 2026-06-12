@@ -1,0 +1,235 @@
+@using KYC.Application.Dtos
+@using KYC.Web.Services
+@inject NavigationManager Nav
+
+<div class="ubo-graph-shell">
+    <div class="ubo-graph-toolbar">
+        @if (!Compact)
+        {
+            <div>
+                <div class="fw-semibold">@Graph.CompanyName</div>
+                <div class="small text-muted">NIF @Graph.CompanyNif · @(Graph.HasGleifLevel2 ? "GLEIF Level 2" : "Dados parciais / partes do caso")</div>
+            </div>
+        }
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0">Profundidade</label>
+            <input type="range" class="form-range" style="width:120px" min="0" max="@_maxDepth" @bind="_depth" @bind:event="oninput" />
+            <span class="small fw-semibold">@_depth</span>
+        </div>
+        <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary" title="Reduzir" @onclick="ZoomOut">−</button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="ResetZoom">@(_zoom.ToString("P0"))</button>
+            <button type="button" class="btn btn-outline-secondary" title="Ampliar" @onclick="ZoomIn">+</button>
+        </div>
+        @if (!Compact)
+        {
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" @onclick="() => _showTable = !_showTable">
+                @(_showTable ? "Ocultar tabela" : "Tabela de nós")
+            </button>
+        }
+    </div>
+
+    <div class="ubo-graph-body">
+        <div class="ubo-graph-canvas-wrap @(Compact ? "compact" : "")">
+            <svg class="ubo-graph-svg"
+                 width="@(_layout.Width * _zoom)"
+                 height="@(_layout.Height * _zoom)"
+                 viewBox="0 0 @_layout.Width @_layout.Height"
+                 @onclick="ClearSelection">
+                <defs>
+                    <marker id="ubo-arrow-@_svgId" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                        <polygon points="0 0, 8 4, 0 8" fill="#6b7c8f" />
+                    </marker>
+                </defs>
+                @foreach (var edge in VisibleEdges)
+                {
+                    if (!_layout.Positions.TryGetValue(edge.FromId, out var from)
+                        || !_layout.Positions.TryGetValue(edge.ToId, out var to))
+                        continue;
+
+                    var x1 = from.X + from.Width;
+                    var y1 = from.Y + from.Height / 2;
+                    var x2 = to.X;
+                    var y2 = to.Y + to.Height / 2;
+                    <line x1="@x1" y1="@y1" x2="@x2" y2="@y2"
+                          stroke="#8fa3b8" stroke-width="@EdgeStroke(edge.OwnershipPct)"
+                          marker-end="url(#ubo-arrow-@_svgId)" />
+                    @if (!string.IsNullOrWhiteSpace(edge.Label))
+                    {
+                        var lx = (x1 + x2) / 2 - 28;
+                        var ly = (y1 + y2) / 2 - 10;
+                        <foreignObject x="@lx" y="@ly" width="56" height="16">
+                            <div xmlns="http://www.w3.org/1999/xhtml" class="ubo-edge-label-html">@edge.Label</div>
+                        </foreignObject>
+                    }
+                }
+                @foreach (var node in VisibleNodes)
+                {
+                    if (!_layout.Positions.TryGetValue(node.Id, out var pos))
+                        continue;
+                    var selected = _selected?.Id == node.Id;
+                    <g class="ubo-node @(selected ? "selected" : "")"
+                       transform="translate(@pos.X.ToString("F1"), @pos.Y.ToString("F1"))"
+                       @onclick:stopPropagation="true"
+                       @onclick="() => SelectNode(node)">
+                        <rect width="@pos.Width" height="@pos.Height" rx="10"
+                              fill="@NodeFill(node)" stroke="@(selected ? "#1f5e9e" : "#4a5f73")" stroke-width="@(selected ? 2.5 : 1.2)" />
+                        <foreignObject x="8" y="6" width="@(pos.Width - 16)" height="@(pos.Height - 12)">
+                            <div xmlns="http://www.w3.org/1999/xhtml" class="ubo-node-html">
+                                <div class="ubo-node-title">@Truncate(node.Name, Compact ? 18 : 24)</div>
+                                @if (!string.IsNullOrWhiteSpace(node.Nif))
+                                {
+                                    <div class="ubo-node-meta">@node.Nif</div>
+                                }
+                                <div class="ubo-node-meta">
+                                    @(node.CaseRoleLabel ?? node.RelationshipKind ?? node.EntityType)
+                                    @if (node.OwnershipPct is > 0)
+                                    {
+                                        <span> · @node.OwnershipPct.Value.ToString("0.#")%</span>
+                                    }
+                                </div>
+                            </div>
+                        </foreignObject>
+                        @if (node.IsPep || node.IsSanctioned || node.IsOffshore || node.IsSynthetic)
+                        {
+                            <circle cx="@(pos.Width - 14)" cy="14" r="6" fill="@BadgeColor(node)" />
+                        }
+                    </g>
+                }
+            </svg>
+        </div>
+        @if (_selected is not null && !Compact)
+        {
+            <aside class="ubo-inspector">
+                <h6 class="h6">@_selected.Name</h6>
+                @if (!string.IsNullOrWhiteSpace(_selected.Nif))
+                {
+                    <div><span class="text-muted">NIF:</span> @_selected.Nif</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_selected.CountryIso2))
+                {
+                    <div><span class="text-muted">País:</span> @_selected.CountryIso2</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_selected.CaseRoleLabel))
+                {
+                    <div><span class="text-muted">Papel no caso:</span> @_selected.CaseRoleLabel</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_selected.RelationshipKind))
+                {
+                    <div><span class="text-muted">Relação GLEIF:</span> @_selected.RelationshipKind</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_selected.VerificationStatus))
+                {
+                    <div><span class="text-muted">Identidade:</span> @_selected.VerificationStatus</div>
+                }
+                <div class="mt-2 d-flex flex-wrap gap-1">
+                    @if (_selected.IsPep) { <span class="badge bg-info">PEP</span> }
+                    @if (_selected.IsSanctioned) { <span class="badge bg-danger">Sanções</span> }
+                    @if (_selected.IsOffshore) { <span class="badge bg-warning text-dark">Offshore</span> }
+                    @if (_selected.IsSynthetic) { <span class="badge bg-secondary">Sintético</span> }
+                </div>
+                @if (_selected.CasePartyId is { } pid && CaseId is { } cid)
+                {
+                    <a class="btn btn-sm btn-primary mt-3 w-100" href="/cases/@cid/parties/@pid">Abrir parte no caso</a>
+                }
+            </aside>
+        }
+    </div>
+
+    <div class="ubo-legend">
+        <span><span class="ubo-legend-swatch" style="background:#1f6feb"></span>Empresa</span>
+        <span><span class="ubo-legend-swatch" style="background:#2ea043"></span>Pessoa</span>
+        <span><span class="ubo-legend-swatch" style="background:#d4a017"></span>Outro</span>
+        <span><span class="ubo-legend-swatch" style="background:#dc3545"></span>Risco (PEP/sanções/offshore)</span>
+    </div>
+
+    @if (_showTable && !Compact)
+    {
+        <div class="ubo-table-wrap">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light sticky-top">
+                <tr>
+                    <th>Nome</th><th>NIF</th><th>Prof.</th><th>%</th><th>Papel</th><th></th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var n in VisibleNodes.OrderBy(n => n.Depth).ThenBy(n => n.Name))
+                {
+                    <tr class="@(_selected?.Id == n.Id ? "selected" : "")" @onclick="() => SelectNode(n)">
+                        <td>@n.Name</td>
+                        <td>@(n.Nif ?? "—")</td>
+                        <td>@n.Depth</td>
+                        <td>@(n.OwnershipPct?.ToString("0.#") ?? "—")</td>
+                        <td>@(n.CaseRoleLabel ?? n.RelationshipKind ?? "—")</td>
+                        <td>
+                            @if (n.IsPep) { <span class="badge bg-info">PEP</span> }
+                            @if (n.IsSanctioned) { <span class="badge bg-danger">S</span> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public UboGraphViewDto Graph { get; set; } = default!;
+    [Parameter] public Guid? CaseId { get; set; }
+    [Parameter] public bool Compact { get; set; }
+
+    private readonly string _svgId = Guid.NewGuid().ToString("N")[..8];
+    private UboGraphLayout _layout = new(new Dictionary<Guid, UboNodePosition>(), 400, 240);
+    private int _depth = 5;
+    private int _maxDepth;
+    private double _zoom = 1;
+    private bool _showTable = true;
+    private UboGraphNodeDto? _selected;
+
+    private IEnumerable<UboGraphNodeDto> VisibleNodes =>
+        Graph.Nodes.Where(n => n.Depth <= _depth).OrderBy(n => n.Depth).ThenBy(n => n.Name);
+
+    private IEnumerable<UboGraphEdgeDto> VisibleEdges
+    {
+        get
+        {
+            var ids = VisibleNodes.Select(n => n.Id).ToHashSet();
+            return Graph.Edges.Where(e => ids.Contains(e.FromId) && ids.Contains(e.ToId));
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        _maxDepth = Graph.Nodes.Count == 0 ? 0 : Graph.Nodes.Max(n => n.Depth);
+        _depth = Math.Min(_depth, _maxDepth);
+        _layout = UboGraphLayoutEngine.Compute(Graph.Nodes.ToList(), _depth, Compact);
+    }
+
+    private void SelectNode(UboGraphNodeDto node) => _selected = node;
+    private void ClearSelection() => _selected = null;
+    private void ZoomIn() => _zoom = Math.Min(1.8, _zoom + 0.1);
+    private void ZoomOut() => _zoom = Math.Max(0.5, _zoom - 0.1);
+    private void ResetZoom() => _zoom = 1;
+
+    private static string Truncate(string s, int max) =>
+        s.Length <= max ? s : s[..(max - 1)] + "…";
+
+    private static string NodeFill(UboGraphNodeDto n) => n.EntityType.ToLowerInvariant() switch
+    {
+        "individual" => "#e8f5ec",
+        "company" => "#e8f0fa",
+        _ => "#faf6e8"
+    };
+
+    private static string BadgeColor(UboGraphNodeDto n)
+    {
+        if (n.IsSanctioned) return "#dc3545";
+        if (n.IsPep) return "#0dcaf0";
+        if (n.IsOffshore) return "#ffc107";
+        if (n.IsSynthetic) return "#6c757d";
+        return "transparent";
+    }
+
+    private static double EdgeStroke(decimal pct) =>
+        Math.Clamp((double)pct / 8 + 1, 1, 5);
+}

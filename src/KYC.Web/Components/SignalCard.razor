@@ -1,9 +1,26 @@
+@using KYC.Application.Cases
 @using KYC.Application.Dtos
-<div class="card mb-2">
+@using KYC.Application.Interfaces
+@using KYC.Domain.Enums
+@using KYC.Web.Services
+@inject IMediator Mediator
+@inject ToastService Toast
+@inject ICurrentAnalystAccessor AnalystAccessor
+@inject ICircuitDbGate DbGate
+
+<div class="card mb-2 @CardClass">
     <div class="card-body py-2">
         <div class="d-flex justify-content-between align-items-start gap-2">
             <div>
                 <strong>@Signal.Type</strong>
+                @if (Signal.IsConfirmed)
+                {
+                    <span class="badge bg-danger ms-1">Confirmado</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary ms-1">Pendente</span>
+                }
                 @if (!string.IsNullOrWhiteSpace(Signal.PartyName))
                 {
                     <div class="small text-primary mt-1">Parte: @Signal.PartyName</div>
@@ -13,9 +30,62 @@
         </div>
         <div class="small text-muted">@Signal.Source · @Signal.DetectedAt.ToLocalTime()</div>
         <div>@Signal.Description</div>
+        @if (CanOverride)
+        {
+            <div class="mt-2 d-flex flex-wrap gap-1">
+                @if (!Signal.IsConfirmed)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-danger" disabled="@_busy" @onclick="() => OverrideAsync(true)">
+                        Confirmar correspondência
+                    </button>
+                }
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@_busy" @onclick="() => OverrideAsync(false)">
+                    @(Signal.IsConfirmed ? "Reverter confirmação" : "Descartar")
+                </button>
+            </div>
+        }
     </div>
 </div>
 
 @code {
     [Parameter] public RiskSignalDetailDto Signal { get; set; } = default!;
+    [Parameter] public Guid? CaseId { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private bool _busy;
+
+    private bool CanOverride => CaseId is not null;
+
+    private string CardClass => Signal.IsConfirmed ? "border-danger" : "";
+
+    private async Task OverrideAsync(bool confirm)
+    {
+        if (CaseId is null)
+            return;
+
+        _busy = true;
+        try
+        {
+            var notes = confirm ? "Confirmado pelo analista" : "Descartado pelo analista";
+            await DbGate.RunAsync(async () =>
+            {
+                await Mediator.Send(new OverrideSignalCommand(
+                    Signal.Id,
+                    await AnalystAccessor.GetAnalystIdAsync(),
+                    confirm,
+                    notes));
+                if (OnChanged.HasDelegate)
+                    await OnChanged.InvokeAsync();
+            });
+            Toast.Show(confirm ? "Sinal confirmado." : "Sinal descartado.", ToastLevel.Success);
+        }
+        catch (Exception ex)
+        {
+            Toast.Show(ex.Message, ToastLevel.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
 }

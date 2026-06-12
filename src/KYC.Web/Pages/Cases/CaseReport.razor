@@ -5,54 +5,29 @@
 
 <PageTitle>Relatório KYC</PageTitle>
 
-@if (_loading)
+@if (_case?.Report is null)
 {
-    <p>A carregar relatório…</p>
-}
-else if (_report is null)
-{
-    <div class="alert alert-warning">
-        <strong>Sem relatório disponível.</strong>
-        <p class="mb-0 mt-2">
-            O relatório é gerado automaticamente quando a triagem do caso termina.
-            Se o caso acabou de ser criado, aguarde a conclusão do pipeline ou use
-            <a href="/cases/@CaseId">Refazer triagem automática</a> no detalhe do caso.
-        </p>
-    </div>
-    <a class="btn btn-outline-secondary" href="/cases/@CaseId">Voltar ao caso</a>
+    <p>Relatório ainda não disponível.</p>
+    <a href="/cases/@CaseId">Voltar ao caso</a>
 }
 else
 {
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <div>
-            <h1 class="mb-1">Relatório KYC</h1>
-            <p class="text-muted small mb-0">
-                Gerado em @_report.GeneratedAt.ToLocalTime():dd/MM/yyyy HH:mm
-                @if (!string.IsNullOrWhiteSpace(_report.ModelUsed))
-                {
-                    <span> · Motor: @_report.ModelUsed</span>
-                }
-            </p>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Relatório — @_case.CompanyName</h1>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="/cases/@CaseId">Caso</a>
             <a class="btn btn-primary" href="@Nav.ToAbsoluteUri($"/api/cases/{CaseId}/report.pdf")" target="_blank">Exportar PDF</a>
         </div>
     </div>
-
-    <article class="kyc-report border rounded p-4 bg-white shadow-sm">
-        @((MarkupString)_report.Html)
-    </article>
+    <div class="kyc-report-html border rounded bg-white p-4">
+        @((MarkupString)_case.Report.Html)
+    </div>
 }
 
 @code {
     [Parameter] public Guid CaseId { get; set; }
-    private KycReportDto? _report;
-    private bool _loading = true;
+    private KYC.Application.Dtos.KycCaseDetailDto? _case;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _report = await Mediator.Send(new GetKycReportQuery(CaseId));
-        _loading = false;
-    }
+    protected override async Task OnInitializedAsync() =>
+        _case = await Mediator.Send(new GetKycCaseQuery(CaseId));
 }

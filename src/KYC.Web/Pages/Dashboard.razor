@@ -1,6 +1,9 @@
 ﻿@page "/dashboard"
 @attribute [Authorize(Policy = "Analyst")]
+@implements IAsyncDisposable
 @inject IMediator Mediator
+@inject KycHubConnectionFactory HubFactory
+@using Microsoft.AspNetCore.SignalR.Client
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -116,11 +119,30 @@ else if (_summary is not null)
     private DashboardSummaryDto? _summary;
     private List<KycCaseDto> _recent = new();
     private List<CriticalAlertDto> _alerts = new();
+    private HubConnection? _hub;
+    private System.Threading.Timer? _refreshTimer;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadDataAsync();
         try
         {
+            _hub = HubFactory.Create();
+            _hub.On<Guid, string>("StatusChanged", async (_, _) => await LoadDataAsync());
+            _hub.On<Guid, string>("ReportReady", async (_, _) => await LoadDataAsync());
+            await _hub.StartAsync();
+        }
+        catch
+        {
+            _refreshTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadDataAsync), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(60));
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _loadError = null;
             _summary = await Mediator.Send(new GetDashboardSummaryQuery());
             var list = await Mediator.Send(new ListKycCasesQuery(new KycCaseFilter(Page: 1, PageSize: 10)));
             _recent = list.Items.ToList();
@@ -130,6 +152,14 @@ else if (_summary is not null)
         {
             _loadError = ex.InnerException?.Message ?? ex.Message;
         }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _refreshTimer?.Dispose();
+        if (_hub is not null)
+            await _hub.DisposeAsync();
     }
 
     private static string StatusLabel(KycStatus status) => status switch

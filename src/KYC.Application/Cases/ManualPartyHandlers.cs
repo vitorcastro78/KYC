@@ -50,15 +50,12 @@ public class AddManualCasePartyCommandHandler(
 }
 
 public class ScreenCasePartyCommandHandler(ICasePartyScreener partyScreener)
-    : IRequestHandler<ScreenCasePartyCommand, Unit>
+    : IRequestHandler<ScreenCasePartyCommand, int>
 {
-    public async Task<Unit> Handle(ScreenCasePartyCommand request, CancellationToken cancellationToken)
-    {
-        await partyScreener.AppendScreeningSignalsAsync(
+    public Task<int> Handle(ScreenCasePartyCommand request, CancellationToken cancellationToken) =>
+        partyScreener.AppendScreeningSignalsAsync(
             request.CaseId,
             request.PartyId,
             request.ActorId,
             cancellationToken);
-        return Unit.Value;
-    }
 }

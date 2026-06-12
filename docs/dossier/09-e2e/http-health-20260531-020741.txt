@@ -1,0 +1,84 @@
+﻿GET http://localhost:5299/health
+Status: 200
+
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Entrar - KYC Intelligence</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="/css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/open-iconic/font/css/open-iconic-bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css?v=ThbtWjFi3S0dnEifLJbZ2Y7GiPD6WPVZ9wKkJIyTRd0" />
+    <link rel="stylesheet" href="/css/auth.css?v=YBr2cA9AfE4PABewRVNrBnCkTHb9N7VTLb7D2txiNx0" />
+    
+</head>
+<body class="auth-layout">
+    
+<div class="auth-shell">
+    <section class="auth-hero" aria-hidden="false">
+        <div class="auth-hero-content">
+            <span class="auth-badge">Banking Edition</span>
+            <h1>KYC Intelligence</h1>
+            <p>Plataforma de due diligence corporativa, triagem de risco e compliance em tempo real.</p>
+            <ul class="auth-hero-list">
+                <li><span class="oi oi-check" aria-hidden="true"></span> Triagem automática de sanções e media</li>
+                <li><span class="oi oi-check" aria-hidden="true"></span> Grafo UBO e relatórios auditáveis</li>
+                <li><span class="oi oi-check" aria-hidden="true"></span> Workspace seguro para analistas</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-card">
+            <div class="auth-card-header">
+                <h2>Bem-vindo de volta</h2>
+                <p>Inicie sessão para aceder ao workspace KYC.</p>
+            </div>
+
+            <form method="post" class="auth-form" action="/Identity/Account/Login?returnUrl=%2Fhealth">
+                
+
+                <div class="mb-3">
+                    <label class="form-label" for="Input_Email">Email</label>
+                    <input class="form-control form-control-lg" autocomplete="username" placeholder="admin@kyc.local" type="email" data-val="true" data-val-email="Email inv&#xE1;lido" data-val-required="Email obrigat&#xF3;rio" id="Input_Email" name="Input.Email" value="" />
+                    <span class="text-danger small field-validation-valid" data-valmsg-for="Input.Email" data-valmsg-replace="true"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="Input_Password">Password</label>
+                    <input class="form-control form-control-lg" autocomplete="current-password" placeholder="••••••••" type="password" data-val="true" data-val-required="Password obrigat&#xF3;ria" id="Input_Password" name="Input.Password" />
+                    <span class="text-danger small field-validation-valid" data-valmsg-for="Input.Password" data-valmsg-replace="true"></span>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" data-val="true" data-val-required="The Manter sess&#xE3;o field is required." id="Input_RememberMe" name="Input.RememberMe" value="true" />
+                    <label class="form-check-label small" for="Input_RememberMe">Manter sessão neste dispositivo</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 auth-submit">
+                    Entrar na plataforma
+                </button>
+            <input name="__RequestVerificationToken" type="hidden" value="CfDJ8ApoCpF6kAtCqgrbQIGTUYN3oyS6pYhOjdQWIh-YRIWw1Vmsq49gMwHj0ObarKWIr64rm5-KuUlwk_N2mQToGbrhAZTuS7MwrinAglMZOJlAeWQHjCh1JYU-nlGR5ARdAtWLv_4_IGbYVFMKrhOUlh0" /><input name="Input.RememberMe" type="hidden" value="false" /></form>
+
+            <div class="auth-footer">
+                Ambiente demo · contacte o administrador para novas contas
+            </div>
+        </div>
+    </section>
+</div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js" crossorigin="anonymous"></script>
+    
+    
+    <script src="/Identity/lib/jquery-validation/dist/jquery.validate.js"></script>
+    <script src="/Identity/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.js"></script>
+
+
+
+
+</body>
+</html>
+

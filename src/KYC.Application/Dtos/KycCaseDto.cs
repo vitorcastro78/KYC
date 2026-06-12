@@ -13,4 +13,6 @@ public record KycCaseDto(
     DateTime? CompletedAt,
     string? AssignedAnalystId,
     int PartyCount,
-    int SignalCount);
+    int SignalCount,
+    DueDiligenceLevel DueDiligenceLevel = DueDiligenceLevel.Standard,
+    SarStatus SarStatus = SarStatus.None);

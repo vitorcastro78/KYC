@@ -14,7 +14,7 @@ public sealed class CasePartyScreener(
     IIcijOffshoreService icij,
     ILogger<CasePartyScreener> log) : ICasePartyScreener
 {
-    public async Task AppendScreeningSignalsAsync(Guid caseId, Guid partyId, string actorId, CancellationToken ct = default)
+    public async Task<int> AppendScreeningSignalsAsync(Guid caseId, Guid partyId, string actorId, CancellationToken ct = default)
     {
         var kyc = await cases.GetByIdAsync(caseId, ct) ?? throw new KeyNotFoundException("Caso não encontrado.");
         if (kyc.Status is not (KycStatus.InProgress or KycStatus.UnderReview or KycStatus.Approved))
@@ -38,5 +38,6 @@ public sealed class CasePartyScreener(
 
         await cases.UpdateAsync(kyc, ct);
         log.LogInformation("Triagens manuais concluídas para parte {PartyId} no caso {CaseId}.", partyId, caseId);
+        return newSignals.Count;
     }
 }

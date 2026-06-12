@@ -5,4 +5,6 @@ public record FinancialHealthResult(
     decimal? Revenue,
     decimal? Equity,
     decimal? ZScore,
-    string Summary);
+    string Summary,
+    bool IsAtPublicDebtor = false,
+    string? AtDebtRangeLabel = null);

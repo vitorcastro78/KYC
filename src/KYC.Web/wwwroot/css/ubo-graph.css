@@ -1,0 +1,121 @@
+.ubo-graph-shell {
+    border: 1px solid var(--kyc-border, #d7e1ef);
+    border-radius: 0.75rem;
+    background: #fff;
+    overflow: hidden;
+}
+
+.ubo-graph-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--kyc-border, #d7e1ef);
+    background: #f8fafc;
+}
+
+.ubo-graph-body {
+    display: flex;
+    min-height: 0;
+}
+
+.ubo-graph-canvas-wrap {
+    flex: 1 1 auto;
+    overflow: auto;
+    min-height: 200px;
+    background: linear-gradient(180deg, #fafcff 0%, #fff 100%);
+}
+
+.ubo-graph-canvas-wrap.compact {
+    max-height: 300px;
+}
+
+.ubo-graph-svg {
+    display: block;
+    min-width: 100%;
+}
+
+.ubo-inspector {
+    flex: 0 0 260px;
+    border-left: 1px solid var(--kyc-border, #d7e1ef);
+    padding: 1rem;
+    background: #f8fafc;
+    font-size: 0.875rem;
+}
+
+.ubo-node rect {
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.ubo-node:hover rect,
+.ubo-node.selected rect {
+    filter: drop-shadow(0 4px 8px rgba(31, 94, 158, 0.25));
+    stroke-width: 2.5;
+}
+
+.ubo-edge-label-html {
+    font-size: 10px;
+    color: #5a6b7d;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.ubo-node-html {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.25;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.ubo-node-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #16324f;
+}
+
+.ubo-node-meta {
+    font-size: 10px;
+    color: #5a6b7d;
+}
+
+.ubo-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--kyc-border, #d7e1ef);
+    font-size: 0.8rem;
+}
+
+.ubo-legend-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 4px;
+    vertical-align: -2px;
+}
+
+.ubo-table-wrap {
+    border-top: 1px solid var(--kyc-border, #d7e1ef);
+    max-height: 220px;
+    overflow: auto;
+}
+
+.ubo-table-wrap table {
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.ubo-table-wrap tr {
+    cursor: pointer;
+}
+
+.ubo-table-wrap tr:hover,
+.ubo-table-wrap tr.selected {
+    background: #e8f1fb;
+}

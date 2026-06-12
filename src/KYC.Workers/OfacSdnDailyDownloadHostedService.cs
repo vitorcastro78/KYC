@@ -1,11 +1,13 @@
+using KYC.Infrastructure.ExternalSources;
 using Microsoft.Extensions.Options;
 
 namespace KYC.Workers;
 
-/// <summary>Descarrega periodicamente o SDN_ADVANCED.XML do OFAC para um ficheiro local.</summary>
+/// <summary>Descarrega periodicamente o SDN_ADVANCED.XML via OFAC SLS (/api/download).</summary>
 public sealed class OfacSdnDailyDownloadHostedService(
     IHttpClientFactory httpClientFactory,
     IHostEnvironment hostEnvironment,
+    IConfiguration configuration,
     IOptionsMonitor<OfacSdnDailyDownloadOptions> options,
     ILogger<OfacSdnDailyDownloadHostedService> log) : BackgroundService
 {
@@ -50,15 +52,16 @@ public sealed class OfacSdnDailyDownloadHostedService(
             }
 
             var dest = ResolveLocalPath(opts.LocalPath);
+            var url = OfacSlsOptions.ResolveDownloadUrl(configuration);
             try
             {
-                await DownloadOnceAsync(opts.ExportUrl, dest, stoppingToken).ConfigureAwait(false);
+                await DownloadOnceAsync(url, dest, stoppingToken).ConfigureAwait(false);
                 var len = new FileInfo(dest).Length;
-                log.LogInformation("Lista SDN OFAC actualizada: {Path} ({Size} bytes)", dest, len);
+                log.LogInformation("Lista SDN OFAC actualizada via SLS: {Path} ({Size} bytes)", dest, len);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                log.LogWarning(ex, "Falha ao descarregar SDN OFAC de {Url}", opts.ExportUrl);
+                log.LogWarning(ex, "Falha ao descarregar SDN OFAC de {Url}", url);
             }
 
             var hours = Math.Clamp(opts.IntervalHours, 1, 168);
@@ -126,8 +129,8 @@ public sealed class OfacSdnDailyDownloadOptions
     /// <summary>Quando false, o worker não descarrega (reavalia a cada 5 min).</summary>
     public bool Enabled { get; set; }
 
-    public string ExportUrl { get; set; } =
-        "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN_ADVANCED.XML";
+    /// <summary>Override opcional; por defeito usa SLS /api/download/SDN_ADVANCED.XML.</summary>
+    public string? ExportUrl { get; set; }
 
     /// <summary>Caminho absoluto ou relativo ao ContentRoot do worker.</summary>
     public string LocalPath { get; set; } = "Data/ofac/SDN_ADVANCED.xml";

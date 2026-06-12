@@ -1,9 +1,14 @@
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using KYC.Application;
+using KYC.Application.Cases;
 using KYC.Application.Interfaces;
+using KYC.Domain.Enums;
 using KYC.Infrastructure;
+using MediatR;
+using KYC.Web.Endpoints;
 using KYC.Web.Hubs;
+using KYC.Web.OpenApi;
 using KYC.Web.Security;
 using KYC.Web.Services;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -31,6 +36,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddKycProductionHosting(builder.Configuration, builder.Environment, builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<IKycCaseRealtimeNotifier, HubKycCaseRealtimeNotifier>();
 builder.Services.AddScoped<KYC.Web.Services.KycHubConnectionFactory>();
+builder.Services.AddScoped<KYC.Web.Services.ICircuitDbGate, KYC.Web.Services.CircuitDbGate>();
+builder.Services.AddSingleton<KYC.Web.Services.Help.HelpMarkdownRenderer>();
+builder.Services.AddScoped<KYC.Web.Services.Help.IHelpDocumentationService, KYC.Web.Services.Help.HelpDocumentationService>();
+builder.Services.AddSingleton<ToastService>();
 
 var azureAd = builder.Configuration.GetSection("AzureAd");
 var azureAdEnabled = azureAd.GetValue<bool?>("Enabled");
@@ -96,6 +105,20 @@ else
     });
 }
 
+builder.Services.AddScoped<ICurrentAnalystAccessor, HttpContextAnalystAccessor>();
+
+if (useEntra)
+{
+    if (!string.IsNullOrWhiteSpace(builder.Configuration["Compliance:SupervisorGroupObjectId"])
+        && (!string.IsNullOrWhiteSpace(builder.Configuration["AzureAd:ClientSecret"])
+            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AZURE_AD_CLIENT_SECRET"))))
+        builder.Services.AddSingleton<ISupervisorUserDirectory, EntraGraphSupervisorUserDirectory>();
+    else
+        builder.Services.AddSingleton<ISupervisorUserDirectory, ConfigSupervisorUserDirectory>();
+}
+else
+    builder.Services.AddScoped<ISupervisorUserDirectory, IdentitySupervisorUserDirectory>();
+
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
@@ -115,6 +138,7 @@ builder.Services.AddSignalR();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ApplicationUser>>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddKycOpenApiDocumentation();
 
 var app = builder.Build();
 var hasHttpsEndpointConfigured =
@@ -133,10 +157,17 @@ if (hasHttpsEndpointConfigured)
     app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.Use(async (context, next) =>
+{
+    var ancestors = app.Configuration.GetSection("FinSight:EmbedAncestors").Get<string[]>();
+    if (ancestors is { Length: > 0 })
+        context.Response.Headers.ContentSecurityPolicy = $"frame-ancestors 'self' {string.Join(' ', ancestors)}";
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (!useEntra)
+if (!useEntra && !app.Environment.IsEnvironment("Testing"))
     await SeedIdentityAsync(app.Services, app.Configuration);
 
 app.MapGet("/", (HttpContext ctx) =>
@@ -151,6 +182,48 @@ app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToPage("/_Host");
 
+app.MapHealthChecks("/health");
+app.MapIntegrationEndpoints();
+
+app.MapIdentityWebhookEndpoints();
+
+app.MapGet("/api/admin/compliance/metrics", async (IComplianceMetricsService metrics, CancellationToken ct) =>
+{
+    var bundle = await metrics.GetMetricsAsync(ct);
+    return Results.Ok(bundle);
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Admin", "KYC.Auditor"))
+.WithName("GetComplianceMetrics")
+.WithTags("Compliance", "Admin")
+.WithSummary("Métricas de triagem (FP/FN) e biometria (FRR, liveness)")
+.Produces(StatusCodes.Status200OK);
+
+app.MapGet("/api/openapi/info", () => Results.Ok(new
+{
+    title = "KYC AI Platform API",
+    version = "v1",
+    swagger = "/swagger",
+    spec = "/swagger/v1/swagger.json",
+    health = "/health"
+})).AllowAnonymous()
+.WithName("OpenApiInfo")
+.WithTags("Meta");
+
+app.MapGet("/api/admin/aml-reports/{reportId:guid}/export", async (
+    Guid reportId,
+    string? format,
+    IAmlComplianceReportService svc,
+    CancellationToken ct) =>
+{
+    var useBdp = string.Equals(format, "bdp", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(format, "xml", StringComparison.OrdinalIgnoreCase);
+    var stream = useBdp
+        ? await svc.ExportRpbBdpAsync(reportId, ct)
+        : await svc.ExportRpbAsync(reportId, ct);
+    var contentType = useBdp ? "application/xml" : "application/json";
+    var ext = useBdp ? "xml" : "json";
+    return Results.File(stream, contentType, $"rpb-{reportId}.{ext}");
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Admin"));
+
 app.MapGet("/api/cases/{caseId:guid}/report.pdf", async (
     Guid caseId,
     IKycReportPdfGenerator pdf,
@@ -158,6 +231,72 @@ app.MapGet("/api/cases/{caseId:guid}/report.pdf", async (
 {
     var bytes = await pdf.GenerateAsync(caseId, ct);
     return Results.File(bytes, "application/pdf", $"kyc-report-{caseId}.pdf");
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
+
+app.MapPost("/api/cases/{caseId:guid}/documents", async (
+    Guid caseId,
+    HttpRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    if (!request.HasFormContentType)
+        return Results.BadRequest("multipart/form-data required");
+
+    var form = await request.ReadFormAsync(ct);
+    var file = form.Files.GetFile("file");
+    if (file is null || file.Length == 0)
+        return Results.BadRequest("Ficheiro em falta.");
+
+    if (!Enum.TryParse<CaseDocumentKind>(form["kind"], ignoreCase: true, out var kind))
+        kind = CaseDocumentKind.Other;
+
+    Guid? casePartyId = null;
+    if (Guid.TryParse(form["casePartyId"], out var pid))
+        casePartyId = pid;
+
+    var actorId = request.HttpContext.User.Identity?.Name ?? "System";
+    await using var stream = file.OpenReadStream();
+    var documentId = await mediator.Send(new UploadCaseDocumentCommand(
+        caseId,
+        actorId,
+        file.FileName,
+        file.ContentType,
+        stream,
+        kind,
+        casePartyId), ct);
+
+    return Results.Accepted($"/api/cases/{caseId}/documents/{documentId}", new { documentId });
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
+
+app.MapGet("/api/cases/{caseId:guid}/documents/{documentId:guid}/file", async (
+    Guid caseId,
+    Guid documentId,
+    IKycCaseRepository cases,
+    ICaseDocumentStorage storage,
+    CancellationToken ct) =>
+{
+    var kyc = await cases.GetByIdAsync(caseId, ct);
+    var doc = kyc?.Documents.FirstOrDefault(d => d.Id == documentId);
+    if (doc is null)
+        return Results.NotFound();
+
+    await using var stream = await storage.OpenReadAsync(doc.StorageRelativePath, ct);
+    using var ms = new MemoryStream();
+    await stream.CopyToAsync(ms, ct);
+    return Results.File(ms.ToArray(), doc.ContentType, doc.FileName);
+}).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
+
+app.MapGet("/api/cases/{caseId:guid}/documents/{documentId:guid}/text", async (
+    Guid caseId,
+    Guid documentId,
+    IKycCaseRepository cases,
+    CancellationToken ct) =>
+{
+    var kyc = await cases.GetByIdAsync(caseId, ct);
+    var doc = kyc?.Documents.FirstOrDefault(d => d.Id == documentId);
+    if (doc is null || string.IsNullOrWhiteSpace(doc.ExtractedText))
+        return Results.NotFound();
+    return Results.Text(doc.ExtractedText, "text/plain; charset=utf-8");
 }).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
 
 app.Run();
@@ -208,3 +347,5 @@ static async Task SeedIdentityAsync(IServiceProvider services, IConfiguration co
             await userManager.AddToRoleAsync(admin, role);
     }
 }
+
+public partial class Program;

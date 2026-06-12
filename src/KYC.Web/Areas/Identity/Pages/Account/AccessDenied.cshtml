@@ -6,7 +6,19 @@
 }
 
 <div class="auth-shell">
-    <section class="auth-panel" style="grid-column: 1 / -1; max-width: 520px; margin: 0 auto;">
+    <section class="auth-hero" aria-hidden="false">
+        <div class="auth-hero-content">
+            <span class="auth-badge">Banking Edition</span>
+            <h1>KYC Intelligence</h1>
+            <p>Permissões insuficientes para aceder a esta área do workspace.</p>
+            <ul class="auth-hero-list">
+                <li><span class="oi oi-lock-locked" aria-hidden="true"></span> A sessão está ativa, mas a role não autoriza o recurso</li>
+                <li><span class="oi oi-people" aria-hidden="true"></span> Contacte o administrador para atribuição de perfil</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="auth-panel">
         <div class="auth-card">
             <div class="auth-card-header">
                 <h2>Acesso negado</h2>
@@ -15,9 +27,13 @@
             <p class="text-muted small mb-3">
                 Peça ao administrador uma das roles: <code>KYC.Analyst</code>, <code>KYC.Supervisor</code> ou <code>KYC.Admin</code>.
             </p>
-            <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-primary" href="/Identity/Account/Login">Trocar de conta</a>
-                <a class="btn btn-outline-secondary" href="/Identity/Account/Logout">Terminar sessão</a>
+            <div class="d-flex flex-column gap-2">
+                <a class="btn btn-primary w-100" href="/dashboard">Ir para o dashboard</a>
+                <a class="btn btn-outline-secondary w-100" href="/Identity/Account/Login">Trocar de conta</a>
+                <a class="btn btn-outline-danger w-100" href="/Identity/Account/Logout">Terminar sessão</a>
+            </div>
+            <div class="auth-footer">
+                KYC Intelligence · ambiente demo
             </div>
         </div>
     </section>

@@ -62,7 +62,7 @@ internal static class KycExecutiveSummaryBuilder
         body.AppendLine(
             "<li><strong>Agregação de sinais:</strong> cada correspondência ou alerta gera um registo tipado (<em>Sanções, PEP, Media adversa, Judicial, Financeiro, Anomalia UBO, Inconsistência</em>) com severidade (<em>Baixa, Média, Alta, Crítica</em>) e fonte rastreável.</li>");
         body.AppendLine(
-            "<li><strong>Motor de scoring (LLM local/cloud):</strong> com base no inventário de sinais e partes, cálculo do score global (0–100) e das dimensões: Sanções, PEP, Media adversa, Saúde financeira, Judicial e Estrutura UBO. Dimensões sem dados de fonte ficam como <em>n/d</em> (não inventadas).</li>");
+            "<li><strong>Motor de scoring (Ollama local):</strong> com base no inventário de sinais e partes, cálculo do score global (0–100) e das dimensões: Sanções, PEP, Media adversa, Saúde financeira, Judicial e Estrutura UBO. Dimensões sem dados de fonte ficam como <em>n/d</em> (não inventadas).</li>");
         body.AppendLine(
             "<li><strong>Verificação de consistência:</strong> validação cruzada entre estrutura declarada/encontrada; inconsistências geram sinais adicionais de severidade média.</li>");
         body.AppendLine(

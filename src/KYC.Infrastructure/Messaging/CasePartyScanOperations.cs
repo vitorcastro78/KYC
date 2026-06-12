@@ -32,7 +32,8 @@ internal static class CasePartyScanOperations
                 m.ListName));
         }
 
-        var am = await adverse.ScanAsync(party.Name, party.Nif, ct);
+        var lookbackYears = kyc.DueDiligenceLevel == DueDiligenceLevel.Enhanced ? 5 : 2;
+        var am = await adverse.ScanAsync(party.Name, party.Nif, lookbackYears, ct);
         foreach (var hit in am.Hits)
         {
             signals.Add(RiskSignal.Create(
@@ -48,13 +49,14 @@ internal static class CasePartyScanOperations
         if (party.Nif is not null)
         {
             var fin = await financial.AnalyseAsync(party.Nif, ct);
+            var severity = fin.IsAtPublicDebtor ? SignalSeverity.High : SignalSeverity.Low;
             signals.Add(RiskSignal.Create(
                 kyc.Id,
                 party.Id,
                 SignalType.Financial,
-                SignalSeverity.Low,
+                severity,
                 fin.Summary,
-                "Financial"));
+                fin.IsAtPublicDebtor ? "AT-Devedores" : "Financial"));
         }
 
         var jud = await judicial.SearchAsync(party.Nif ?? kyc.Nif, party.Name, ct);

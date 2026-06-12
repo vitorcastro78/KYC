@@ -1,14 +1,8 @@
 using System.Net.Http.Json;
 using System.Net.Sockets;
+using KYC.Application.Interfaces;
 
 namespace KYC.Infrastructure.ExternalSources;
-
-public interface IRcbeClient
-{
-    Task<RcbeCompanyDto?> GetCompanyByNifAsync(string nif, CancellationToken ct = default);
-}
-
-public record RcbeCompanyDto(string Nif, string LegalName, string? RegistryId);
 
 public class RcbeClient(HttpClient http, ILogger<RcbeClient> log) : IRcbeClient
 {

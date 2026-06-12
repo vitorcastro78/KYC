@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<RelatorioPrevencaoBranqueamento ano="2026" versaoPlataforma="1.0.0">
+  <Metadados>
+    <GeradoEm>2026-05-31T01:44:20.0805350Z</GeradoEm>
+    <GeradoPor>admin</GeradoPor>
+    <Estado>Draft</Estado>
+    <ReferenciaBdP></ReferenciaBdP>
+  </Metadados>
+  <Secao1_EstruturaOrganizacional>
+    <TotalAnalistasAml>0</TotalAnalistasAml>
+    <TotalCasosProcessados>45</TotalCasosProcessados>
+  </Secao1_EstruturaOrganizacional>
+  <Secao2_DistribuicaoRisco>
+    <CasosBaixoRisco>4</CasosBaixoRisco>
+    <CasosMedioRisco>10</CasosMedioRisco>
+    <CasosAltoRisco>1</CasosAltoRisco>
+    <CasosCriticoRisco>9</CasosCriticoRisco>
+  </Secao2_DistribuicaoRisco>
+  <Secao3_SinaisComunicacoes>
+    <TotalSinais>76</TotalSinais>
+    <CorrespondenciasSancoes>12</CorrespondenciasSancoes>
+    <CorrespondenciasPep>0</CorrespondenciasPep>
+    <ComunicacoesUif>5</ComunicacoesUif>
+    <NotificacoesCongelamento>7</NotificacoesCongelamento>
+  </Secao3_SinaisComunicacoes>
+  <Secao4_Diligencia>
+    <DdcSimplificada>14</DdcSimplificada>
+    <DdcStandard>30</DdcStandard>
+    <DdcReforcada>1</DdcReforcada>
+    <RevisoesPeriodicasConcluidas>3</RevisoesPeriodicasConcluidas>
+    <RevisoesPeriodicasEmAtraso>0</RevisoesPeriodicasEmAtraso>
+  </Secao4_Diligencia>
+  <Secao5_TecnologiaIA>
+    <ModelosIa>{"provider":"ollama-local","local":"qwen3.5:9b","localVersion":"latest","scoringVersion":"1.0.0","promptHash":"0000000000000000000000000000000000000000000000000000000000000000","embeddings":"qwen3-embedding:8b"}</ModelosIa>
+  </Secao5_TecnologiaIA>
+</RelatorioPrevencaoBranqueamento>

@@ -1,0 +1,12 @@
+@{
+    Layout = "/Pages/Shared/_LayoutIdentity.cshtml";
+}
+@RenderBody()
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@section Head {
+    @await RenderSectionAsync("Head", required: false)
+}

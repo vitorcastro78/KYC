@@ -1,0 +1,3 @@
+CaseId: 18714d51-5b15-4a80-8b04-2d0b8be8703c
+Url: http://localhost:5299/cases/18714d51-5b15-4a80-8b04-2d0b8be8703c
+SecondApprover: supervisor@kyc.local

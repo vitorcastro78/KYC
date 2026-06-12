@@ -1,0 +1,16 @@
+@using KYC.Domain.Enums
+@using KYC.Web.Services
+
+<span class="badge @ComplianceUiLabels.VerificationBadgeClass(Status)" title="@ComplianceUiLabels.VerificationMethod(Method)">
+    @ComplianceUiLabels.VerificationStatus(Status)
+</span>
+@if (ShowMethod && Method != IdentityVerificationMethod.NotYetVerified)
+{
+    <span class="text-muted small ms-1">@ComplianceUiLabels.VerificationMethod(Method)</span>
+}
+
+@code {
+    [Parameter] public IdentityVerificationStatus Status { get; set; }
+    [Parameter] public IdentityVerificationMethod Method { get; set; } = IdentityVerificationMethod.NotYetVerified;
+    [Parameter] public bool ShowMethod { get; set; }
+}

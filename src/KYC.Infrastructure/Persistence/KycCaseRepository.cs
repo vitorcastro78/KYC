@@ -22,6 +22,10 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
             .Include(c => c.RiskSignals)
             .Include(c => c.AuditTrail)
             .Include(c => c.FinalReport)
+            .Include(c => c.Documents)
+                .ThenInclude(d => d.ExtractedFacts)
+            .Include(c => c.Documents)
+                .ThenInclude(d => d.ExtractedParties)
             .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
@@ -105,6 +109,21 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
             ids => db.ReportEmbeddings.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
             e => e.Id,
             ct);
+        await PromoteIfMissingAsync(
+            db.ChangeTracker.Entries<CaseDocument>().Where(e => e.State == EntityState.Modified),
+            ids => db.CaseDocuments.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
+            e => e.Id,
+            ct);
+        await PromoteIfMissingAsync(
+            db.ChangeTracker.Entries<DocumentExtractedFact>().Where(e => e.State == EntityState.Modified),
+            ids => db.DocumentExtractedFacts.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
+            e => e.Id,
+            ct);
+        await PromoteIfMissingAsync(
+            db.ChangeTracker.Entries<DocumentExtractedParty>().Where(e => e.State == EntityState.Modified),
+            ids => db.DocumentExtractedParties.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
+            e => e.Id,
+            ct);
     }
 
     /// <summary>
@@ -150,5 +169,48 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
 
         var signal = kyc.RiskSignals.FirstOrDefault(s => s.Id == signalId);
         return signal is null ? null : (kyc, signal);
+    }
+
+    public async Task<IReadOnlyList<KycCase>> GetCasesDueForReviewAsync(DateTime dueBy, CancellationToken ct = default) =>
+        await db.KycCases
+            .Where(c => c.Status == Domain.Enums.KycStatus.Approved
+                        && c.NextReviewDue != null
+                        && c.NextReviewDue <= dueBy)
+            .ToListAsync(ct);
+
+    public async Task<(KycCase Case, CaseParty Party)?> GetCaseWithPartyAsync(Guid partyId, CancellationToken ct = default)
+    {
+        var row = await db.CaseParties.AsNoTracking()
+            .Where(p => p.Id == partyId)
+            .Select(p => new { p.KycCaseId })
+            .FirstOrDefaultAsync(ct);
+        if (row is null)
+            return null;
+
+        var kyc = await GetByIdAsync(row.KycCaseId, ct);
+        if (kyc is null)
+            return null;
+
+        var party = kyc.Parties.FirstOrDefault(p => p.Id == partyId);
+        return party is null ? null : (kyc, party);
+    }
+
+    public async Task<(KycCase Case, CaseParty Party)?> GetCaseWithPartyBySessionIdAsync(
+        string sessionId,
+        CancellationToken ct = default)
+    {
+        var row = await db.CaseParties.AsNoTracking()
+            .Where(p => p.VerificationSessionId == sessionId)
+            .Select(p => new { p.KycCaseId, p.Id })
+            .FirstOrDefaultAsync(ct);
+        if (row is null)
+            return null;
+
+        var kyc = await GetByIdAsync(row.KycCaseId, ct);
+        if (kyc is null)
+            return null;
+
+        var party = kyc.Parties.FirstOrDefault(p => p.Id == row.Id);
+        return party is null ? null : (kyc, party);
     }
 }

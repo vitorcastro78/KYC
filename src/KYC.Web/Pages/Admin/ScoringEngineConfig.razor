@@ -1,0 +1,65 @@
+@page "/admin/scoring-config"
+@attribute [Authorize(Policy = "Admin")]
+@inject IScoringEngineConfigRepository Repo
+@inject IMediator Mediator
+@inject ToastService Toast
+
+<PageTitle>Motor de scoring</PageTitle>
+<h1>Versões do motor de scoring</h1>
+
+@if (_active is not null)
+{
+    <div class="alert alert-success">
+        Versão activa: <strong>@_active.Version</strong> — modelo Ollama: <strong>@_active.LocalModelName</strong>
+    </div>
+}
+
+<table class="table table-sm">
+    <thead><tr><th>Versão</th><th>Activo desde</th><th>Modelo local</th><th>Hash prompt</th></tr></thead>
+    <tbody>
+    @foreach (var c in _configs)
+    {
+        <tr><td>@c.Version</td><td>@c.ActiveFrom.ToLocalTime()</td><td>@c.LocalModelName</td><td class="small font-monospace">@c.SystemPromptHash[..Math.Min(16, c.SystemPromptHash.Length)]…</td></tr>
+    }
+    </tbody>
+</table>
+
+<div class="card mt-4">
+    <div class="card-header">Nova versão</div>
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-md-3"><input class="form-control" placeholder="Versão" @bind="_newVersion" /></div>
+            <div class="col-md-3"><input class="form-control" placeholder="Modelo Ollama" @bind="_newModel" /></div>
+            <div class="col-md-4"><input class="form-control" placeholder="Hash prompt (SHA256)" @bind="_newHash" /></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="CreateVersion">Criar</button></div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<KYC.Domain.Entities.ScoringEngineConfig> _configs = [];
+    private KYC.Domain.Entities.ScoringEngineConfig? _active;
+    private string _newVersion = "1.1.0";
+    private string _newModel = "qwen3.5:9b";
+    private string _newHash = "";
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _configs = await Repo.ListAsync();
+        _active = await Repo.GetActiveAsync();
+    }
+
+    private async Task CreateVersion()
+    {
+        if (string.IsNullOrWhiteSpace(_newHash))
+        {
+            Toast.Show("Indique o hash do prompt.", ToastLevel.Warning);
+            return;
+        }
+        await Mediator.Send(new CreateScoringEngineConfigCommand(_newVersion, _newModel, _newHash, "admin"));
+        Toast.Show("Versão criada.", ToastLevel.Success);
+        await ReloadAsync();
+    }
+}

@@ -1,5 +1,9 @@
 using KYC.Application.Dtos;
+using KYC.Application.Services;
 using KYC.Domain.Entities;
+using KYC.Domain.Enums;
+
+using KYC.Application.Common;
 
 namespace KYC.Application.Cases;
 
@@ -16,7 +20,9 @@ internal static class KycCaseMapping
             c.CompletedAt,
             c.AssignedAnalystId,
             c.Parties.Count,
-            c.RiskSignals.Count);
+            c.RiskSignals.Count,
+            c.DueDiligenceLevel,
+            c.SarStatus);
 
     public static KycCaseDetailDto? ToDetailDto(KycCase? c)
     {
@@ -30,7 +36,13 @@ internal static class KycCaseMapping
             p.OwnershipPercentage,
             p.IsPep,
             p.IsSanctioned,
-            p.IsOffshore)).ToList();
+            p.IsOffshore,
+            p.VerificationStatus,
+            p.VerificationMethod,
+            p.VerificationSessionId,
+            p.VerificationUrl,
+            p.RcbeDiscrepancyDetected,
+            p.RcbeDiscrepancyReported)).ToList();
 
         var partyNames = c.Parties.ToDictionary(p => p.Id, p => p.Name);
         var signals = c.RiskSignals.Select(s => new RiskSignalDetailDto(
@@ -53,7 +65,49 @@ internal static class KycCaseMapping
 
         var report = c.FinalReport is null
             ? null
-            : new KycReportDto(c.Id, c.FinalReport.NarrativeHtml, c.FinalReport.ModelUsed, c.FinalReport.GeneratedAt);
+            : new KycReportDto(
+                c.Id,
+                LlmChatOutputSanitizer.CleanStoredReportHtml(c.FinalReport.NarrativeHtml),
+                c.FinalReport.ModelUsed,
+                c.FinalReport.GeneratedAt);
+
+        var documents = c.Documents
+            .OrderByDescending(d => d.UploadedAt)
+            .Select(ToDocumentDto)
+            .ToList();
+
+        var suggestSar = new SarEligibilityEvaluator().ShouldSuggestSar(c);
+        var canApprove = c.CanApprove();
+        string[] freezeActions = ["AssetFreezeNotificationSent", "AssetFreezeManualRegistered"];
+        var freezeRef = c.AuditTrail
+            .Where(a => freezeActions.Contains(a.Action))
+            .OrderByDescending(a => a.Timestamp)
+            .Select(a => a.Details)
+            .FirstOrDefault();
+
+        var needsManualFreeze = !c.AssetFreezeNotified &&
+                                c.RiskSignals.Any(s => s.Type == SignalType.Sanction && s.IsConfirmed);
+
+        var sarPendingReason = c.AuditTrail
+            .Where(a => a.Action == "SarApiFailedPendingManual")
+            .OrderByDescending(a => a.Timestamp)
+            .Select(a => a.Details)
+            .FirstOrDefault();
+
+        string[] sarActions =
+        [
+            "SarSubmitted",
+            "SarUrgentSubmitted",
+            "SarQueued",
+            "SarManualRegistered",
+            "SarNotRequired",
+            "SarSuggested"
+        ];
+        var sarHistory = c.AuditTrail
+            .Where(a => sarActions.Contains(a.Action))
+            .OrderByDescending(a => a.Timestamp)
+            .Select(a => new SarAuditEntryDto(a.Action, a.ActorId, a.Timestamp, a.Details))
+            .ToList();
 
         return new KycCaseDetailDto(
             c.Id,
@@ -67,6 +121,52 @@ internal static class KycCaseMapping
             parties,
             signals,
             audit,
-            report);
+            report,
+            documents,
+            Gleif: null,
+            GleifRelatedParties: null,
+            c.DueDiligenceLevel,
+            c.DueDiligenceJustification,
+            c.SarStatus,
+            c.SarReferenceNumber,
+            c.NextReviewDue,
+            c.FundsOriginDescription,
+            suggestSar,
+            canApprove.IsSuccess ? null : canApprove.Error,
+            c.RelationshipType,
+            c.LegalBasisRef,
+            c.AssetFreezeNotified,
+            c.AssetFreezeNotifiedAt,
+            freezeRef,
+            needsManualFreeze,
+            sarPendingReason,
+            sarHistory);
+    }
+
+    public static CaseDocumentDto ToDocumentDto(CaseDocument d)
+    {
+        var facts = d.ExtractedFacts
+            .Select(f => new DocumentExtractedFactDto(f.FactKey, f.FactValue, f.Confidence, f.SourcePage))
+            .ToList();
+        var parties = d.ExtractedParties
+            .Select(p => new DocumentExtractedPartyDto(
+                p.Name, p.Nif, p.Role, p.OwnershipPercentage, p.Nationality))
+            .ToList();
+        return new CaseDocumentDto(
+            d.Id,
+            d.KycCaseId,
+            d.CasePartyId,
+            d.FileName,
+            d.ContentType,
+            d.SizeBytes,
+            d.DocumentKind,
+            d.IngestionStatus,
+            d.FailureReason,
+            d.UploadedAt,
+            d.UploadedBy,
+            d.ProcessedAt,
+            facts,
+            parties,
+            !string.IsNullOrWhiteSpace(d.ExtractedText));
     }
 }

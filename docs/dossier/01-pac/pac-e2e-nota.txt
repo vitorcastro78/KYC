@@ -1,0 +1,11 @@
+Evidências PAC — homologação UI (Playwright)
+
+Execução: scripts/run-e2e-pac-scenarios.ps1
+
+| Cenário | Ficheiros | Notas |
+|---------|-----------|-------|
+| PAC activa (Admin) | 01-pac-activa-*.png | Admin → Settings, versão 1.0.0 |
+| CAE 92000 | 01-pac-cae-92000-formulario-*.png | Formulário com CAE proibido; rejeição server-side: teste E2E-01 (trx) |
+| Nome manual (E2E-06) | 01-pac-denominacao-manual-aviso-*.png, 01-pac-caso-manual-em-triagem-*.png | Fallback RCBE/GLEIF + triagem |
+
+Registo: docs/dossier/09-e2e/REGISTO_UI_PAC_*.md

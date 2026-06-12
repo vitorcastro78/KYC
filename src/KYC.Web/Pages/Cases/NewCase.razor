@@ -2,8 +2,11 @@
 @attribute [Authorize(Policy = "Analyst")]
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.SignalR.Client
+@using KYC.Application.Dtos
+@using KYC.Application.Interfaces
 @using KYC.Web.Services
 @inject IMediator Mediator
+@inject ICurrentAnalystAccessor AnalystAccessor
 @inject NavigationManager Nav
 @inject KycHubConnectionFactory HubFactory
 
@@ -14,11 +17,50 @@
     <fieldset disabled="@_isProcessing">
         <div class="mb-3">
             <label class="form-label">NIF / NIPC ou nome da entidade</label>
-            <InputText class="form-control" @bind-Value="_model.Nif" placeholder="Ex.: 508144500 ou Acme Portugal Lda." />
+            <InputText class="form-control" @bind-Value="_model.Nif" @bind-Value:after="OnNifChanged" placeholder="Ex.: 508144500 ou Acme Portugal Lda." />
+            @if (_resolutionPreview is not null)
+            {
+                <div class="form-text @(_resolutionPreview.UsedFallback ? "text-warning" : "text-success")">
+                    @_resolutionPreview.Message
+                    @if (!_resolutionPreview.UsedFallback && !string.IsNullOrWhiteSpace(_resolutionPreview.LegalName))
+                    {
+                        <span> — @_resolutionPreview.LegalName</span>
+                    }
+                </div>
+            }
         </div>
+        @if (_resolutionPreview?.UsedFallback == true)
+        {
+            <div class="mb-3">
+                <label class="form-label">Denominação social (manual) *</label>
+                <InputText class="form-control" @bind-Value="_model.LegalCompanyName" placeholder="Nome legal da entidade" />
+                <div class="form-text">Obrigatório quando RCBE/GLEIF não devolvem denominação.</div>
+            </div>
+        }
+        else if (_resolutionPreview is not null)
+        {
+            <div class="mb-3">
+                <label class="form-label">Denominação social (correcção opcional)</label>
+                <InputText class="form-control" @bind-Value="_model.LegalCompanyName" placeholder="Substituir nome resolvido automaticamente" />
+            </div>
+        }
         <div class="mb-3">
             <label class="form-label">Montante solicitado (EUR)</label>
             <InputNumber class="form-control" @bind-Value="_model.Amount" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Tipo de relação</label>
+            <InputSelect class="form-select" @bind-Value="_model.RelationshipType">
+                <option value="@RelationshipType.Ongoing">Relação continuada</option>
+                <option value="@RelationshipType.Occasional">Transação ocasional</option>
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">CAE (opcional)</label>
+            <input type="text" class="form-control" maxlength="5" placeholder="Ex.: 62010"
+                   value="@_model.CaeCode"
+                   @onchange="@(e => _model.CaeCode = e.Value?.ToString())" />
+            <div class="form-text">Validado contra a PAC activa (sectores proibidos são rejeitados).</div>
         </div>
         <button class="btn btn-primary" type="submit" disabled="@_isProcessing">
             @if (_isProcessing)
@@ -61,6 +103,8 @@
 
 @code {
     private readonly CaseForm _model = new();
+    private EntityResolutionPreviewDto? _resolutionPreview;
+    private CancellationTokenSource? _previewCts;
     private readonly ScanProgressTracker _scan = new();
     private string? _error;
     private bool _isProcessing;
@@ -69,6 +113,46 @@
     private HubConnection? _hub;
     private bool _hubHandlersRegistered;
     private CancellationTokenSource? _pollCts;
+
+    private void OnNifChanged()
+    {
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
+        _previewCts = new CancellationTokenSource();
+        _ = LoadResolutionPreviewAsync(_previewCts.Token);
+    }
+
+    private async Task LoadResolutionPreviewAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(400, ct);
+            if (string.IsNullOrWhiteSpace(_model.Nif))
+            {
+                _resolutionPreview = null;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var preview = await Mediator.Send(new GetEntityResolutionPreviewQuery(_model.Nif), ct);
+            await InvokeAsync(() =>
+            {
+                _resolutionPreview = preview;
+                StateHasChanged();
+            });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            await InvokeAsync(() =>
+            {
+                _resolutionPreview = null;
+                StateHasChanged();
+            });
+        }
+    }
 
     private async Task Submit()
     {
@@ -83,12 +167,34 @@
 
         try
         {
-            var id = await Mediator.Send(new StartKycCaseCommand(_model.Nif, "dev-user", CreditAmount.Eur(_model.Amount)));
+            var id = await Mediator.Send(new StartKycCaseCommand(
+                _model.Nif,
+                await AnalystAccessor.GetAnalystIdAsync(),
+                CreditAmount.Eur(_model.Amount),
+                _model.RelationshipType,
+                string.IsNullOrWhiteSpace(_model.CaeCode) ? null : _model.CaeCode.Trim(),
+                string.IsNullOrWhiteSpace(_model.LegalCompanyName) ? null : _model.LegalCompanyName.Trim()));
             _pendingCaseId = id;
             _scan.ApplyNewCaseCreatedHint();
 
             await TryConnectHubAsync(id);
             StartPolling(id);
+        }
+        catch (PolicyViolationException pex)
+        {
+            _error = string.Join(" ", pex.Violations);
+            _isProcessing = false;
+            _pendingCaseId = null;
+            _scan.ResetAfterFailure();
+            StopPolling();
+        }
+        catch (Exception ex) when (ex.InnerException is PolicyViolationException pex)
+        {
+            _error = string.Join(" ", pex.Violations);
+            _isProcessing = false;
+            _pendingCaseId = null;
+            _scan.ResetAfterFailure();
+            StopPolling();
         }
         catch (Exception ex)
         {
@@ -148,8 +254,6 @@
             return;
 
         var hubConnected = _hub?.State == HubConnectionState.Connected;
-        if (hubConnected)
-            return;
 
         var active = await Mediator.Send(new GetKycCaseScanProgressQuery(caseId));
         var pct = active?.PercentComplete ?? 0;
@@ -159,7 +263,7 @@
             if (_disposed)
                 return Task.CompletedTask;
 
-            _scan.TryApplyDatabaseFallback(pct, hubConnected: false);
+            _scan.TryApplyDatabaseFallback(pct, hubConnected);
             StateHasChanged();
             return Task.CompletedTask;
         });
@@ -259,6 +363,8 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
         StopPolling();
 
         if (_hub is null)
@@ -284,5 +390,8 @@
     {
         public string Nif { get; set; } = "";
         public decimal Amount { get; set; } = 100000;
+        public RelationshipType RelationshipType { get; set; } = RelationshipType.Ongoing;
+        public string? CaeCode { get; set; }
+        public string? LegalCompanyName { get; set; }
     }
 }

@@ -8,4 +8,21 @@ public interface IKycCaseRealtimeNotifier
     Task NotifySignalDetectedAsync(Guid caseId, string signalSummary, CancellationToken ct = default);
     Task NotifyReportReadyAsync(Guid caseId, RiskLevel level, CancellationToken ct = default);
     Task NotifyStatusChangedAsync(Guid caseId, KycStatus newStatus, CancellationToken ct = default);
+
+    Task NotifyDocumentIngestionUpdatedAsync(
+        Guid caseId,
+        Guid documentId,
+        DocumentIngestionStatus status,
+        CancellationToken ct = default);
+
+    Task NotifyComplianceAlertAsync(
+        Guid caseId,
+        string alertType,
+        string message,
+        CancellationToken ct = default);
+
+    Task NotifySupervisorsAsync(
+        string alertType,
+        string message,
+        CancellationToken ct = default);
 }

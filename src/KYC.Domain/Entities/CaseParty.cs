@@ -22,6 +22,21 @@ public class CaseParty
     public string? OffshoreJurisdiction { get; private set; }
     public RiskScore? PartyScore { get; private set; }
 
+    public IdentityVerificationMethod VerificationMethod { get; private set; } = IdentityVerificationMethod.NotYetVerified;
+    public DateTime? VerifiedAt { get; private set; }
+    public string? VerificationSessionId { get; private set; }
+    public string? VerificationUrl { get; private set; }
+    public IdentityVerificationStatus VerificationStatus { get; private set; } = IdentityVerificationStatus.Pending;
+    /// <summary>Score de liveness do prestador (ISO/IEC 30107-3 — prova de vida).</summary>
+    public string? LivenessScore { get; private set; }
+    /// <summary>Nível eIDAS reportado (Substantial, High, etc.).</summary>
+    public string? EidasLevel { get; private set; }
+    public DateTime? RcbeVerifiedAt { get; private set; }
+    public bool RcbeDiscrepancyDetected { get; private set; }
+    public bool RcbeDiscrepancyReported { get; private set; }
+    public DateTime? RcbeDiscrepancyReportedAt { get; private set; }
+    public string DataCollectionBasis { get; private set; } = "Lei83/2017-Art24-n1";
+
     private CaseParty()
     {
     }
@@ -64,4 +79,58 @@ public class CaseParty
     }
 
     public void SetPartyScore(RiskScore? score) => PartyScore = score;
+
+    public void StartVerification(IdentityVerificationMethod method, string sessionId, string? verificationUrl = null)
+    {
+        VerificationMethod = method;
+        VerificationSessionId = sessionId;
+        VerificationUrl = verificationUrl;
+        VerificationStatus = IdentityVerificationStatus.Pending;
+    }
+
+    public void RecordVerificationResult(
+        bool verified,
+        IdentityVerificationMethod method,
+        string? livenessScore = null,
+        string? eidasLevel = null)
+    {
+        VerificationMethod = method;
+        VerificationStatus = verified ? IdentityVerificationStatus.Verified : IdentityVerificationStatus.Failed;
+        VerifiedAt = verified ? DateTime.UtcNow : null;
+        if (!string.IsNullOrWhiteSpace(livenessScore))
+            LivenessScore = livenessScore;
+        if (!string.IsNullOrWhiteSpace(eidasLevel))
+            EidasLevel = eidasLevel;
+    }
+
+    public void RecordPresentialVerification(string documentReference)
+    {
+        VerificationMethod = IdentityVerificationMethod.Presential;
+        VerificationStatus = IdentityVerificationStatus.Verified;
+        VerifiedAt = DateTime.UtcNow;
+        VerificationSessionId = documentReference;
+    }
+
+    /// <summary>Verificação manual de contingência (prestador/API indisponível).</summary>
+    public void RecordManualVerification(string justification, string? documentReference)
+    {
+        VerificationMethod = IdentityVerificationMethod.ThirdPartyReliance;
+        VerificationStatus = IdentityVerificationStatus.Verified;
+        VerifiedAt = DateTime.UtcNow;
+        VerificationSessionId = string.IsNullOrWhiteSpace(documentReference)
+            ? $"manual-{DateTime.UtcNow:yyyyMMddHHmmss}"
+            : documentReference.Trim();
+    }
+
+    public void RecordRcbeVerification(bool discrepancyDetected)
+    {
+        RcbeVerifiedAt = DateTime.UtcNow;
+        RcbeDiscrepancyDetected = discrepancyDetected;
+    }
+
+    public void ReportRcbeDiscrepancy()
+    {
+        RcbeDiscrepancyReported = true;
+        RcbeDiscrepancyReportedAt = DateTime.UtcNow;
+    }
 }

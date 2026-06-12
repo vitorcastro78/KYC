@@ -24,7 +24,6 @@ public class KycReport
         };
     }
 
-    /// <summary>Actualiza o relatório existente (mesmo Id) — evita substituir a navegação 1:1 e estados incorrectos no EF.</summary>
     public void UpdateContent(string narrativeHtml, string? modelUsed)
     {
         NarrativeHtml = narrativeHtml;
