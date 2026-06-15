@@ -74,6 +74,8 @@ else
         .AddDefaultTokenProviders()
         .AddDefaultUI();
 
+    var embedMode = FinSightEmbedCookies.IsEmbedMode(builder.Configuration);
+
     builder.Services.ConfigureApplicationCookie(options =>
     {
         options.LoginPath = "/Identity/Account/Login";
@@ -82,11 +84,16 @@ else
         options.SlidingExpiration = true;
         options.ExpireTimeSpan = TimeSpan.FromDays(14);
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        // Proxy TLS (nginx): Kestrel vê HTTP; forçar Secure para o browser em https://
-        options.Cookie.SecurePolicy = behindProxy
-            ? CookieSecurePolicy.Always
-            : CookieSecurePolicy.SameAsRequest;
+        if (embedMode)
+            FinSightEmbedCookies.ApplyTo(options.Cookie, builder.Configuration);
+        else
+        {
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            // Proxy TLS (nginx): Kestrel vê HTTP; forçar Secure para o browser em https://
+            options.Cookie.SecurePolicy = behindProxy
+                ? CookieSecurePolicy.Always
+                : CookieSecurePolicy.SameAsRequest;
+        }
         options.Events.OnRedirectToLogin = context =>
         {
             var path = context.Request.Path.Value ?? string.Empty;
@@ -102,6 +109,19 @@ else
                 $"/Identity/Account/Login?returnUrl={Uri.EscapeDataString(returnUrl)}");
             return Task.CompletedTask;
         };
+    });
+
+    builder.Services.AddAntiforgery(options =>
+    {
+        if (embedMode)
+            FinSightEmbedCookies.ApplyTo(options.Cookie, builder.Configuration);
+        else
+        {
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = behindProxy
+                ? CookieSecurePolicy.Always
+                : CookieSecurePolicy.SameAsRequest;
+        }
     });
 }
 
@@ -166,6 +186,8 @@ app.Use(async (context, next) =>
 });
 app.UseAuthentication();
 app.UseAuthorization();
+if (!useEntra)
+    app.UseAntiforgery();
 
 if (!useEntra && !app.Environment.IsEnvironment("Testing"))
     await SeedIdentityAsync(app.Services, app.Configuration);
@@ -175,6 +197,9 @@ app.MapGet("/", (HttpContext ctx) =>
         ? Results.Redirect("/dashboard")
         : Results.Redirect("/Identity/Account/Login?returnUrl=%2Fdashboard"))
     .AllowAnonymous();
+
+if (!useEntra)
+    app.MapAuthEndpoints();
 
 app.MapBlazorHub();
 app.MapHub<KycCaseHub>("/hubs/kyc-case");

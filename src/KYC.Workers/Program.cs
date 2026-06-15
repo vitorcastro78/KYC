@@ -4,10 +4,13 @@ using KYC.Infrastructure;
 using KYC.Infrastructure.Messaging;
 using KYC.Workers;
 
+// MediatR regista handlers da Application; este serviço só existe no KYC.Web em runtime web.
+
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<IKycCaseRealtimeNotifier, NoOpKycCaseRealtimeNotifier>();
+builder.Services.AddSingleton<ISupervisorUserDirectory, NoOpSupervisorUserDirectory>();
 
 builder.Services.Configure<OfacSdnDailyDownloadOptions>(
     builder.Configuration.GetSection(OfacSdnDailyDownloadOptions.SectionKey));
