@@ -1,0 +1,32 @@
+{
+  "PlatformRoot": "C:\\Platform",
+  "Hosting": {
+    "InternalDomain": "kyc.empresa.local",
+    "ServerIp": "192.168.68.72",
+    "HttpsPort": 443,
+    "KestrelUrl": "http://127.0.0.1:5000"
+  },
+  "Downloads": {
+    "GitHub": {
+      "Owner": "SUA-ORG",
+      "Repo": "KYC",
+      "Tag": "v1.0.0",
+      "AssetPattern": "KycPlatform-*-setup.exe"
+    },
+    "KycInstallerUrl": "https://github.com/SUA-ORG/KYC/releases/download/v1.0.0/KycPlatform-1.0.0-setup.exe",
+    "KycPackageUrl": "https://github.com/SUA-ORG/KYC/releases/download/v1.0.0/kyc-platform-1.0.0.zip",
+    "PostgreSqlInstallerUrl": "https://get.enterprisedb.com/postgresql/postgresql-16.9-1-windows-x64.exe",
+    "OllamaInstallerUrl": "https://ollama.com/download/OllamaSetup.exe",
+    "UrlRewriteMsiUrl": "https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_en-US.msi",
+    "ArrMsiUrl": "https://download.microsoft.com/download/E/E/0/EE0CB74D-63B4-4FA4-AF13-5742F7560A44/requestRouter_amd64.msi"
+  },
+  "PostgreSql": {
+    "Port": 5432,
+    "DatabaseName": "kyc_production",
+    "AppUser": "kycplatform"
+  },
+  "Auth": {
+    "AdminEmail": "admin@kyc.local",
+    "AdminPassword": "ChangeMeOnFirstLogin!"
+  }
+}

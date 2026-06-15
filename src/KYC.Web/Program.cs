@@ -5,6 +5,7 @@ using KYC.Application.Cases;
 using KYC.Application.Interfaces;
 using KYC.Domain.Enums;
 using KYC.Infrastructure;
+using KYC.Infrastructure.Persistence;
 using MediatR;
 using KYC.Web.Endpoints;
 using KYC.Web.Hubs;
@@ -17,9 +18,11 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Identity.Web.UI;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseWindowsService(options => options.ServiceName = "KycPlatformApp");
 
 var kvName = builder.Configuration["KeyVaultName"] ?? Environment.GetEnvironmentVariable("KYC_KEYVAULT_NAME");
 if (!string.IsNullOrWhiteSpace(kvName))
@@ -323,6 +326,18 @@ app.MapGet("/api/cases/{caseId:guid}/documents/{documentId:guid}/text", async (
         return Results.NotFound();
     return Results.Text(doc.ExtractedText, "text/plain; charset=utf-8");
 }).RequireAuthorization(policy => policy.RequireRole("KYC.Analyst", "KYC.Supervisor", "KYC.Admin"));
+
+if (args.Contains("--migrate-only", StringComparer.OrdinalIgnoreCase))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<KycDbContext>().Database.MigrateAsync();
+    if (!useEntra)
+    {
+        await scope.ServiceProvider.GetRequiredService<AuthDbContext>().Database.MigrateAsync();
+        await SeedIdentityAsync(app.Services, app.Configuration);
+    }
+    return;
+}
 
 app.Run();
 

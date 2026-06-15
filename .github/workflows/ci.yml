@@ -68,3 +68,36 @@ jobs:
         with:
           name: kyc-publish
           path: artifacts/
+
+  build-windows-installer:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    runs-on: windows-latest
+    needs: build-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install EF tools
+        run: dotnet tool install dotnet-ef --global
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $ver = "0.0.$env:GITHUB_RUN_NUMBER"
+          ./tools/appliance/installer/Build-KycInstaller.ps1 -Version $ver
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyc-platform-installer
+          path: |
+            tools/appliance/dist/KycPlatform-*-setup.exe
+            tools/appliance/dist/kyc-platform-*.zip

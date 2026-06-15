@@ -7,6 +7,7 @@ using KYC.Workers;
 // MediatR regista handlers da Application; este serviço só existe no KYC.Web em runtime web.
 
 var builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddWindowsService(options => options.ServiceName = "KycPlatformWorkers");
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<IKycCaseRealtimeNotifier, NoOpKycCaseRealtimeNotifier>();

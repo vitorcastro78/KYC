@@ -1,0 +1,73 @@
+name: KYC Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versao semver (ex: 1.0.0, sem prefixo v)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install EF tools
+        run: dotnet tool install dotnet-ef --global
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $v = "${{ github.ref_name }}" -replace '^v', ''
+          } else {
+            $v = "${{ inputs.version }}"
+          }
+          if ([string]::IsNullOrWhiteSpace($v)) { throw "Versao em falta" }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Versao: $v"
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          ./tools/appliance/installer/Build-KycInstaller.ps1 -Version "${{ steps.version.outputs.version }}"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyc-platform-installer
+          path: |
+            tools/appliance/dist/KycPlatform-*-setup.exe
+            tools/appliance/dist/kyc-platform-*.zip
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          $tag = "${{ github.ref_name }}"
+          $dist = "tools/appliance/dist"
+          gh release create $tag `
+            --title "KYC Platform $ver" `
+            --notes "Instalador Windows (KycPlatform-$ver-setup.exe) e pacote ZIP para appliance." `
+            "$dist/KycPlatform-$ver-setup.exe" `
+            "$dist/kyc-platform-$ver.zip"
