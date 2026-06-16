@@ -1,8 +1,10 @@
 ; Inno Setup - gera KycPlatform-{version}-setup.exe
 ; Requer: https://jrsoftware.org/isinfo.php (Inno Setup 6)
-; Compilar: ISCC.exe KycPlatform.iss /DAppVersion=1.0.0
+; Compilar: ISCC.exe KycPlatform.iss /DAppVersion=1.0.0 /O"C:\path\to\dist"
 
+#ifndef AppVersion
 #define AppVersion "1.0.0"
+#endif
 
 [Setup]
 AppId={{A1B2C3D4-E5F6-7890-ABCD-KYCPLATFORM01}
@@ -36,6 +38,7 @@ Filename: "powershell.exe"; \
 [UninstallRun]
 Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Get-Service KycPlatformApp,KycPlatformWorkers -EA 0 | ForEach-Object {{ Stop-Service $_ -Force; sc.exe delete $_.Name }}"""; \
+  RunOnceId: "RemoveKycServices"; \
   Flags: runhidden waituntilterminated
 
 [Code]

@@ -40,9 +40,10 @@ jobs:
           } else {
             $v = "${{ inputs.version }}"
           }
+          $v = $v.Trim()
           if ([string]::IsNullOrWhiteSpace($v)) { throw "Versao em falta" }
-          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Versao: $v"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$v" -Encoding Ascii
 
       - name: Build installer
         shell: pwsh
