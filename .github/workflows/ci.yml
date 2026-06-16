@@ -48,11 +48,17 @@ jobs:
         run: dotnet build KYC.sln -c Release --no-restore
 
       - name: Apply database migrations
-        run: >
-          dotnet ef database update
-          --project src/KYC.Infrastructure/KYC.Infrastructure.csproj
-          --startup-project src/KYC.Web/KYC.Web.csproj
-          --configuration Release
+        run: |
+          dotnet ef database update \
+            --context KycDbContext \
+            --project src/KYC.Infrastructure/KYC.Infrastructure.csproj \
+            --startup-project src/KYC.Web/KYC.Web.csproj \
+            --configuration Release
+          dotnet ef database update \
+            --context AuthDbContext \
+            --project src/KYC.Web/KYC.Web.csproj \
+            --startup-project src/KYC.Web/KYC.Web.csproj \
+            --configuration Release
 
       - name: Test
         run: dotnet test KYC.sln -c Release --no-build --verbosity normal
