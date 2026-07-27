@@ -1,7 +1,10 @@
-# One-command local/on-prem stack: Web (:8080) + Workers + Postgres + RabbitMQ
-# Usage:  cp .env.example .env && docker compose up --build
-# Requires Ollama on the host (default http://host.docker.internal:11434)
-# DB-only for `dotnet run`: docker compose -f docker-compose.db.yml up -d
+# Run KYC from published GHCR images (no local build).
+# Usage:
+#   docker compose -f docker-compose.ghcr.yml up -d
+#
+# Images (publish on push to main when CI is configured):
+#   ghcr.io/vitorcastro78/kyc:latest
+#   ghcr.io/vitorcastro78/kyc-workers:latest
 
 name: kyc
 
@@ -44,10 +47,7 @@ services:
       - kyc-net
 
   kyc-web:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.web
-    image: ${KYC_WEB_IMAGE:-kyc-web:local}
+    image: ghcr.io/vitorcastro78/kyc:${KYC_TAG:-latest}
     container_name: kyc-web
     restart: unless-stopped
     depends_on:
@@ -69,7 +69,6 @@ services:
       LLM__EnrichReportsWithLlm: "true"
       Auth__AdminEmail: ${KYC_ADMIN_EMAIL:-admin@kyc.local}
       Auth__AdminPassword: ${KYC_ADMIN_PASSWORD:-ChangeMe@1234}
-      OpenSanctions__ApiKey: ${OPENSANCTIONS_API_KEY:-}
       ExternalSources__OpenSanctions__ApiKey: ${OPENSANCTIONS_API_KEY:-}
       NewsApi__ApiKey: ${NEWSAPI_KEY:-}
     ports:
@@ -88,10 +87,7 @@ services:
       start_period: 45s
 
   kyc-workers:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.workers
-    image: ${KYC_WORKERS_IMAGE:-kyc-workers:local}
+    image: ghcr.io/vitorcastro78/kyc-workers:${KYC_TAG:-latest}
     container_name: kyc-workers
     restart: unless-stopped
     depends_on:

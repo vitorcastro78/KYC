@@ -6,6 +6,8 @@ obj/
 .env
 .env.local
 appsettings.*.local.json
+secrets.json
+*.local.json
 *.log
 TestResults/
 coverage*.json

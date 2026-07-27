@@ -3,7 +3,7 @@
 ## 1. Base de dados
 
 ```powershell
-$env:KYC_DB_CONNECTION="Host=195.179.193.136;Port=5433;Database=azureopsagent;Username=...;Password=..."
+$env:KYC_DB_CONNECTION="Host=localhost;Port=5432;Database=kyc_dev;Username=postgres;Password=CHANGE_ME"
 dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web
 ```
 

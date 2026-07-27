@@ -141,7 +141,7 @@
 | ID | Funcionalidade | Descrição | Estado |
 |----|----------------|-----------|--------|
 | OPS-01 | Health check | `/health` | ✅ |
-| OPS-02 | Docker on-prem | `docker-compose.prod.yml` | ✅ |
+| OPS-02 | Docker on-prem | `docker-compose.yml` / `docker-compose.ghcr.yml` | ✅ |
 | OPS-03 | CI GitHub Actions | Build + migrate + test | ✅ |
 | OPS-04 | Key Vault secrets | Opcional | ✅ |
 | OPS-05 | Messaging abstracção | SB / Rabbit / memory | ✅ |

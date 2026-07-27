@@ -10,7 +10,7 @@
 | Testes aplicacao | docs/dossier/09-e2e/application-tests-20260531-021829.log |
 
 Executado: 2026-05-31T02:19:32.8180684+01:00
-BD: Host=195.179.193.136;Port=5433;Database=azureopsagent;Username=kycdb;Password=***
+BD: Host=localhost;Port=5432;Database=kyc_dev;Username=postgres;Password=***
 App: http://localhost:5299
 Exit code testes: 0
 | # | Cenario | Resultado | Evidencia |

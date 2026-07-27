@@ -1,7 +1,7 @@
 E2E com aplicação em execução — 2026-05-31T02:19
 
 App: http://localhost:5299
-BD: Host=195.179.193.136;Port=5433;Database=azureopsagent (via KYC_DB_CONNECTION / ConnectionStrings__KycDatabase)
+BD: Host=localhost;Port=5432;Database=kyc_dev (via KYC_DB_CONNECTION / ConnectionStrings__KycDatabase)
 
 Endpoints verificados:
 - GET /health -> 200 (página login se não autenticado)

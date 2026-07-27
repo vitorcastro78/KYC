@@ -30,7 +30,7 @@ pg_dump -Fc -h <host> -U <user> azureopsagent > kyc-backup-$(date +%Y%m%d).dump
 1. Provisionar host/VM de DR na região UE secundária
 2. Restaurar PostgreSQL: `pg_restore -d kyc ...`
 3. Aplicar migrations se necessário
-4. `docker compose -f docker-compose.prod.yml up -d`
+4. `docker compose up -d --build`
 5. Validar `/health`, caso teste E2E cenário 1
 6. Comunicar reativação à equipa compliance
 

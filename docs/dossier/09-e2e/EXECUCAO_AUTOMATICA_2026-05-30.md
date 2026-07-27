@@ -8,7 +8,7 @@
 | Recurso | Estado |
 |---------|--------|
 | Docker / `docker compose` | **Indisponível** no PATH desta sessão |
-| PostgreSQL `localhost:5433` | **Conexão recusada** — BD de homologação é **remota** (`195.179.193.136:5433`, `azureopsagent`) via `KYC_DB_CONNECTION` em `.env` |
+| PostgreSQL `localhost:5433` | **Conexão recusada** — BD de homologação é **remota** (via `KYC_DB_CONNECTION` em `.env`) |
 | Testes `HomologationE2eAutomatedTests` (6) | **Falharam** — dependem de BD |
 
 ## Testes executados com sucesso (equivalente técnico)
@@ -55,7 +55,7 @@
 ## Como executar E2E completo na sua máquina
 
 1. Definir `.env` com a mesma `KYC_DB_CONNECTION` que `appsettings.json` / homologação:
-   `Host=195.179.193.136;Port=5433;Database=azureopsagent;Username=kycdb;Password=...`
+   `Host=SEU_HOST;Port=5433;Database=kyc_homolog;Username=kycdb;Password=...`
 2. Na raiz do repo:
    ```powershell
    .\scripts\run-e2e-homologation.ps1

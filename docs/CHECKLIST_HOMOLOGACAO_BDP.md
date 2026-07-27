@@ -43,5 +43,5 @@ _Data homologação:_ 2026-05-31 _Responsável:_ homologação técnica (auto + 
 ## Operacional
 - [x] Health check `/health`
 - [x] Secrets fora do repositório (`.env` no `.gitignore`, usar `.env.example`)
-- [x] Deploy on-prem documentado (`docker-compose.prod.yml`, `docs/DEPLOY_ONPREM.md`)
+- [x] Deploy on-prem documentado (`docker-compose.yml`, `docs/DEPLOY_ONPREM.md`)
 - [x] CI pipeline (`/.github/workflows/ci.yml` — build, migrate, test)

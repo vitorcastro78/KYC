@@ -358,7 +358,7 @@ static async Task SeedIdentityAsync(IServiceProvider services, IConfiguration co
     }
 
     var adminEmail = configuration["Auth:AdminEmail"] ?? "admin@kyc.local";
-    var adminPassword = configuration["Auth:AdminPassword"] ?? "Admin@1234";
+    var adminPassword = configuration["Auth:AdminPassword"] ?? "ChangeMe@1234";
     var adminName = configuration["Auth:AdminFullName"] ?? "Administrador KYC";
 
     var admin = await userManager.FindByEmailAsync(adminEmail);

@@ -11,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 const BASE = process.env.KYC_APP_URL || 'http://localhost:5299';
 const EMAIL = process.env.KYC_E2E_EMAIL || 'admin@kyc.local';
-const PASS = process.env.KYC_E2E_PASSWORD || 'Admin@1234';
+const PASS = process.env.KYC_E2E_PASSWORD || 'ChangeMe@1234';
 const stamp = process.env.E2E_STAMP || new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
 
 const dirs = {

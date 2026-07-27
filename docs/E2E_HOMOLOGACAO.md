@@ -161,7 +161,7 @@ Para cenários 6–9, usar **uma** das opções:
 | 9 | Identidade manual | 2026-05-31 | `HomologationE2eAutomatedTests` | ☑ OK ☐ Falha | `06-identidade/`, trx E2E-09 |
 | 10 | Sinais manuais + override | 2026-05-31 | `HomologationE2eAutomatedTests` | ☑ OK ☐ Falha | `09-e2e/`, trx E2E-10 |
 
-**Ambiente:** `http://localhost:5299` · BD `195.179.193.136:5433` (`azureopsagent`) · IDs UI: [e2e-ui-cases.json](dossier/09-e2e/e2e-ui-cases.json)
+**Ambiente:** `http://localhost:5299` · BD via `KYC_DB_CONNECTION` · IDs UI: [e2e-ui-cases.json](dossier/09-e2e/e2e-ui-cases.json)
 
 **Assinatura compliance:** _________________________ Data: __________
 

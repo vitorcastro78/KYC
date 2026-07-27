@@ -21,8 +21,8 @@ Região DR (ex: North Europe)
 
 ## 2. Estado actual (on-prem / single-region)
 
-- Deploy: `docker-compose.prod.yml` — região única
-- BD: instância PostgreSQL (ex. homologação `195.179.193.136`)
+- Deploy: `docker-compose.yml` — região única
+- BD: instância PostgreSQL (ex. homologação `SEU_HOST:5433`)
 - Sem failover automático documentado em produção
 
 ## 3. Roadmap

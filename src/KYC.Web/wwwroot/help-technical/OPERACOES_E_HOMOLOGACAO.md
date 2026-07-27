@@ -18,17 +18,16 @@
 cp .env.example .env
 # Editar passwords e KYC_DB_CONNECTION (compose: Host=kyc-postgres)
 
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up --build -d
 ```
 
 ### 1.3 Migrations
 
 ```bash
-docker compose -f docker-compose.prod.yml exec kyc-web \
-  dotnet ef database update --project /src/KYC.Infrastructure --startup-project /src/KYC.Web
+dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web
 ```
 
-No host:
+No host (alternativa explícita):
 
 ```bash
 dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web

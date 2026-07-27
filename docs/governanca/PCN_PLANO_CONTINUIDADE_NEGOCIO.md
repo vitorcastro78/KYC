@@ -20,7 +20,7 @@
 
 ## 3. Estratégias
 
-- **Aplicação:** `docker-compose.prod.yml` restart; imagem versionada em registry
+- **Aplicação:** `docker compose up -d` restart; imagem versionada em registry (GHCR)
 - **BD:** backup contínuo + restore (ver PRD)
 - **Degradação:** analistas continuam revisão manual; SAR manual UIF (`RegisterManualUifReferenceCommand`)
 

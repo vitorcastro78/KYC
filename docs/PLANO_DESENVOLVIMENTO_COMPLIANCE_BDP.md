@@ -48,7 +48,7 @@ Um item só está **Done** quando:
 | D-25 | Nome legal + preview arranque | `LegalCompanyName`, `GetEntityResolutionPreviewQuery` |
 | D-20 | Testes UBO view builder | `UboGraphViewBuilderTests.cs` |
 | D-13 | Ollama-only LLM, OFAC SLS download | `KycLlmEngine`, Workers |
-| D-14 | Health checks, docker prod, CI | `HealthCheckExtensions`, `docker-compose.prod.yml` |
+| D-14 | Health checks, docker prod, CI | `HealthCheckExtensions`, `docker-compose.yml` |
 | D-15 | Testes `PolicyComplianceValidator` | `PolicyComplianceValidatorTests.cs` |
 
 ### 2.2 Em falta (âmbito deste plano)

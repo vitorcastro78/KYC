@@ -84,7 +84,7 @@ Upload UI/API → CaseDocument (Pending) → ficheiro em Data/cases/{caseId}/doc
 | Messaging | Azure Service Bus, RabbitMQ ou in-memory |
 | PDF relatório | Puppeteer |
 | CI | GitHub Actions (`.github/workflows/ci.yml`) |
-| Deploy | `docker-compose.prod.yml` on-prem |
+| Deploy | `docker-compose.yml` / `docker-compose.ghcr.yml` on-prem |
 
 ---
 

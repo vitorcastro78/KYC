@@ -1,6 +1,7 @@
-# Deploy on-prem via docker compose
+# Deploy on-prem via docker compose (ContextMemory-style stack)
 param(
-    [string]$EnvFile = ".env"
+    [string]$EnvFile = ".env",
+    [switch]$FromGhcr
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,17 +12,21 @@ if (-not (Test-Path $EnvFile)) {
     Write-Error "Ficheiro $EnvFile em falta. Copie .env.example para .env e configure."
 }
 
-Write-Host "A construir imagens..."
-docker compose -f docker-compose.prod.yml --env-file $EnvFile build
-
-Write-Host "A iniciar serviços..."
-docker compose -f docker-compose.prod.yml --env-file $EnvFile up -d
-
-Write-Host "A aplicar migrations..."
-docker compose -f docker-compose.prod.yml --env-file $EnvFile exec kyc-web dotnet ef database update `
-    --project /app/KYC.Infrastructure.dll 2>$null
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Migrations: executar manualmente se necessário (dotnet ef database update)."
+$composeArgs = @("--env-file", $EnvFile)
+if ($FromGhcr) {
+    $composeArgs = @("-f", "docker-compose.ghcr.yml") + $composeArgs
+    Write-Host "A puxar imagens GHCR..."
+    docker compose @composeArgs pull
+    Write-Host "A iniciar serviços..."
+    docker compose @composeArgs up -d
+}
+else {
+    Write-Host "A construir imagens..."
+    docker compose @composeArgs build
+    Write-Host "A iniciar serviços..."
+    docker compose @composeArgs up -d --build
 }
 
-Write-Host "Deploy concluído. Web: http://localhost:$($env:KYC_WEB_PORT ?? '8080')"
+Write-Host "Deploy concluído. Web: http://localhost:$((Get-Content $EnvFile | Where-Object { $_ -match '^KYC_WEB_PORT=' }) -replace 'KYC_WEB_PORT=','' | Select-Object -First 1)"
+Write-Host "Health: http://localhost:8080/health (ou KYC_WEB_PORT)"
+Write-Host "Migrations: aplicar via EF se necessário (ver docs/DEPLOY_ONPREM.md)."

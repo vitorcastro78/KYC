@@ -12,7 +12,7 @@ Import-DotEnv (Join-Path $root ".env")
 
 $conn = $env:KYC_DB_CONNECTION
 if (-not $conn) {
-    $conn = "Host=195.179.193.136;Port=5433;Database=azureopsagent;Username=kycdb;Password=lara2308"
+    throw "Defina KYC_DB_CONNECTION no .env (ver .env.example). Ex.: Host=localhost;Port=5433;Database=kyc_dev;Username=postgres;Password=CHANGE_ME"
 }
 
 $uiDir = Join-Path $root "scripts\e2e-ui"

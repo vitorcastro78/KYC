@@ -260,7 +260,7 @@ async function generateEvidenceDossier() {
     new Paragraph({
       children: [
         new TextRun(
-          "Capturas de ecrã dos cenários E2E UI (2–5) executados via Playwright. Ambiente: http://localhost:5299 · BD: azureopsagent @ 195.179.193.136:5433"
+          "Capturas de ecrã dos cenários E2E UI (2–5) executados via Playwright. Ambiente: http://localhost:5299 · BD via KYC_DB_CONNECTION"
         ),
       ],
     }),

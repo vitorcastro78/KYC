@@ -2,7 +2,7 @@
   "PlatformRoot": "C:\\Platform",
   "Hosting": {
     "InternalDomain": "kyc.empresa.local",
-    "ServerIp": "192.168.68.72",
+    "ServerIp": "127.0.0.1",
     "HttpsPort": 443,
     "KestrelUrl": "http://127.0.0.1:5000"
   },
