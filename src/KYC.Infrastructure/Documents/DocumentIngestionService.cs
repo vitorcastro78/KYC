@@ -3,6 +3,7 @@ using System.Text.Json;
 using KYC.Application.Interfaces;
 using KYC.Domain.Entities;
 using KYC.Domain.Enums;
+using KYC.Infrastructure.LLM;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -130,32 +131,25 @@ public sealed class DocumentIngestionService(
         {
             model,
             stream = false,
-            options = new { num_predict = 1024, temperature = 0.1 },
+            temperature = 0.1,
+            max_tokens = 1024,
             messages = new object[]
             {
-                new { role = "system", content = system },
-                new { role = "user", content = user }
+                OpenAiCompatibleClient.TextMessage("system", system),
+                OpenAiCompatibleClient.TextMessage("user", user)
             }
         };
 
         var client = httpClientFactory.CreateClient("ollama");
-        using var response = await client.PostAsJsonAsync("/api/chat", payload, cts.Token);
+        using var response = await client.PostAsJsonAsync("v1/chat/completions", payload, cts.Token);
         response.EnsureSuccessStatusCode();
         var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cts.Token);
-        return doc.GetProperty("message").GetProperty("content").GetString();
+        return OpenAiCompatibleClient.ExtractAssistantContent(doc);
     }
 
     private async Task<bool> IsOllamaReachableAsync(CancellationToken ct)
     {
-        try
-        {
-            var client = httpClientFactory.CreateClient("ollama-health");
-            using var response = await client.GetAsync("/api/tags", ct);
-            return response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
+        var client = httpClientFactory.CreateClient("ollama-health");
+        return await OpenAiCompatibleClient.IsReachableAsync(client, ct);
     }
 }

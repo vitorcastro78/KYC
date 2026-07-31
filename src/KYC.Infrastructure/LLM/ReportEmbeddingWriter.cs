@@ -66,15 +66,7 @@ public sealed class ReportEmbeddingWriter(
         {
             var client = httpClientFactory.CreateClient("ollama");
             var model = configuration["LLM:EmbeddingModel"] ?? "qwen3-embedding:8b";
-            using var res = await client.PostAsJsonAsync("/api/embeddings", new { model, prompt = text }, ct);
-            if (!res.IsSuccessStatusCode) return null;
-            var doc = await res.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken: ct);
-            var arr = doc.GetProperty("embedding");
-            var result = new float[arr.GetArrayLength()];
-            var i = 0;
-            foreach (var el in arr.EnumerateArray())
-                result[i++] = (float)el.GetDouble();
-            return result;
+            return await OpenAiCompatibleClient.EmbedAsync(client, model, text, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

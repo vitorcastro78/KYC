@@ -52,24 +52,17 @@ public class KycLlmEngine(
 
         var client = httpClientFactory.CreateClient("ollama-scoring");
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
-        var payload = new
+        var messages = new object[]
         {
-            model,
-            stream = false,
-            options = new { num_predict = 256, temperature = 0.1 },
-            messages = new object[]
-            {
-                new { role = "system", content = system },
-                new { role = "user", content = user }
-            }
+            OpenAiCompatibleClient.TextMessage("system", system),
+            OpenAiCompatibleClient.TextMessage("user", user)
         };
 
         try
         {
-            using var response = await client.PostAsJsonAsync("/api/chat", payload, ct).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct).ConfigureAwait(false);
-            var content = doc.GetProperty("message").GetProperty("content").GetString() ?? "{}";
+            var content = await OpenAiCompatibleClient
+                .ChatAsync(client, model, messages, temperature: 0.1f, maxTokens: 256, ct)
+                .ConfigureAwait(false);
             return ParseRiskScore(content);
         }
         catch (Exception ex)
@@ -129,16 +122,8 @@ public class KycLlmEngine(
 
     private async Task<bool> IsOllamaReachableAsync(CancellationToken ct)
     {
-        try
-        {
-            var client = httpClientFactory.CreateClient("ollama-health");
-            using var res = await client.GetAsync("/api/tags", ct).ConfigureAwait(false);
-            return res.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
+        var client = httpClientFactory.CreateClient("ollama-health");
+        return await OpenAiCompatibleClient.IsReachableAsync(client, ct).ConfigureAwait(false);
     }
 
     private static RiskScore ParseRiskScore(string content)
@@ -244,20 +229,12 @@ public class KycLlmEngine(
     {
         var client = httpClientFactory.CreateClient("ollama");
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
-        var payload = new
+        var messages = new object[]
         {
-            model,
-            stream = false,
-            messages = new object[]
-            {
-                new { role = "system", content = system },
-                new { role = "user", content = user }
-            }
+            OpenAiCompatibleClient.TextMessage("system", system),
+            OpenAiCompatibleClient.TextMessage("user", user)
         };
-        using var response = await client.PostAsJsonAsync("/api/chat", payload, ct);
-        response.EnsureSuccessStatusCode();
-        var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-        var raw = doc.GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
+        var raw = await OpenAiCompatibleClient.ChatAsync(client, model, messages, ct: ct).ConfigureAwait(false);
         return LlmChatOutputSanitizer.StripChatArtifacts(raw);
     }
 

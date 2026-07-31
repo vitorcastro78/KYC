@@ -1,5 +1,4 @@
-using System.Net.Http.Json;
-using System.Text.Json;
+using KYC.Infrastructure.LLM;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +13,7 @@ public sealed class DocumentVisionExtractor(
     {
         if (!await IsOllamaReachableAsync(ct))
         {
-            logger.LogWarning("Ollama indisponível para OCR de imagem.");
+            logger.LogWarning("LLM indisponível para OCR de imagem.");
             return string.Empty;
         }
 
@@ -24,47 +23,31 @@ public sealed class DocumentVisionExtractor(
         cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
         var base64 = Convert.ToBase64String(imageBytes);
-        var payload = new
+        var messages = new object[]
         {
-            model,
-            stream = false,
-            messages = new object[]
-            {
-                new
-                {
-                    role = "user",
-                    content = "Extrai todo o texto desta página de documento KYC, preservando números (NIF, IBAN). Responde só com o texto.",
-                    images = new[] { base64 }
-                }
-            }
+            OpenAiCompatibleClient.VisionUserMessage(
+                "Extrai todo o texto desta página de documento KYC, preservando números (NIF, IBAN). Responde só com o texto.",
+                base64,
+                string.IsNullOrWhiteSpace(mimeType) ? "image/png" : mimeType)
         };
 
         try
         {
             var client = httpClientFactory.CreateClient("ollama");
-            using var response = await client.PostAsJsonAsync("/api/chat", payload, cts.Token);
-            response.EnsureSuccessStatusCode();
-            var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cts.Token);
-            return doc.GetProperty("message").GetProperty("content").GetString()?.Trim() ?? string.Empty;
+            return (await OpenAiCompatibleClient
+                .ChatAsync(client, model, messages, ct: cts.Token)
+                .ConfigureAwait(false)).Trim();
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Falha OCR visão via Ollama.");
+            logger.LogWarning(ex, "Falha OCR visão via LLM OpenAI-compatible.");
             return string.Empty;
         }
     }
 
     private async Task<bool> IsOllamaReachableAsync(CancellationToken ct)
     {
-        try
-        {
-            var client = httpClientFactory.CreateClient("ollama-health");
-            using var response = await client.GetAsync("/api/tags", ct);
-            return response.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
+        var client = httpClientFactory.CreateClient("ollama-health");
+        return await OpenAiCompatibleClient.IsReachableAsync(client, ct).ConfigureAwait(false);
     }
 }
