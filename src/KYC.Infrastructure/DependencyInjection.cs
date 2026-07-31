@@ -175,25 +175,43 @@ public static class DependencyInjection
             .AddPolicyHandler(GetRetryPolicy());
         openSanctionsBuilder.AddPolicyHandler(GetCircuitBreakerPolicy());
 
-        var ollama = configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434";
+        var cmOptions = configuration.GetSection(ContextMemoryOptions.SectionName).Get<ContextMemoryOptions>()
+            ?? new ContextMemoryOptions();
+        services.Configure<ContextMemoryOptions>(configuration.GetSection(ContextMemoryOptions.SectionName));
+        services.AddTransient<ContextMemoryAuthHandler>();
+
+        var localLlm = configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434";
+        var llmBase = cmOptions.IsConfigured ? cmOptions.BaseUrl.TrimEnd('/') : localLlm.TrimEnd('/');
         var ollamaTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:RequestTimeoutSeconds", 300), 30, 3600);
         var scoringTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:ScoringTimeoutSeconds", 45), 5, 300);
-        services.AddHttpClient("ollama", c =>
+
+        void ConfigureLlmClient(HttpClient c, int timeoutSeconds)
         {
-            c.BaseAddress = new Uri(ollama);
-            c.Timeout = TimeSpan.FromSeconds(ollamaTimeoutSeconds);
+            c.BaseAddress = new Uri(llmBase.TrimEnd('/') + "/");
+            c.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        }
+
+        var ollamaBuilder = services.AddHttpClient("ollama", c => ConfigureLlmClient(c, ollamaTimeoutSeconds))
+            .AddPolicyHandler(GetRetryPolicy());
+        var scoringBuilder = services.AddHttpClient("ollama-scoring", c => ConfigureLlmClient(c, scoringTimeoutSeconds));
+        var healthBuilder = services.AddHttpClient("ollama-health", c =>
+        {
+            ConfigureLlmClient(c, 5);
+        });
+
+        if (cmOptions.IsConfigured)
+        {
+            ollamaBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
+            scoringBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
+            healthBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
+        }
+
+        // Embeddings: ContextMemory does not proxy /v1/embeddings — keep direct LocalEndpoint.
+        services.AddHttpClient("ollama-embeddings", c =>
+        {
+            c.BaseAddress = new Uri(localLlm.TrimEnd('/') + "/");
+            c.Timeout = TimeSpan.FromSeconds(Math.Min(120, ollamaTimeoutSeconds));
         }).AddPolicyHandler(GetRetryPolicy());
-        // Scoring: timeout curto, sem retry — evita bloquear o pipeline 5+ minutos.
-        services.AddHttpClient("ollama-scoring", c =>
-        {
-            c.BaseAddress = new Uri(ollama);
-            c.Timeout = TimeSpan.FromSeconds(scoringTimeoutSeconds);
-        });
-        services.AddHttpClient("ollama-health", c =>
-        {
-            c.BaseAddress = new Uri(ollama);
-            c.Timeout = TimeSpan.FromSeconds(5);
-        });
 
         var newsBase = configuration["NewsApi:BaseUrl"] ?? "https://newsapi.org/";
         var newsUserAgent = configuration["NewsApi:UserAgent"]

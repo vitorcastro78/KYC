@@ -19,6 +19,12 @@ public static class OpenAiCompatibleClient
             using var response = await healthClient.GetAsync("v1/models", ct).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
                 return true;
+
+            // ContextMemory liveness (no LLM probe required for process up)
+            using var cmHealth = await healthClient.GetAsync("health", ct).ConfigureAwait(false);
+            if (cmHealth.IsSuccessStatusCode)
+                return true;
+
             // Fallback for older Ollama without /v1
             using var legacy = await healthClient.GetAsync("api/tags", ct).ConfigureAwait(false);
             return legacy.IsSuccessStatusCode;

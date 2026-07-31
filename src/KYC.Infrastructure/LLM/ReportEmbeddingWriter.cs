@@ -64,7 +64,7 @@ public sealed class ReportEmbeddingWriter(
     {
         try
         {
-            var client = httpClientFactory.CreateClient("ollama");
+            var client = httpClientFactory.CreateClient("ollama-embeddings");
             var model = configuration["LLM:EmbeddingModel"] ?? "qwen3-embedding:8b";
             return await OpenAiCompatibleClient.EmbedAsync(client, model, text, ct).ConfigureAwait(false);
         }

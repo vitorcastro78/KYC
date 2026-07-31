@@ -1,3 +1,4 @@
+using KYC.Infrastructure.LLM;
 using KYC.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +19,12 @@ public static class HealthCheckExtensions
         if (!string.IsNullOrWhiteSpace(cs))
             checks.AddDbContextCheck<KycDbContext>("postgres", failureStatus: HealthStatus.Unhealthy);
 
-        var ollama = configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434";
+        var cm = configuration.GetSection(ContextMemoryOptions.SectionName);
+        var cmConfigured = !string.IsNullOrWhiteSpace(cm["BaseUrl"]) && !string.IsNullOrWhiteSpace(cm["ApiKey"]);
+        var llmEndpoint = cmConfigured
+            ? cm["BaseUrl"]!
+            : (configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434");
+
         checks.Add(new HealthCheckRegistration(
             "ofac-sls",
             sp => new OfacSlsHealthCheck(sp.GetRequiredService<IHttpClientFactory>()),
@@ -26,8 +32,8 @@ public static class HealthCheckExtensions
             ["external", "sanctions"]));
 
         checks.Add(new HealthCheckRegistration(
-            "ollama",
-            sp => new OllamaHealthCheck(ollama, sp.GetRequiredService<IHttpClientFactory>()),
+            cmConfigured ? "contextmemory" : "ollama",
+            sp => new OllamaHealthCheck(llmEndpoint, sp.GetRequiredService<IHttpClientFactory>()),
             HealthStatus.Degraded,
             ["llm", "external"]));
 
