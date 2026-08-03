@@ -44,7 +44,7 @@ services:
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseOllamaForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
-      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://network-gateway:8080}
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
       ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
       ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
       ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}
@@ -83,7 +83,7 @@ services:
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseOllamaForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
-      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://network-gateway:8080}
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
       ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
       ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
       ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}
