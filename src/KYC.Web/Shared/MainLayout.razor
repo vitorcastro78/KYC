@@ -3,33 +3,38 @@
 <PageTitle>KYC Intelligence Platform</PageTitle>
 
 <div class="page app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" aria-label="Navegação principal">
         <NavMenu />
     </aside>
 
     <main class="main-area">
-        <header class="top-row auth px-4">
-            <div class="d-flex align-items-center gap-3 w-100 justify-content-between">
-                <div>
-                    <h2 class="page-title mb-0">Risk & Compliance Workspace</h2>
-                    <small class="text-muted">Corporate KYC · Due Diligence</small>
+        <header class="top-row auth">
+            <div class="topbar-inner">
+                <div class="topbar-copy">
+                    <h2 class="page-title mb-0">Risk &amp; Compliance</h2>
+                    <small class="topbar-sub">Corporate KYC · Due Diligence</small>
                 </div>
+
+                <div class="topbar-spacer"></div>
+
                 <AuthorizeView>
                     <Authorized>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="user-pill">
-                                <span class="oi oi-person" aria-hidden="true"></span>
-                                <span>@context.User.Identity?.Name</span>
-                            </div>
-                            <a class="btn btn-sm btn-outline-secondary" href="/Identity/Account/Manage">Conta</a>
-                            <a class="btn btn-sm btn-outline-danger" href="/Identity/Account/Logout">Sair</a>
+                        <a class="topbar-btn topbar-btn-primary" href="/cases/new">
+                            <span class="oi oi-plus" aria-hidden="true"></span>
+                            Novo caso
+                        </a>
+                        <div class="user-pill" title="@context.User.Identity?.Name">
+                            <span class="oi oi-person" aria-hidden="true"></span>
+                            <span class="user-pill-name">@context.User.Identity?.Name</span>
                         </div>
+                        <a class="topbar-btn" href="/Identity/Account/Manage">Conta</a>
+                        <a class="topbar-btn topbar-btn-danger" href="/Identity/Account/Logout">Sair</a>
                     </Authorized>
                 </AuthorizeView>
             </div>
         </header>
 
-        <article class="content px-4 pb-4">
+        <article class="content">
             @Body
             <ToastHost />
         </article>

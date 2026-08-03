@@ -6,16 +6,21 @@
     --kyc-primary: #1f5e9e;
     --kyc-primary-dark: #174a7d;
     --kyc-border: #d7e1ef;
+    --kyc-surface: #ffffff;
+    --kyc-muted: #6b7f96;
+    --kyc-heading: #16324f;
+    --kyc-radius: 0.75rem;
 }
 
 html, body {
     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
     background: var(--kyc-bg);
     color: var(--kyc-text);
+    -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4 {
-    color: #16324f;
+    color: var(--kyc-heading);
     font-weight: 650;
 }
 
@@ -42,6 +47,17 @@ a:hover, .btn-link:hover {
 .btn-primary:hover {
     background: linear-gradient(180deg, #1f5e9e 0%, #194d83 100%);
     border-color: #174676;
+}
+
+.btn-outline-primary {
+    color: var(--kyc-primary);
+    border-color: #9cb9d8;
+}
+
+.btn-outline-primary:hover {
+    background: #e7f1fb;
+    border-color: var(--kyc-primary);
+    color: var(--kyc-primary-dark);
 }
 
 .form-control,
@@ -77,6 +93,11 @@ a:hover, .btn-link:hover {
 
 .alert {
     border-radius: 0.55rem;
+}
+
+.card {
+    border-color: var(--kyc-border);
+    border-radius: var(--kyc-radius);
 }
 
 #blazor-error-ui {
