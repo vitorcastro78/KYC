@@ -119,7 +119,7 @@ public sealed class DocumentIngestionService(
 
     private async Task<string?> CallLlmJsonAsync(string system, string user, CancellationToken ct)
     {
-        if (!await IsOllamaReachableAsync(ct))
+        if (!await IsContextMemoryReachableAsync(ct))
             return null;
 
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
@@ -140,16 +140,16 @@ public sealed class DocumentIngestionService(
             }
         };
 
-        var client = httpClientFactory.CreateClient("ollama");
+        var client = httpClientFactory.CreateClient("contextmemory");
         using var response = await client.PostAsJsonAsync("v1/chat/completions", payload, cts.Token);
         response.EnsureSuccessStatusCode();
         var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cts.Token);
         return OpenAiCompatibleClient.ExtractAssistantContent(doc);
     }
 
-    private async Task<bool> IsOllamaReachableAsync(CancellationToken ct)
+    private async Task<bool> IsContextMemoryReachableAsync(CancellationToken ct)
     {
-        var client = httpClientFactory.CreateClient("ollama-health");
+        var client = httpClientFactory.CreateClient("contextmemory-health");
         return await OpenAiCompatibleClient.IsReachableAsync(client, ct);
     }
 }

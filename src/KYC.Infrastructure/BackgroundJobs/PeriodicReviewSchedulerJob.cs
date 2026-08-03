@@ -52,28 +52,45 @@ public sealed class ComplianceSeedHostedService(
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<KycDbContext>();
+        try
+        {
+            await db.Database.MigrateAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "KYC DB migrate skipped/failed in ComplianceSeed; will retry queries.");
+        }
+
         var policyRepo = scope.ServiceProvider.GetRequiredService<ICustomerAcceptancePolicyRepository>();
         var scoringRepo = scope.ServiceProvider.GetRequiredService<IScoringEngineConfigRepository>();
         var dpiaRepo = scope.ServiceProvider.GetRequiredService<IDpiaRecordRepository>();
 
-        if (await policyRepo.GetActiveAsync(cancellationToken) is null)
+        try
         {
-            await policyRepo.AddAsync(Domain.Entities.CustomerAcceptancePolicy.CreateV1("System"), cancellationToken);
-            log.LogInformation("PAC v1.0.0 seeded.");
-        }
+            if (await policyRepo.GetActiveAsync(cancellationToken) is null)
+            {
+                await policyRepo.AddAsync(Domain.Entities.CustomerAcceptancePolicy.CreateV1("System"), cancellationToken);
+                log.LogInformation("PAC v1.0.0 seeded.");
+            }
 
-        if (await scoringRepo.GetActiveAsync(cancellationToken) is null)
-        {
-            await scoringRepo.AddAsync(
-                Domain.Entities.ScoringEngineConfig.CreateDefault("System", "0000000000000000000000000000000000000000000000000000000000000000"),
-                cancellationToken);
-        }
+            if (await scoringRepo.GetActiveAsync(cancellationToken) is null)
+            {
+                await scoringRepo.AddAsync(
+                    Domain.Entities.ScoringEngineConfig.CreateDefault("System", "0000000000000000000000000000000000000000000000000000000000000000"),
+                    cancellationToken);
+            }
 
-        if (await dpiaRepo.GetActiveAsync(cancellationToken) is null)
+            if (await dpiaRepo.GetActiveAsync(cancellationToken) is null)
+            {
+                await dpiaRepo.AddAsync(
+                    Domain.Entities.DpiaRecord.Create("1.0", "System", "docs/dpia-v1.pdf"),
+                    cancellationToken);
+            }
+        }
+        catch (Exception ex)
         {
-            await dpiaRepo.AddAsync(
-                Domain.Entities.DpiaRecord.Create("1.0", "System", "docs/dpia-v1.pdf"),
-                cancellationToken);
+            log.LogError(ex, "Compliance seed failed; host will continue and seed on next restart.");
         }
     }
 

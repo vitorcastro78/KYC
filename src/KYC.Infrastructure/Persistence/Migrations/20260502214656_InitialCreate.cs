@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Pgvector;
 
 #nullable disable
 
@@ -12,8 +11,7 @@ namespace KYC.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterDatabase()
-                .Annotation("Npgsql:PostgresExtension:vector", ",,");
+            // No local pgvector: report knowledge uses ContextMemory Global Wiki.
 
             migrationBuilder.CreateTable(
                 name: "kyc_case_scan_progress",
@@ -55,21 +53,6 @@ namespace KYC.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_kyc_cases", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "report_embeddings",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    KycCaseId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Embedding = table.Column<Vector>(type: "vector(1536)", nullable: false),
-                    ContentChunk = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_report_embeddings", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -198,11 +181,6 @@ namespace KYC.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_report_embeddings_KycCaseId",
-                table: "report_embeddings",
-                column: "KycCaseId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_risk_signals_CasePartyId",
                 table: "risk_signals",
                 column: "CasePartyId");
@@ -227,9 +205,6 @@ namespace KYC.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "kyc_reports");
-
-            migrationBuilder.DropTable(
-                name: "report_embeddings");
 
             migrationBuilder.DropTable(
                 name: "risk_signals");

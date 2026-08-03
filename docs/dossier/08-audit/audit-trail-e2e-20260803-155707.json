@@ -1,0 +1,86 @@
+[
+  {
+    "KycCaseId": "52463de6-2869-411b-81f0-cafcb67159a9",
+    "Action": "DueDiligenceLevelSet",
+    "ActorId": "System",
+    "Timestamp": "2026-08-03T15:57:05.797142Z",
+    "Details": "Enhanced: Montante \u003E= limiar EDD (homologa\u00E7\u00E3o UI)"
+  },
+  {
+    "KycCaseId": "52463de6-2869-411b-81f0-cafcb67159a9",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:57:05.796012Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "c78d94a8-32a4-4a76-bd93-6b01830f005c",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:57:05.776212Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "ea3734b3-fa3e-475b-908a-83902fa1ccdd",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:57:05.770854Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "e32e1db0-7608-4eb3-ae12-548b4f6d55c1",
+    "Action": "IdentityManualVerified",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:57:03.675817Z",
+    "Details": "UBO E2E: Verifica\u00E7\u00E3o presencial equivalente em conting\u00EAncia E2E homologa\u00E7\u00E3o."
+  },
+  {
+    "KycCaseId": "e32e1db0-7608-4eb3-ae12-548b4f6d55c1",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:57:03.661692Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "24fc62a9-c127-43fa-9ccf-e55f6d969616",
+    "Action": "AssetFreezeManualRegistered",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:56:59.465831Z",
+    "Details": "BDP-E2E-FREEZE-99"
+  },
+  {
+    "KycCaseId": "24fc62a9-c127-43fa-9ccf-e55f6d969616",
+    "Action": "SanctionConfirmedUnderReview",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:56:59.360258Z",
+    "Details": "Match"
+  },
+  {
+    "KycCaseId": "24fc62a9-c127-43fa-9ccf-e55f6d969616",
+    "Action": "AssetFreezeNotificationFailed",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:56:59.358263Z",
+    "Details": "BdP API down E2E"
+  },
+  {
+    "KycCaseId": "24fc62a9-c127-43fa-9ccf-e55f6d969616",
+    "Action": "AnalystOverride",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:56:59.357735Z",
+    "Details": "Signal b221d952-3eaf-4ee0-840e-1ee40e1c62c8 confirm=True"
+  },
+  {
+    "KycCaseId": "24fc62a9-c127-43fa-9ccf-e55f6d969616",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:56:59.234631Z",
+    "Details": null
+  },
+  {
+    "KycCaseId": "79b7f0af-9f92-42c3-b2aa-c2ad23079f98",
+    "Action": "CaseStarted",
+    "ActorId": "e2e-homologation",
+    "Timestamp": "2026-08-03T15:56:56.835602Z",
+    "Details": null
+  }
+]

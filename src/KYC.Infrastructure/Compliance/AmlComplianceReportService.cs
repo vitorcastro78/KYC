@@ -74,14 +74,13 @@ public sealed class AmlComplianceReportService(
         return reference;
     }
 
-    internal static string BuildOllamaOnlyModelsJson(ScoringEngineConfig? scoring) =>
+    internal static string BuildLlmModelsJson(ScoringEngineConfig? scoring) =>
         JsonSerializer.Serialize(new
         {
-            provider = "ollama-local",
+            provider = "contextmemory",
             local = scoring?.LocalModelName ?? "qwen3.5:9b",
             localVersion = scoring?.LocalModelVersion ?? "latest",
             scoringVersion = scoring?.Version,
-            promptHash = scoring?.SystemPromptHash,
-            embeddings = "qwen3-embedding:8b"
+            promptHash = scoring?.SystemPromptHash
         });
 }

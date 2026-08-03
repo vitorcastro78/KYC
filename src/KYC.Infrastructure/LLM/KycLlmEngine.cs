@@ -25,23 +25,20 @@ public class KycLlmEngine(
         return Convert.ToHexString(bytes);
     }
 
-    private bool UseOllamaForScoring =>
-        configuration.GetValue(
-            "LLM:UseOllamaForScoring",
-            string.Equals(configuration["LLM:Mode"], "LocalOnly", StringComparison.OrdinalIgnoreCase));
+    private bool UseLlmForScoring =>
+        configuration.GetValue("LLM:UseLlmForScoring", true);
 
     public async Task<RiskScore> ComputeRiskScoreAsync(KycScanContext context, CancellationToken ct = default)
     {
-        if (!UseOllamaForScoring)
+        if (!UseLlmForScoring)
         {
-            logger.LogDebug("LLM scoring via Ollama desactivado; score heur?stico.");
+            logger.LogDebug("LLM scoring desactivado; score heurístico.");
             return ComputeHeuristicRiskScore(context);
         }
 
-        if (!await IsOllamaReachableAsync(ct).ConfigureAwait(false))
+        if (!await IsContextMemoryReachableAsync(ct).ConfigureAwait(false))
         {
-            logger.LogWarning("Ollama indispon?vel em {Endpoint}; score heur?stico.",
-                configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434");
+            logger.LogWarning("ContextMemory indisponível; score heurístico.");
             return ComputeHeuristicRiskScore(context);
         }
 
@@ -50,7 +47,7 @@ public class KycLlmEngine(
         var promptHash = Sha256(system + user);
         logger.LogInformation("LLM scoring hash={Hash} model=local", promptHash);
 
-        var client = httpClientFactory.CreateClient("ollama-scoring");
+        var client = httpClientFactory.CreateClient("contextmemory-scoring");
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
         var messages = new object[]
         {
@@ -67,7 +64,7 @@ public class KycLlmEngine(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Ollama scoring failed; using heuristic score.");
+            logger.LogWarning(ex, "ContextMemory scoring failed; using heuristic score.");
             return ComputeHeuristicRiskScore(context);
         }
     }
@@ -120,9 +117,9 @@ public class KycLlmEngine(
         };
     }
 
-    private async Task<bool> IsOllamaReachableAsync(CancellationToken ct)
+    private async Task<bool> IsContextMemoryReachableAsync(CancellationToken ct)
     {
-        var client = httpClientFactory.CreateClient("ollama-health");
+        var client = httpClientFactory.CreateClient("contextmemory-health");
         return await OpenAiCompatibleClient.IsReachableAsync(client, ct).ConfigureAwait(false);
     }
 
@@ -181,7 +178,7 @@ public class KycLlmEngine(
 
         try
         {
-            var local = await CallOllamaHtmlAsync(system, user, ct);
+            var local = await CallContextMemoryHtmlAsync(system, user, ct);
             if (IsUsefulLlmSection(local))
             {
                 var section = LlmChatOutputSanitizer.ExtractReportHtmlFragment(local);
@@ -191,7 +188,7 @@ public class KycLlmEngine(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Ollama report enrich failed; using structured template only.");
+            logger.LogWarning(ex, "ContextMemory report enrich failed; using structured template only.");
         }
 
         return KycReport.Create(context.CaseId, baselineHtml, templateModel);
@@ -225,9 +222,9 @@ public class KycLlmEngine(
         return baselineHtml.Replace("</main>", trimmed + "\n</main>", StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task<string> CallOllamaHtmlAsync(string system, string user, CancellationToken ct)
+    private async Task<string> CallContextMemoryHtmlAsync(string system, string user, CancellationToken ct)
     {
-        var client = httpClientFactory.CreateClient("ollama");
+        var client = httpClientFactory.CreateClient("contextmemory");
         var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
         var messages = new object[]
         {
@@ -262,5 +259,5 @@ public class KycLlmEngine(
     }
 
     public Task<bool> IsLlmHealthyAsync(CancellationToken ct = default) =>
-        IsOllamaReachableAsync(ct);
+        IsContextMemoryReachableAsync(ct);
 }

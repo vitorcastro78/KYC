@@ -20,10 +20,11 @@ public static class HealthCheckExtensions
             checks.AddDbContextCheck<KycDbContext>("postgres", failureStatus: HealthStatus.Unhealthy);
 
         var cm = configuration.GetSection(ContextMemoryOptions.SectionName);
-        var cmConfigured = !string.IsNullOrWhiteSpace(cm["BaseUrl"]) && !string.IsNullOrWhiteSpace(cm["ApiKey"]);
-        var llmEndpoint = cmConfigured
-            ? cm["BaseUrl"]!
-            : (configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434");
+        var cmBaseUrl = cm["BaseUrl"];
+        var cmApiKey = cm["ApiKey"];
+        if (string.IsNullOrWhiteSpace(cmBaseUrl) || string.IsNullOrWhiteSpace(cmApiKey))
+            throw new InvalidOperationException(
+                "ContextMemory:BaseUrl and ContextMemory:ApiKey are required for LLM health checks.");
 
         checks.Add(new HealthCheckRegistration(
             "ofac-sls",
@@ -32,8 +33,8 @@ public static class HealthCheckExtensions
             ["external", "sanctions"]));
 
         checks.Add(new HealthCheckRegistration(
-            cmConfigured ? "contextmemory" : "ollama",
-            sp => new OllamaHealthCheck(llmEndpoint, sp.GetRequiredService<IHttpClientFactory>()),
+            "contextmemory",
+            sp => new ContextMemoryLlmHealthCheck(cmBaseUrl, sp.GetRequiredService<IHttpClientFactory>()),
             HealthStatus.Degraded,
             ["llm", "external"]));
 

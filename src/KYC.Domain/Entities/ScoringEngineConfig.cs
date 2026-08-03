@@ -36,7 +36,7 @@ public class ScoringEngineConfig
             IsActive = true,
             LocalModelName = localModelName,
             LocalModelVersion = "latest",
-            CloudModelName = "(Ollama local)",
+            CloudModelName = "(ContextMemory)",
             SystemPromptHash = promptHash,
             WeightsJson = "{\"sanctions\":0.25,\"pep\":0.15,\"adverse\":0.15,\"financial\":0.15,\"judicial\":0.15,\"ubo\":0.15}",
             ApprovedBy = approvedBy,

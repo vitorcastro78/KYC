@@ -52,7 +52,7 @@ public class BdpRpbExporterTests
     public void Internal_json_expands_ai_models_as_object_not_escaped_string()
     {
         const string modelsJson =
-            """{"provider":"ollama-local","local":"qwen3.5:9b","localVersion":"latest","scoringVersion":"1.0.0","promptHash":"abc","embeddings":"qwen3-embedding:8b"}""";
+            """{"provider":"contextmemory","local":"qwen3.5:9b","localVersion":"latest","scoringVersion":"1.0.0","promptHash":"abc"}""";
 
         var report = AmlComplianceReport.CreateDraft(2025, "admin");
         report.PopulateMetrics(
@@ -85,7 +85,7 @@ public class BdpRpbExporterTests
 
         var ai = root.GetProperty("AiModelsUsed");
         Assert.Equal(JsonValueKind.Object, ai.ValueKind);
-        Assert.Equal("ollama-local", ai.GetProperty("provider").GetString());
+        Assert.Equal("contextmemory", ai.GetProperty("provider").GetString());
         Assert.Equal("qwen3.5:9b", ai.GetProperty("local").GetString());
     }
 }

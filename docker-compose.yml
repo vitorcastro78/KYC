@@ -35,14 +35,13 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+      Hosting__BehindReverseProxy: "false"
       KYC_DB_CONNECTION: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-kyc};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-kyc_dev}
       ConnectionStrings__KycDatabase: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-kyc};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-kyc_dev}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
-      LLM__Mode: LocalOnly
-      LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
-      LLM__UseOllamaForScoring: "true"
+      LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
       ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
       ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
@@ -78,10 +77,8 @@ services:
       ConnectionStrings__KycDatabase: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-kyc};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-kyc_dev}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
-      LLM__Mode: LocalOnly
-      LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
-      LLM__UseOllamaForScoring: "true"
+      LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
       ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
       ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}

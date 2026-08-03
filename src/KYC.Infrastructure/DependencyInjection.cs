@@ -189,9 +189,12 @@ public static class DependencyInjection
         services.Configure<ContextMemoryOptions>(configuration.GetSection(ContextMemoryOptions.SectionName));
         services.AddTransient<ContextMemoryAuthHandler>();
 
-        var localLlm = configuration["LLM:LocalEndpoint"] ?? "http://localhost:11434";
-        var llmBase = cmOptions.IsConfigured ? cmOptions.BaseUrl.TrimEnd('/') : localLlm.TrimEnd('/');
-        var ollamaTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:RequestTimeoutSeconds", 300), 30, 3600);
+        if (!cmOptions.IsConfigured)
+            throw new InvalidOperationException(
+                "ContextMemory:BaseUrl and ContextMemory:ApiKey are required (LLM traffic goes through the gateway).");
+
+        var llmBase = cmOptions.BaseUrl.TrimEnd('/');
+        var llmTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:RequestTimeoutSeconds", 300), 30, 3600);
         var scoringTimeoutSeconds = Math.Clamp(configuration.GetValue("LLM:ScoringTimeoutSeconds", 45), 5, 300);
 
         void ConfigureLlmClient(HttpClient c, int timeoutSeconds)
@@ -200,20 +203,17 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
         }
 
-        var ollamaBuilder = services.AddHttpClient("ollama", c => ConfigureLlmClient(c, ollamaTimeoutSeconds))
+        var chatBuilder = services.AddHttpClient("contextmemory", c => ConfigureLlmClient(c, llmTimeoutSeconds))
             .AddPolicyHandler(GetRetryPolicy());
-        var scoringBuilder = services.AddHttpClient("ollama-scoring", c => ConfigureLlmClient(c, scoringTimeoutSeconds));
-        var healthBuilder = services.AddHttpClient("ollama-health", c =>
+        var scoringBuilder = services.AddHttpClient("contextmemory-scoring", c => ConfigureLlmClient(c, scoringTimeoutSeconds));
+        var healthBuilder = services.AddHttpClient("contextmemory-health", c =>
         {
             ConfigureLlmClient(c, 5);
         });
 
-        if (cmOptions.IsConfigured)
-        {
-            ollamaBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
-            scoringBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
-            healthBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
-        }
+        chatBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
+        scoringBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
+        healthBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
 
         var newsBase = configuration["NewsApi:BaseUrl"] ?? "https://newsapi.org/";
         var newsUserAgent = configuration["NewsApi:UserAgent"]

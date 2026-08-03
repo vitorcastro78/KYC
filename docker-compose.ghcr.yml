@@ -62,11 +62,13 @@ services:
       ConnectionStrings__KycDatabase: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
-      LLM__Mode: LocalOnly
-      LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
-      LLM__UseOllamaForScoring: "true"
+      LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
+      ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
+      ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
+      ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}
       Auth__AdminEmail: ${KYC_ADMIN_EMAIL:-admin@kyc.local}
       Auth__AdminPassword: ${KYC_ADMIN_PASSWORD:-ChangeMe@1234}
       ExternalSources__OpenSanctions__ApiKey: ${OPENSANCTIONS_API_KEY:-}
@@ -101,11 +103,13 @@ services:
       ConnectionStrings__KycDatabase: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
-      LLM__Mode: LocalOnly
-      LLM__LocalEndpoint: ${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
-      LLM__UseOllamaForScoring: "true"
+      LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
+      ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
+      ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
+      ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}
       ExternalSources__OpenSanctions__ApiKey: ${OPENSANCTIONS_API_KEY:-}
       NewsApi__ApiKey: ${NEWSAPI_KEY:-}
     volumes:

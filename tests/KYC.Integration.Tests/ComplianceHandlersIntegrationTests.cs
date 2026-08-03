@@ -164,6 +164,6 @@ public class ComplianceHandlersIntegrationTests
         Assert.Equal(1, report.CasesLowRisk);
         Assert.Equal(1, report.CasesHighRisk);
         Assert.Equal(1, report.SarsSubmitted);
-        Assert.Contains("ollama-local", report.AiModelsUsed);
+        Assert.Contains("contextmemory", report.AiModelsUsed);
     }
 }

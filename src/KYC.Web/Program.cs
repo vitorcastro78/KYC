@@ -195,6 +195,12 @@ if (!useEntra)
 if (!useEntra && !app.Environment.IsEnvironment("Testing"))
     await SeedIdentityAsync(app.Services, app.Configuration);
 
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    using var migrateScope = app.Services.CreateScope();
+    await migrateScope.ServiceProvider.GetRequiredService<KycDbContext>().Database.MigrateAsync();
+}
+
 app.MapGet("/", (HttpContext ctx) =>
     ctx.User.Identity?.IsAuthenticated == true
         ? Results.Redirect("/dashboard")
@@ -210,7 +216,7 @@ app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToPage("/_Host");
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health").AllowAnonymous();
 app.MapIntegrationEndpoints();
 
 app.MapIdentityWebhookEndpoints();

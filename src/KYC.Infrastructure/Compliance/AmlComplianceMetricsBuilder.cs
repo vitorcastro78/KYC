@@ -33,6 +33,6 @@ public static class AmlComplianceMetricsBuilder
             reviewsCompleted: reviewsCompleted,
             reviewsOverdue: cases.Count(c => c.NextReviewDue < DateTime.UtcNow && c.Status == KycStatus.Approved),
             platformVersion: platformVersion,
-            aiModelsJson: AmlComplianceReportService.BuildOllamaOnlyModelsJson(scoring));
+            aiModelsJson: AmlComplianceReportService.BuildLlmModelsJson(scoring));
     }
 }

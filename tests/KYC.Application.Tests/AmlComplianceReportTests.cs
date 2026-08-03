@@ -28,11 +28,11 @@ public class AmlComplianceReportTests
     }
 
     [Fact]
-    public void Ai_models_json_is_ollama_only_without_cloud_providers()
+    public void Ai_models_json_is_contextmemory_without_cloud_providers()
     {
         var scoring = ScoringEngineConfig.CreateDefault("test", "abc123");
-        var json = AmlComplianceReportService.BuildOllamaOnlyModelsJson(scoring);
-        Assert.Contains("ollama-local", json);
+        var json = AmlComplianceReportService.BuildLlmModelsJson(scoring);
+        Assert.Contains("contextmemory", json);
         Assert.DoesNotContain("openai", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("azure", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("gpt", json, StringComparison.OrdinalIgnoreCase);

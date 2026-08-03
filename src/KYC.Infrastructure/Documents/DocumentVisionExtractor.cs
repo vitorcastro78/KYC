@@ -11,7 +11,7 @@ public sealed class DocumentVisionExtractor(
 {
     public async Task<string> ExtractTextFromImageAsync(byte[] imageBytes, string mimeType, CancellationToken ct = default)
     {
-        if (!await IsOllamaReachableAsync(ct))
+        if (!await IsContextMemoryReachableAsync(ct))
         {
             logger.LogWarning("LLM indisponível para OCR de imagem.");
             return string.Empty;
@@ -33,7 +33,7 @@ public sealed class DocumentVisionExtractor(
 
         try
         {
-            var client = httpClientFactory.CreateClient("ollama");
+            var client = httpClientFactory.CreateClient("contextmemory");
             return (await OpenAiCompatibleClient
                 .ChatAsync(client, model, messages, ct: cts.Token)
                 .ConfigureAwait(false)).Trim();
@@ -45,9 +45,9 @@ public sealed class DocumentVisionExtractor(
         }
     }
 
-    private async Task<bool> IsOllamaReachableAsync(CancellationToken ct)
+    private async Task<bool> IsContextMemoryReachableAsync(CancellationToken ct)
     {
-        var client = httpClientFactory.CreateClient("ollama-health");
+        var client = httpClientFactory.CreateClient("contextmemory-health");
         return await OpenAiCompatibleClient.IsReachableAsync(client, ct).ConfigureAwait(false);
     }
 }

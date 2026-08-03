@@ -33,7 +33,11 @@ public sealed class KycWebApplicationFactory : WebApplicationFactory<Program>
                 ["Testing:DisableBackgroundServices"] = "true",
                 ["Messaging:HostInMemoryPipeline"] = "false",
                 ["ConnectionStrings:KycDatabase"] = "Host=127.0.0.1;Port=5432;Database=kyc_test;Username=postgres;Password=test",
-                ["IdentityVerification:WebhookSecret"] = WebhookSecret
+                ["IdentityVerification:WebhookSecret"] = WebhookSecret,
+                ["ContextMemory:BaseUrl"] = "http://127.0.0.1:9",
+                ["ContextMemory:ApiKey"] = "test-cm-key",
+                ["ContextMemory:AppId"] = "kyc",
+                ["ContextMemory:UserId"] = "kyc-test"
             });
         });
 

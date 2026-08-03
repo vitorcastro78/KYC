@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace KYC.Infrastructure.LLM;
 
-/// <summary>Helpers for OpenAI-compatible chat/embeddings/models (Ollama /v1, vLLM, ContextMemory).</summary>
+/// <summary>OpenAI-compatible client for ContextMemory (<c>/v1/chat/completions</c>, <c>/v1/models</c>).</summary>
 public static class OpenAiCompatibleClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -20,14 +20,8 @@ public static class OpenAiCompatibleClient
             if (response.IsSuccessStatusCode)
                 return true;
 
-            // ContextMemory liveness (no LLM probe required for process up)
             using var cmHealth = await healthClient.GetAsync("health", ct).ConfigureAwait(false);
-            if (cmHealth.IsSuccessStatusCode)
-                return true;
-
-            // Fallback for older Ollama without /v1
-            using var legacy = await healthClient.GetAsync("api/tags", ct).ConfigureAwait(false);
-            return legacy.IsSuccessStatusCode;
+            return cmHealth.IsSuccessStatusCode;
         }
         catch
         {
@@ -80,35 +74,6 @@ public static class OpenAiCompatibleClient
         };
     }
 
-    public static async Task<float[]?> EmbedAsync(
-        HttpClient client,
-        string model,
-        string text,
-        CancellationToken ct = default)
-    {
-        using var response = await client
-            .PostAsJsonAsync(
-                "v1/embeddings",
-                new { model, input = text },
-                JsonOptions,
-                ct)
-            .ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
-            return null;
-
-        var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct)
-            .ConfigureAwait(false);
-        if (!doc.TryGetProperty("data", out var data) || data.GetArrayLength() == 0)
-            return null;
-
-        var embedding = data[0].GetProperty("embedding");
-        var result = new float[embedding.GetArrayLength()];
-        var i = 0;
-        foreach (var el in embedding.EnumerateArray())
-            result[i++] = (float)el.GetDouble();
-        return result;
-    }
-
     public static string ExtractAssistantContent(JsonElement doc)
     {
         if (doc.TryGetProperty("choices", out var choices)
@@ -124,11 +89,6 @@ public static class OpenAiCompatibleClient
                     : content.ToString();
             }
         }
-
-        // Legacy Ollama /api/chat
-        if (doc.TryGetProperty("message", out var legacy)
-            && legacy.TryGetProperty("content", out var legacyContent))
-            return legacyContent.GetString() ?? string.Empty;
 
         return string.Empty;
     }
