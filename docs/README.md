@@ -2,6 +2,16 @@
 
 > **Índice mestre** para gerar documentação da aplicação, catálogo de funcionalidades e materiais de homologação BdP.
 
+## Idiomas / Languages / Idiomas
+
+| Idioma | Pasta |
+|--------|--------|
+| Português | [`pt/`](pt/) + [`help-online/pt/`](help-online/pt/) — também na raiz canónica desta pasta e em [`help-online/`](help-online/) |
+| English | [`en/`](en/) + [`help-online/en/`](help-online/en/) |
+| Español | [`es/`](es/) + [`help-online/es/`](help-online/es/) |
+
+> Evidências em [`dossier/`](dossier/) mantêm-se em português (registos de execução).
+
 ## Requisitos institucionais (homologação BdP / COMEX)
 
 | Documento | Conteúdo |

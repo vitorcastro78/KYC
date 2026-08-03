@@ -4,7 +4,7 @@ public sealed class ContextMemoryOptions
 {
     public const string SectionName = "ContextMemory";
 
-    /// <summary>ContextMemory gateway base URL (OpenAI-compatible <c>/v1</c>).</summary>
+    /// <summary>ContextMemory gateway base URL (chat <c>/v1</c> + Global Wiki <c>/apps/...</c>).</summary>
     public string BaseUrl { get; set; } = string.Empty;
 
     public string AppId { get; set; } = "kyc";

@@ -239,13 +239,12 @@ public class KycCasePipelineRunner(
         try
         {
             await embeddingWriter.EmbedReportTextAsync(caseId, report.NarrativeHtml, ct);
-            await cases.UpdateAsync(kyc, ct);
         }
         catch (Exception ex)
         {
             log.LogWarning(
                 ex,
-                "Embeddings do relatório falharam para o caso {CaseId}; o HTML do relatório foi gravado.",
+                "Upsert do relatório no ContextMemory wiki falhou para o caso {CaseId}; o HTML do relatório foi gravado.",
                 caseId);
         }
 

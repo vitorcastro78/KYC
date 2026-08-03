@@ -1,103 +1,89 @@
+using System.Net;
+using System.Text.RegularExpressions;
 using KYC.Application.Interfaces;
-using KYC.Infrastructure.Persistence;
-using Microsoft.Extensions.Configuration;
-using KYC.Infrastructure.Persistence.Entities;
-using Microsoft.EntityFrameworkCore;
-using Pgvector;
+using KYC.Application.Models;
+using Microsoft.Extensions.Options;
 
 namespace KYC.Infrastructure.LLM;
 
-public sealed class ReportEmbeddingWriter(
-    KycDbContext db,
-    IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+/// <summary>
+/// Upserts KYC case reports into ContextMemory Global Wiki (CompanyBrain pattern).
+/// Retrieval is lexical/FTS on the gateway — no local pgvector.
+/// </summary>
+public sealed partial class ReportEmbeddingWriter(
+    IContextMemoryWikiClient wiki,
+    IOptions<ContextMemoryOptions> options,
     ILogger<ReportEmbeddingWriter> log) : IReportEmbeddingWriter
 {
-    private const int DefaultDimensions = 2048;
+    public const string SourceId = "kyc:reports";
 
-    private int TargetDimensions =>
-        int.TryParse(configuration["LLM:EmbeddingDimensions"], out var n) && n > 0 ? n : DefaultDimensions;
+    public static string DocumentIdForCase(Guid kycCaseId) =>
+        $"kyc:report:{kycCaseId:N}";
 
-    public Task StoreChunksAsync(Guid kycCaseId, IReadOnlyList<(string Chunk, float[] Vector)> chunks, CancellationToken ct = default)
+    public async Task EmbedReportTextAsync(Guid kycCaseId, string markdown, CancellationToken ct = default)
     {
-        var dim = TargetDimensions;
-        foreach (var (chunk, vector) in chunks)
+        if (!options.Value.IsConfigured)
         {
-            var normalized = NormalizeDimensions(vector, dim);
-            db.ReportEmbeddings.Add(new ReportEmbedding
-            {
-                Id = Guid.NewGuid(),
-                KycCaseId = kycCaseId,
-                ContentChunk = chunk,
-                Embedding = new HalfVector(ToHalfArray(normalized)),
-                CreatedAt = DateTime.UtcNow
-            });
+            log.LogDebug(
+                "ContextMemory not configured; skipping wiki upsert for case {CaseId}.",
+                kycCaseId);
+            return;
         }
 
-        // Persistência fica a cargo do chamador (ex.: KycCaseRepository.UpdateAsync) para um único SaveChanges com o caso.
-        return Task.CompletedTask;
+        if (string.IsNullOrWhiteSpace(markdown))
+            return;
+
+        var content = ToWikiContent(markdown);
+        var documentId = DocumentIdForCase(kycCaseId);
+
+        await wiki.IngestDocumentAsync(
+            documentId,
+            new WikiUpsertRequest
+            {
+                Title = $"KYC report {kycCaseId:N}",
+                Content = content,
+                SourceId = SourceId,
+                Metadata = new Dictionary<string, string>
+                {
+                    ["sourceType"] = "kyc-report",
+                    ["kycCaseId"] = kycCaseId.ToString("N")
+                }
+            },
+            ct).ConfigureAwait(false);
+
+        log.LogInformation(
+            "Upserted KYC report {CaseId} to ContextMemory wiki ({DocumentId}).",
+            kycCaseId,
+            documentId);
     }
 
     public async Task ClearEmbeddingsAsync(Guid kycCaseId, CancellationToken ct = default)
     {
-        await db.ReportEmbeddings
-            .Where(e => e.KycCaseId == kycCaseId)
-            .ExecuteDeleteAsync(ct);
-    }
+        if (!options.Value.IsConfigured)
+            return;
 
-    /// <summary>Gera embeddings via Ollama (qwen3-embedding:8b por defeito); fallback determinístico para pseudo-vector.</summary>
-    public async Task EmbedReportTextAsync(Guid kycCaseId, string markdown, CancellationToken ct = default)
-    {
-        var parts = markdown.Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var dim = TargetDimensions;
-        var list = new List<(string, float[])>();
-        foreach (var part in parts.Take(32))
-        {
-            var vec = await TryEmbedAsync(part, ct) ?? PseudoVector(part, dim);
-            list.Add((part, vec));
-        }
-
-        await StoreChunksAsync(kycCaseId, list, ct);
-    }
-
-    private async Task<float[]?> TryEmbedAsync(string text, CancellationToken ct)
-    {
+        var documentId = DocumentIdForCase(kycCaseId);
         try
         {
-            var client = httpClientFactory.CreateClient("ollama-embeddings");
-            var model = configuration["LLM:EmbeddingModel"] ?? "qwen3-embedding:8b";
-            return await OpenAiCompatibleClient.EmbedAsync(client, model, text, ct).ConfigureAwait(false);
+            await wiki.DeleteDocumentAsync(documentId, ct).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            log.LogDebug(ex, "Embedding call failed; using pseudo vector.");
-            return null;
+            // already gone
         }
     }
 
-    private static float[] PseudoVector(string text, int dim)
+    private static string ToWikiContent(string narrative)
     {
-        var rng = new Random(text.GetHashCode(StringComparison.Ordinal));
-        var v = new float[dim];
-        for (var i = 0; i < dim; i++)
-            v[i] = (float)rng.NextDouble();
-        return v;
+        // Narrative may be HTML from the report composer — keep searchable plain-ish text.
+        var text = HtmlTagRegex().Replace(narrative, " ");
+        text = WebUtility.HtmlDecode(text);
+        return CollapseWhitespaceRegex().Replace(text, " ").Trim();
     }
 
-    private static float[] NormalizeDimensions(float[] source, int targetDim)
-    {
-        if (source.Length == targetDim) return source;
-        var output = new float[targetDim];
-        var copy = Math.Min(source.Length, targetDim);
-        Array.Copy(source, output, copy);
-        return output;
-    }
+    [GeneratedRegex("<[^>]+>", RegexOptions.Compiled)]
+    private static partial Regex HtmlTagRegex();
 
-    private static Half[] ToHalfArray(float[] source)
-    {
-        var result = new Half[source.Length];
-        for (var i = 0; i < source.Length; i++)
-            result[i] = (Half)source[i];
-        return result;
-    }
+    [GeneratedRegex(@"\s+", RegexOptions.Compiled)]
+    private static partial Regex CollapseWhitespaceRegex();
 }

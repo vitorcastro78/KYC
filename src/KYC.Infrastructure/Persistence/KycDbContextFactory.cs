@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Npgsql;
 
 namespace KYC.Infrastructure.Persistence;
 
@@ -14,7 +13,7 @@ public class KycDbContextFactory : IDesignTimeDbContextFactory<KycDbContext>
                  ?? "Host=localhost;Port=5433;Database=kyc_dev;Username=postgres;Password=dev123";
         var dataSource = KycNpgsqlDataSource.Create(cs);
         var opts = new DbContextOptionsBuilder<KycDbContext>()
-            .UseNpgsql(dataSource, x => x.UseVector())
+            .UseNpgsql(dataSource)
             .Options;
         return new KycDbContext(opts);
     }

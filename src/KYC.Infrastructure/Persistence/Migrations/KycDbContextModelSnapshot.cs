@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Pgvector;
 
 #nullable disable
 
@@ -21,7 +20,6 @@ namespace KYC.Infrastructure.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("KYC.Domain.Entities.AmlComplianceReport", b =>
@@ -807,33 +805,6 @@ namespace KYC.Infrastructure.Persistence.Migrations
                     b.HasKey("KycCaseId");
 
                     b.ToTable("kyc_case_scan_progress", (string)null);
-                });
-
-            modelBuilder.Entity("KYC.Infrastructure.Persistence.Entities.ReportEmbedding", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ContentChunk")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<HalfVector>("Embedding")
-                        .IsRequired()
-                        .HasColumnType("halfvec(2048)");
-
-                    b.Property<Guid>("KycCaseId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("KycCaseId");
-
-                    b.ToTable("report_embeddings", (string)null);
                 });
 
             modelBuilder.Entity("KYC.Domain.Entities.AuditEntry", b =>

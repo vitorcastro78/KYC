@@ -1,16 +1,66 @@
 @page "/admin/scoring-config"
 @attribute [Authorize(Policy = "Admin")]
 @inject IScoringEngineConfigRepository Repo
+@inject ILlmModelCatalog ModelCatalog
+@inject IConfiguration Config
 @inject IMediator Mediator
 @inject ToastService Toast
 
 <PageTitle>Motor de scoring</PageTitle>
 <h1>Versões do motor de scoring</h1>
 
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Modelo LLM (runtime)</span>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="LoadModelsAsync" disabled="@_loadingModels">Actualizar</button>
+    </div>
+    <div class="card-body">
+        @if (_modelsError is not null)
+        {
+            <p class="text-danger mb-2">@_modelsError</p>
+        }
+        else if (_loadingModels)
+        {
+            <p class="text-muted mb-0">A carregar modelos…</p>
+        }
+        else
+        {
+            <p class="mb-1">
+                Provider: <strong>@_provider</strong>
+                · Modelo activo:
+                <strong>@(_activeModel ?? Config["LLM:LocalModel"] ?? "—")</strong>
+            </p>
+            <p class="small text-muted mb-2">
+                Via ContextMemory o activo vem da config do app no Admin CM (<code>owned_by=active</code>).
+                O campo abaixo nas novas versões de scoring continua a ser o modelo registado para auditoria BdP.
+            </p>
+            @if (_models.Count == 0)
+            {
+                <p class="text-muted mb-0">Nenhum modelo listado.</p>
+            }
+            else
+            {
+                <ul class="mb-0">
+                    @foreach (var m in _models)
+                    {
+                        <li>
+                            <code>@m.Id</code>
+                            @if (m.IsActive)
+                            {
+                                <span class="badge bg-success ms-1">activo</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    </div>
+</div>
+
 @if (_active is not null)
 {
     <div class="alert alert-success">
-        Versão activa: <strong>@_active.Version</strong> — modelo Ollama: <strong>@_active.LocalModelName</strong>
+        Versão activa: <strong>@_active.Version</strong> — modelo registado: <strong>@_active.LocalModelName</strong>
     </div>
 }
 
@@ -29,7 +79,21 @@
     <div class="card-body">
         <div class="row g-2">
             <div class="col-md-3"><input class="form-control" placeholder="Versão" @bind="_newVersion" /></div>
-            <div class="col-md-3"><input class="form-control" placeholder="Modelo Ollama" @bind="_newModel" /></div>
+            <div class="col-md-3">
+                @if (_models.Count > 0)
+                {
+                    <select class="form-select" @bind="_newModel">
+                        @foreach (var m in _models)
+                        {
+                            <option value="@m.Id">@m.Id@(m.IsActive ? " (activo)" : "")</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input class="form-control" placeholder="Modelo Ollama" @bind="_newModel" />
+                }
+            </div>
             <div class="col-md-4"><input class="form-control" placeholder="Hash prompt (SHA256)" @bind="_newHash" /></div>
             <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="CreateVersion">Criar</button></div>
         </div>
@@ -39,16 +103,49 @@
 @code {
     private IReadOnlyList<KYC.Domain.Entities.ScoringEngineConfig> _configs = [];
     private KYC.Domain.Entities.ScoringEngineConfig? _active;
+    private List<KYC.Application.Models.LlmModelInfo> _models = [];
+    private string? _activeModel;
+    private string _provider = "—";
+    private string? _modelsError;
+    private bool _loadingModels;
     private string _newVersion = "1.1.0";
     private string _newModel = "qwen3.5:9b";
     private string _newHash = "";
 
-    protected override async Task OnInitializedAsync() => await ReloadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        await LoadModelsAsync();
+    }
 
     private async Task ReloadAsync()
     {
         _configs = await Repo.ListAsync();
         _active = await Repo.GetActiveAsync();
+    }
+
+    private async Task LoadModelsAsync()
+    {
+        _loadingModels = true;
+        _modelsError = null;
+        try
+        {
+            var result = await ModelCatalog.ListAsync();
+            _models = result.Data;
+            _activeModel = result.ActiveModelId;
+            _provider = result.Provider;
+            if (!string.IsNullOrWhiteSpace(_activeModel))
+                _newModel = _activeModel;
+        }
+        catch (Exception ex)
+        {
+            _models = [];
+            _modelsError = ex.Message;
+        }
+        finally
+        {
+            _loadingModels = false;
+        }
     }
 
     private async Task CreateVersion()

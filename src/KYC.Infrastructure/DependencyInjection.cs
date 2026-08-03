@@ -34,12 +34,11 @@ public static class DependencyInjection
                  ?? configuration["KYC_DB_CONNECTION"]
                  ?? throw new InvalidOperationException("Connection string KycDatabase or KYC_DB_CONNECTION required.");
 
-        // NpgsqlDataSource com UseVector() é necessário para serializar HalfVector/halfvec (EF Core 9 + pgvector 0.3).
         services.AddSingleton(_ => KycNpgsqlDataSource.Create(cs));
         services.AddSingleton<RegulatoryVersionSaveChangesInterceptor>();
         services.AddDbContext<KycDbContext>((sp, options) =>
             options
-                .UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.UseVector())
+                .UseNpgsql(sp.GetRequiredService<NpgsqlDataSource>())
                 .AddInterceptors(sp.GetRequiredService<RegulatoryVersionSaveChangesInterceptor>()));
 
         services.AddScoped<IKycCaseRepository, KycCaseRepository>();
@@ -57,6 +56,16 @@ public static class DependencyInjection
         services.AddScoped<IKycLlmEngine, KycLlmEngine>();
         services.AddSingleton<IKycReportComposer, KycStructuredReportComposer>();
         services.AddScoped<IReportEmbeddingWriter, ReportEmbeddingWriter>();
+        services.AddScoped<ILlmModelCatalog, LlmModelCatalog>();
+        services.AddHttpClient<IContextMemoryWikiClient, ContextMemoryWikiClient>((sp, client) =>
+        {
+            var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ContextMemoryOptions>>().Value;
+            var baseUrl = string.IsNullOrWhiteSpace(opts.BaseUrl)
+                ? "http://localhost:5100"
+                : opts.BaseUrl.TrimEnd('/');
+            client.BaseAddress = new Uri(baseUrl + "/");
+            client.Timeout = TimeSpan.FromMinutes(5);
+        });
         services.AddScoped<IKycCasePipelineRunner, KycCasePipelineRunner>();
         services.AddScoped<ICasePartyScreener, CasePartyScreener>();
         services.AddSingleton<IKycHtmlToPdfConverter, PuppeteerKycHtmlToPdfConverter>();
@@ -205,13 +214,6 @@ public static class DependencyInjection
             scoringBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
             healthBuilder.AddHttpMessageHandler<ContextMemoryAuthHandler>();
         }
-
-        // Embeddings: ContextMemory does not proxy /v1/embeddings — keep direct LocalEndpoint.
-        services.AddHttpClient("ollama-embeddings", c =>
-        {
-            c.BaseAddress = new Uri(localLlm.TrimEnd('/') + "/");
-            c.Timeout = TimeSpan.FromSeconds(Math.Min(120, ollamaTimeoutSeconds));
-        }).AddPolicyHandler(GetRetryPolicy());
 
         var newsBase = configuration["NewsApi:BaseUrl"] ?? "https://newsapi.org/";
         var newsUserAgent = configuration["NewsApi:UserAgent"]

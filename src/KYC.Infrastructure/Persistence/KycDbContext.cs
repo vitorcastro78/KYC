@@ -11,7 +11,6 @@ public class KycDbContext(DbContextOptions<KycDbContext> options) : DbContext(op
     public DbSet<RiskSignal> RiskSignals => Set<RiskSignal>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<KycReport> KycReports => Set<KycReport>();
-    public DbSet<ReportEmbedding> ReportEmbeddings => Set<ReportEmbedding>();
     public DbSet<KycCaseScanProgressRow> KycCaseScanProgress => Set<KycCaseScanProgressRow>();
     public DbSet<CaseDocument> CaseDocuments => Set<CaseDocument>();
     public DbSet<DocumentExtractedFact> DocumentExtractedFacts => Set<DocumentExtractedFact>();
@@ -23,7 +22,6 @@ public class KycDbContext(DbContextOptions<KycDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasPostgresExtension("vector");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(KycDbContext).Assembly);
     }
 }

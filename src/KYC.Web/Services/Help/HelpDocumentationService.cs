@@ -33,13 +33,24 @@ public sealed class HelpDocumentationService(
     private string? ResolveHelpFilePath(HelpDocEntry entry)
     {
         var subfolder = entry.Technical ? "help-technical" : "help-online";
-        var candidates = new[]
+        var cultureFolder = ResolveCultureFolder();
+        var candidates = new List<string>();
+
+        void AddCandidates(string? culture)
         {
-            Path.Combine(environment.WebRootPath, subfolder, entry.FileName),
-            Path.Combine(environment.WebRootPath, "help", entry.FileName),
-            Path.GetFullPath(Path.Combine(environment.ContentRootPath, "..", "..", "docs",
-                entry.Technical ? "" : "help-online", entry.FileName))
-        };
+            if (!string.IsNullOrEmpty(culture))
+            {
+                candidates.Add(Path.Combine(environment.WebRootPath, subfolder, culture, entry.FileName));
+                candidates.Add(Path.GetFullPath(Path.Combine(environment.ContentRootPath, "..", "..", "docs",
+                    entry.Technical ? culture : Path.Combine("help-online", culture), entry.FileName)));
+            }
+        }
+
+        AddCandidates(cultureFolder);
+        candidates.Add(Path.Combine(environment.WebRootPath, subfolder, entry.FileName));
+        candidates.Add(Path.Combine(environment.WebRootPath, "help", entry.FileName));
+        candidates.Add(Path.GetFullPath(Path.Combine(environment.ContentRootPath, "..", "..", "docs",
+            entry.Technical ? "" : "help-online", entry.FileName)));
 
         foreach (var path in candidates)
         {
@@ -54,6 +65,18 @@ public sealed class HelpDocumentationService(
                 return docsRoot;
         }
 
+        return null;
+    }
+
+    private static string? ResolveCultureFolder()
+    {
+        var name = System.Globalization.CultureInfo.CurrentUICulture.Name;
+        if (name.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+            return "en";
+        if (name.StartsWith("es", StringComparison.OrdinalIgnoreCase))
+            return "es";
+        if (name.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
+            return "pt";
         return null;
     }
 }

@@ -3,6 +3,7 @@
 @inject ICustomerAcceptancePolicyRepository PolicyRepo
 @inject IDpiaRecordRepository DpiaRepo
 @inject IScoringEngineConfigRepository ScoringRepo
+@inject ILlmModelCatalog ModelCatalog
 @inject IMediator Mediator
 @inject ToastService Toast
 
@@ -47,13 +48,59 @@
                 else
                 {
                     <p>Versão <strong>@_scoring.Version</strong></p>
-                    <p class="small mb-1">Modelo local: @_scoring.LocalModelName (@_scoring.LocalModelVersion)</p>
+                    <p class="small mb-1">Modelo registado: @_scoring.LocalModelName (@_scoring.LocalModelVersion)</p>
                     <p class="small mb-1 font-monospace">Prompt hash: @(_scoring.SystemPromptHash[..Math.Min(16, _scoring.SystemPromptHash.Length)])…</p>
                     <p class="small text-muted mb-0">Aprovado por @_scoring.ApprovedBy em @_scoring.ApprovedAt.ToLocalTime().ToString("dd/MM/yyyy")</p>
                 }
             </div>
         </div>
     </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>LLM / ContextMemory</span>
+                <button type="button" class="btn btn-sm btn-link p-0" @onclick="LoadModelsAsync">↻</button>
+            </div>
+            <div class="card-body">
+                @if (_modelsError is not null)
+                {
+                    <p class="text-danger small mb-0">@_modelsError</p>
+                }
+                else if (_loadingModels)
+                {
+                    <p class="text-muted mb-0">A carregar…</p>
+                }
+                else
+                {
+                    <p class="mb-1">Provider: <strong>@_provider</strong></p>
+                    <p class="mb-2">Modelo activo: <strong>@(_activeModel ?? "—")</strong></p>
+                    @if (_models.Count > 0)
+                    {
+                        <p class="small text-muted mb-1">Disponíveis:</p>
+                        <ul class="small mb-0 ps-3">
+                            @foreach (var m in _models.Take(12))
+                            {
+                                <li>
+                                    <code>@m.Id</code>
+                                    @if (m.IsActive)
+                                    {
+                                        <span class="text-success"> · activo</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        @if (_models.Count > 12)
+                        {
+                            <p class="small text-muted mt-1 mb-0">+@(_models.Count - 12) mais — ver Scoring.</p>
+                        }
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-header">DPIA activa</div>
@@ -79,15 +126,46 @@
     private KYC.Domain.Entities.CustomerAcceptancePolicy? _policy;
     private KYC.Domain.Entities.DpiaRecord? _dpia;
     private KYC.Domain.Entities.ScoringEngineConfig? _scoring;
+    private List<KYC.Application.Models.LlmModelInfo> _models = [];
+    private string? _activeModel;
+    private string _provider = "—";
+    private string? _modelsError;
+    private bool _loadingModels;
     private string _newPacVersion = "1.1.0";
 
-    protected override async Task OnInitializedAsync() => await ReloadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        await LoadModelsAsync();
+    }
 
     private async Task ReloadAsync()
     {
         _policy = await PolicyRepo.GetActiveAsync();
         _dpia = await DpiaRepo.GetActiveAsync();
         _scoring = await ScoringRepo.GetActiveAsync();
+    }
+
+    private async Task LoadModelsAsync()
+    {
+        _loadingModels = true;
+        _modelsError = null;
+        try
+        {
+            var result = await ModelCatalog.ListAsync();
+            _models = result.Data;
+            _activeModel = result.ActiveModelId;
+            _provider = result.Provider;
+        }
+        catch (Exception ex)
+        {
+            _models = [];
+            _modelsError = ex.Message;
+        }
+        finally
+        {
+            _loadingModels = false;
+        }
     }
 
     private async Task CreatePacVersion()

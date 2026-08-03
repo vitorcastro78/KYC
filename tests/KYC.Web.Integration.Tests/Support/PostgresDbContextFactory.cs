@@ -18,7 +18,7 @@ internal static class PostgresDbContextFactory
                  ?? throw new InvalidOperationException("KYC_DB_CONNECTION required.");
 
         var options = new DbContextOptionsBuilder<KycDbContext>()
-            .UseNpgsql(cs, npgsql => npgsql.UseVector())
+            .UseNpgsql(cs)
             .AddInterceptors(new RegulatoryVersionSaveChangesInterceptor())
             .Options;
 

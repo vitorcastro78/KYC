@@ -105,11 +105,6 @@ public class KycCaseRepository(KycDbContext db) : IKycCaseRepository
             e => e.Id,
             ct);
         await PromoteIfMissingAsync(
-            db.ChangeTracker.Entries<ReportEmbedding>().Where(e => e.State == EntityState.Modified),
-            ids => db.ReportEmbeddings.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
-            e => e.Id,
-            ct);
-        await PromoteIfMissingAsync(
             db.ChangeTracker.Entries<CaseDocument>().Where(e => e.State == EntityState.Modified),
             ids => db.CaseDocuments.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => x.Id),
             e => e.Id,
