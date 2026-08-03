@@ -1,34 +1,13 @@
-# One-command local/on-prem stack: Web (:8080) + Workers + Postgres + RabbitMQ
+# KYC on network-local — expects shared Postgres (network-postgres) + ContextMemory gateway.
 # Usage:  cp .env.example .env && docker compose up --build
-# Requires Ollama on the host (default http://host.docker.internal:11434)
-# DB-only for `dotnet run`: docker compose -f docker-compose.db.yml up -d
+# Standalone Postgres for `dotnet run`: docker compose -f docker-compose.db.yml up -d
 
 name: kyc
 
 services:
-  kyc-postgres:
-    image: pgvector/pgvector:pg17
-    container_name: kyc-postgres
-    restart: unless-stopped
-    ports:
-      - "${POSTGRES_HOST_PORT:-5433}:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-kyc}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME}
-      POSTGRES_DB: ${POSTGRES_DB:-kyc_dev}
-    volumes:
-      - kyc_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kyc} -d ${POSTGRES_DB:-kyc_dev}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - kyc-net
-
   kyc-rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: kyc-rabbitmq
+    container_name: network-kyc-rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-kyc}
@@ -41,25 +20,23 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - kyc-net
+      - network-local
 
   kyc-web:
     build:
       context: .
       dockerfile: docker/Dockerfile.web
     image: ${KYC_WEB_IMAGE:-kyc-web:local}
-    container_name: kyc-web
+    container_name: network-kyc-web
     restart: unless-stopped
     depends_on:
-      kyc-postgres:
-        condition: service_healthy
       kyc-rabbitmq:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      KYC_DB_CONNECTION: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
-      ConnectionStrings__KycDatabase: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
+      KYC_DB_CONNECTION: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-kyc};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-kyc_dev}
+      ConnectionStrings__KycDatabase: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-kyc};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-kyc_dev}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
       LLM__Mode: LocalOnly
@@ -67,42 +44,38 @@ services:
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseOllamaForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://network-gateway:8080}
+      ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
+      ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
+      ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}
       Auth__AdminEmail: ${KYC_ADMIN_EMAIL:-admin@kyc.local}
       Auth__AdminPassword: ${KYC_ADMIN_PASSWORD:-ChangeMe@1234}
       OpenSanctions__ApiKey: ${OPENSANCTIONS_API_KEY:-}
       ExternalSources__OpenSanctions__ApiKey: ${OPENSANCTIONS_API_KEY:-}
       NewsApi__ApiKey: ${NEWSAPI_KEY:-}
     ports:
-      - "${KYC_WEB_PORT:-8080}:8080"
+      - "${KYC_WEB_PORT:-8083}:8080"
     volumes:
       - kyc_documents:/app/Data/cases
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - kyc-net
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 8
-      start_period: 45s
+      - network-local
 
   kyc-workers:
     build:
       context: .
       dockerfile: docker/Dockerfile.workers
     image: ${KYC_WORKERS_IMAGE:-kyc-workers:local}
-    container_name: kyc-workers
+    container_name: network-kyc-workers
     restart: unless-stopped
     depends_on:
-      kyc-postgres:
-        condition: service_healthy
       kyc-rabbitmq:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      KYC_DB_CONNECTION: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
-      ConnectionStrings__KycDatabase: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
+      KYC_DB_CONNECTION: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-kyc};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-kyc_dev}
+      ConnectionStrings__KycDatabase: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-kyc};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-kyc_dev}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
       LLM__Mode: LocalOnly
@@ -110,6 +83,10 @@ services:
       LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseOllamaForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://network-gateway:8080}
+      ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
+      ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
+      ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}
       ExternalSources__OpenSanctions__ApiKey: ${OPENSANCTIONS_API_KEY:-}
       NewsApi__ApiKey: ${NEWSAPI_KEY:-}
     volumes:
@@ -117,13 +94,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - kyc-net
+      - network-local
 
 volumes:
-  kyc_pgdata:
   kyc_documents:
   kyc_worker_data:
 
 networks:
-  kyc-net:
-    driver: bridge
+  network-local:
+    external: true

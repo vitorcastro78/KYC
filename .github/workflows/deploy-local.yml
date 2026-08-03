@@ -1,0 +1,49 @@
+name: Deploy local
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-local-kyc
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Windows, network-local]
+    timeout-minutes: 30
+    steps:
+      - name: Pull and rebuild on this PC
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:Path = "C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\Git\cmd;" + $env:Path
+          $dir = "C:\Network\_work\KYC"
+          if (-not (Test-Path $dir)) { throw "Pasta em falta: $dir" }
+          Set-Location $dir
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          docker compose up -d --build
+          docker compose ps
+          $port = "8083"
+          if (Test-Path .env) {
+            $m = Select-String -Path .env -Pattern '^KYC_WEB_PORT=(.+)$' | Select-Object -First 1
+            if ($m) { $port = $m.Matches.Groups[1].Value.Trim() }
+          }
+          $ok = $false
+          for ($i = 1; $i -le 30; $i++) {
+            Start-Sleep -Seconds 3
+            try {
+              $health = Invoke-WebRequest "http://localhost:$port/health" -UseBasicParsing -TimeoutSec 10
+              if ($health.StatusCode -eq 200) {
+                Write-Host $health.Content
+                $ok = $true
+                break
+              }
+            } catch {
+              Write-Host "Health attempt $i/30: $($_.Exception.Message)"
+            }
+          }
+          if (-not $ok) { throw "Health check falhou apos espera (porta $port)" }
