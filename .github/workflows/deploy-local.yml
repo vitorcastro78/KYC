@@ -12,8 +12,47 @@ concurrency:
 jobs:
   deploy:
     runs-on: [self-hosted, Windows, network-local]
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
+      - name: Ensure Docker Desktop is running
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:Path = "C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\Git\cmd;" + $env:Path
+
+          $dockerDesktop = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+          function Test-DockerReady {
+            try {
+              docker info 2>$null | Out-Null
+              return $LASTEXITCODE -eq 0
+            } catch { return $false }
+          }
+
+          if (-not (Test-DockerReady)) {
+            Write-Host "Docker daemon not ready — starting Docker Desktop..."
+            if (Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue) {
+              Start-Service com.docker.service -ErrorAction SilentlyContinue
+            }
+            if (Test-Path $dockerDesktop) {
+              Start-Process $dockerDesktop
+            } else {
+              throw "Docker Desktop not found at $dockerDesktop"
+            }
+            $ready = $false
+            for ($i = 1; $i -le 60; $i++) {
+              Start-Sleep -Seconds 5
+              if (Test-DockerReady) {
+                Write-Host "Docker ready after attempt $i"
+                $ready = $true
+                break
+              }
+              Write-Host "Waiting for Docker... $i/60"
+            }
+            if (-not $ready) { throw "Docker Desktop did not become ready in time" }
+          } else {
+            Write-Host "Docker already running"
+          }
+
       - name: Pull and rebuild on this PC
         shell: powershell
         run: |
@@ -33,7 +72,7 @@ jobs:
             if ($m) { $port = $m.Matches.Groups[1].Value.Trim() }
           }
           $ok = $false
-          for ($i = 1; $i -le 30; $i++) {
+          for ($i = 1; $i -le 40; $i++) {
             Start-Sleep -Seconds 3
             try {
               $health = Invoke-WebRequest "http://localhost:$port/health" -UseBasicParsing -TimeoutSec 10
@@ -43,7 +82,13 @@ jobs:
                 break
               }
             } catch {
-              Write-Host "Health attempt $i/30: $($_.Exception.Message)"
+              Write-Host "Health attempt $i/40: $($_.Exception.Message)"
             }
           }
-          if (-not $ok) { throw "Health check falhou apos espera (porta $port)" }
+          if (-not $ok) {
+            Write-Host "--- docker compose ps ---"
+            docker compose ps -a
+            Write-Host "--- web logs (tail) ---"
+            docker compose logs --tail 80 web 2>$null
+            throw "Health check falhou apos espera (porta $port)"
+          }

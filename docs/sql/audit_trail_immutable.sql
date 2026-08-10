@@ -1,5 +1,5 @@
 -- Audit imutável (homologação BdP)
--- Preferir: dotnet ef database update (migration 20260529205723_BdpComplianceAndGtm)
+-- Preferir: dotnet ef database update (InitialCreate + AddAuditImmutabilityTrigger)
 -- Este script é equivalente manual se a migration já foi aplicada sem o trigger.
 
 CREATE OR REPLACE FUNCTION prevent_audit_entry_mutation() RETURNS trigger AS $$
