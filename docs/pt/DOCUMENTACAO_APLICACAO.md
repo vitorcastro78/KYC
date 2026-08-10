@@ -1,7 +1,7 @@
 # Documentação da Aplicação — KYC AI Platform
 
 > **Versão do documento:** Maio 2026 · Branch `feature/kyc-document-ingestion`  
-> **Stack:** .NET 9 · Blazor Server · PostgreSQL 16 + pgvector · Ollama (Qwen) · Workers  
+> **Stack:** .NET 9 · Blazor Server · PostgreSQL 16 · ContextMemory · Workers  
 > **Âmbito:** documentação unificada para equipas técnicas, compliance e geração de manuais.
 
 ---
@@ -49,7 +49,7 @@ NIF + montante + relação (ocasional/continuada)
   → KycCase InProgress
   → Entity resolution (GLEIF / RCBE)
   → UBO graph (GLEIF Level 2 + partes do caso)
-  → Pipeline paralelo: sanções, media, AT, CITIUS, ICIJ, scoring Ollama
+  → Pipeline paralelo: sanções, media, AT, CITIUS, ICIJ, Scoring ContextMemory
   → RiskSignals + RiskScore
   → Relatório narrativo (8 secções + Art. 22)
   → Workflow: auto-approve (Low) | revisão | aprovação/rejeição
@@ -76,9 +76,9 @@ Upload UI/API → CaseDocument (Pending) → ficheiro em Data/cases/{caseId}/doc
 | Runtime | .NET 9 |
 | UI | Blazor Server, Bootstrap, SignalR (`KycHub`) |
 | API | Minimal APIs (`Program.cs`), webhook identidade |
-| ORM | EF Core 9, PostgreSQL 16, pgvector |
+| ORM | EF Core 9, PostgreSQL 16 |
 | CQRS | MediatR |
-| LLM | Semantic Kernel + Ollama (Qwen3.5) — **sem Claude em produção actual** |
+| LLM | ContextMemory gateway (chat/scoring + Global Wiki) |
 | Auth | Microsoft Entra ID (OIDC) ou ASP.NET Identity (dev) |
 | Secrets | `.env` / Azure Key Vault (`KYC_KEYVAULT_NAME`) |
 | Messaging | Azure Service Bus, RabbitMQ ou in-memory |
@@ -161,7 +161,7 @@ RCBE: `RcbeDiscrepancyDetected`, `RcbeDiscrepancyReported`.
 | GLEIF | `IEntityResolutionService` | API pública | ✅ |
 | RCBE | `IRcbeRegistryService` | URL configurável | Fallback / mock |
 | OFAC / EU sanctions | Workers + índice local | `Data/ofac`, `Data/eu-fsf` | Download periódico |
-| Ollama | `ILlmCompletionService` | `OLLAMA_ENDPOINT` | Local |
+| ContextMemory | `IKycLlmEngine` / `IContextMemoryWikiClient` | `ContextMemory:*` | Gateway |
 | Identidade | `IIdentityVerificationService` | `IdentityVerification:*` | Stub se sem URL |
 | UIF (SAR) | `IUifReportingService` | `Uif:*` | Ref. sintética |
 | Congelamento BdP | `IAssetFreezeNotificationService` | `BdpAssetFreeze:*` | Log only |
@@ -230,7 +230,7 @@ Hub `KycHub`: progresso de triagem, relatório pronto, alertas compliance (SAR, 
 
 ```env
 KYC_DB_CONNECTION=Host=...;Database=...;Username=...;Password=...
-OLLAMA_ENDPOINT=http://host.docker.internal:11434
+CONTEXT_MEMORY_BASE_URL=http://host.docker.internal:11434
 AzureAd__Enabled=true|false
 IdentityVerification__BaseUrl=...
 IdentityVerification__WebhookSecret=...
@@ -254,7 +254,7 @@ Compliance__SupervisorGroupObjectId=<guid-grupo-AD>
 - **AuthDbContext** — utilizadores Identity (dev)
 - Migrations em `src/KYC.Infrastructure/Migrations/`
 - **Audit imutável:** trigger `tr_audit_entries_immutable`
-- **pgvector:** embeddings de relatório
+- **ContextMemory Global Wiki:** conhecimento dos relatórios
 
 Aplicar: `dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web`
 
@@ -284,19 +284,7 @@ CI: build, EF migrate, testes em PostgreSQL de serviço.
 
 ---
 
-## 15. Desvios face ao Blueprint.md v1.1
-
-| Blueprint original | Implementação | Motivo |
-|--------------------|---------------|--------|
-| Claude Sonnet | Ollama Qwen apenas | RGPD on-prem / BdP |
-| Azure Blob documentos | `Data/cases` local | Fase 5b; Blob planeado |
-| UBO UI básica | `UboGraphView` rico | Maio 2026 |
-
-Estado detalhado: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md).
-
----
-
-## 16. Glossário
+## 15. Glossário
 
 | Termo | Significado |
 |-------|-------------|
@@ -311,9 +299,7 @@ Estado detalhado: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.m
 
 ---
 
-## 17. Referências cruzadas
+## 16. Referências cruzadas
 
 - Catálogo de features: [CATALOGO_FUNCIONALIDADES.md](CATALOGO_FUNCIONALIDADES.md)
 - Operações e homologação: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md)
-- Especificação técnica: [../Blueprint.md](../Blueprint.md)
-- Especificação BdP: [../BLUEPRINT_BdP_Compliance_Addendum.md](../BLUEPRINT_BdP_Compliance_Addendum.md)

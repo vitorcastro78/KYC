@@ -13,7 +13,7 @@ foreach ($p in @(
 if (-not $docker) {
     Write-Warning "Docker não encontrado. Opções:"
     Write-Host "  A) winget install Docker.DockerDesktop  (reinicie, depois: docker compose -f docker-compose.db.yml up -d)"
-    Write-Host "  B) PowerShell como Administrador: .\scripts\install-pgvector-windows.ps1"
+    Write-Host "  B) Install PostgreSQL 16+ locally and set ConnectionStrings__KycDatabase"
     exit 1
 }
 

@@ -2,7 +2,8 @@
 <#
 .SYNOPSIS
     Instala ou actualiza apenas KYC (App + Workers) em C:\Platform.
-    PostgreSQL, Ollama e IIS devem existir (use Install-KYCAppliance.ps1 na 1.ª vez).
+    PostgreSQL e IIS devem existir (use Install-KYCAppliance.ps1 na 1.ª vez).
+    LLM via ContextMemory (configure ContextMemory em appsettings).
 #>
 [CmdletBinding()]
 param(

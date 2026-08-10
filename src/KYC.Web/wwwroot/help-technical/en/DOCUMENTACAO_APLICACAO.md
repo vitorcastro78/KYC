@@ -1,7 +1,7 @@
 # Application Documentation — KYC AI Platform
 
 > **Document version:** May 2026 · Branch `feature/kyc-document-ingestion`  
-> **Stack:** .NET 9 · Blazor Server · PostgreSQL 16 + pgvector · Ollama (Qwen) · Workers  
+> **Stack:** .NET 9 · Blazor Server · PostgreSQL 16 · ContextMemory · Workers  
 > **Scope:** consolidated documentation for technical, compliance, and manual-generation teams.
 
 ---
@@ -44,7 +44,7 @@ NIF + amount + relationship (occasional/ongoing)
   → KycCase InProgress
   → Entity resolution (GLEIF / RCBE)
   → UBO graph (GLEIF Level 2 + case parties)
-  → Parallel pipeline: sanctions, media, AT, CITIUS, ICIJ, Ollama scoring
+  → Parallel pipeline: sanctions, media, AT, CITIUS, ICIJ, ContextMemory scoring
   → RiskSignals + RiskScore
   → Narrative report (8 sections + Art. 22)
   → Workflow: auto-approve (Low) | review | approve/reject
@@ -69,9 +69,9 @@ Upload UI/API → CaseDocument (Pending) → file in Data/cases/{caseId}/documen
 | Runtime | .NET 9 |
 | UI | Blazor Server, Bootstrap, SignalR (`KycHub`) |
 | API | Minimal APIs (`Program.cs`), identity webhook |
-| ORM | EF Core 9, PostgreSQL 16, pgvector |
+| ORM | EF Core 9, PostgreSQL 16 |
 | CQRS | MediatR |
-| LLM | Semantic Kernel + Ollama (Qwen3.5) — **no Claude in current production** |
+| LLM | ContextMemory gateway (chat/scoring + Global Wiki) |
 | Auth | Microsoft Entra ID (OIDC) or ASP.NET Identity (dev) |
 | Secrets | `.env` / Azure Key Vault (`KYC_KEYVAULT_NAME`) |
 | Messaging | Azure Service Bus, RabbitMQ, or in-memory |
@@ -133,7 +133,7 @@ Roles: `Target`, `Shareholder`, `Ubo`, `BoardMember`, `Proxy`. Flags: `IsPep`, `
 | GLEIF | `IEntityResolutionService` | Public API | ✅ |
 | RCBE | `IRcbeRegistryService` | Configurable URL | Fallback / mock |
 | OFAC / EU sanctions | Workers + local index | `Data/ofac`, `Data/eu-fsf` | Periodic download |
-| Ollama | `ILlmCompletionService` | `OLLAMA_ENDPOINT` | Local |
+| ContextMemory | `IKycLlmEngine` / `IContextMemoryWikiClient` | `ContextMemory:*` | Gateway |
 | Identity | `IIdentityVerificationService` | `IdentityVerification:*` | Stub without URL |
 | UIF (SAR) | `IUifReportingService` | `Uif:*` | Synthetic reference |
 | BdP asset freeze | `IAssetFreezeNotificationService` | `BdpAssetFreeze:*` | Log only |
@@ -188,7 +188,7 @@ Document upload: multipart through Application/Web (see upload handlers).
 ### 11.1 Essential variables (`.env.example`)
 ```env
 KYC_DB_CONNECTION=Host=...;Database=...;Username=...;Password=...
-OLLAMA_ENDPOINT=http://host.docker.internal:11434
+CONTEXT_MEMORY_BASE_URL=http://host.docker.internal:11434
 AzureAd__Enabled=true|false
 IdentityVerification__BaseUrl=...
 IdentityVerification__WebhookSecret=...
@@ -207,7 +207,7 @@ Compliance__SupervisorGroupObjectId=<guid-grupo-AD>
 - **AuthDbContext** — Identity users (dev)
 - Migrations in `src/KYC.Infrastructure/Migrations/`
 - **Immutable audit:** `tr_audit_entries_immutable` trigger
-- **pgvector:** report embeddings
+- **ContextMemory Global Wiki:** report knowledge
 Apply: `dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web`
 
 ## 13. Security and GDPR
@@ -225,15 +225,7 @@ dotnet test tests/KYC.Web.Integration.Tests  # requires KYC_DB_CONNECTION for Po
 ```
 Relevant tests: compliance handlers, SAR eligibility, identity webhook, UBO graph builder, PAC policy, audit immutability. CI: build, EF migrate, tests using service PostgreSQL.
 
-## 15. Deviations from Blueprint.md v1.1
-| Original Blueprint | Implementation | Reason |
-|--------------------|----------------|--------|
-| Claude Sonnet | Ollama Qwen only | On-prem GDPR / BdP |
-| Azure Blob documents | Local `Data/cases` | Phase 5b; Blob planned |
-| Basic UBO UI | Rich `UboGraphView` | May 2026 |
-Detailed status: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md).
-
-## 16. Glossary
+## 15. Glossary
 | Term | Meaning |
 |------|---------|
 | **PAC** | Customer Acceptance Policy (Art. 24 Law 83/2017) |
@@ -245,8 +237,6 @@ Detailed status: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md
 | **GLEIF** | Global LEI Foundation (company data) |
 | **4-eyes** | Dual EDD approval (`SecondApproverId`) |
 
-## 17. Cross-references
+## 16. Cross-references
 - Feature catalogue: [CATALOGO_FUNCIONALIDADES.md](CATALOGO_FUNCIONALIDADES.md)
 - Operations and UAT: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md)
-- Technical specification: [../Blueprint.md](../Blueprint.md)
-- BdP specification: [../BLUEPRINT_BdP_Compliance_Addendum.md](../BLUEPRINT_BdP_Compliance_Addendum.md)

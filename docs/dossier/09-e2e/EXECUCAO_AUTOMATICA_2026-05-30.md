@@ -62,7 +62,7 @@
    # ou evidências completas:
    .\scripts\generate-e2e-evidence.ps1
    ```
-3. Subir a app (`dotnet run --project src/KYC.Web`) e percorrer [E2E_HOMOLOGACAO.md](../../E2E_HOMOLOGACAO.md) cenários 1–10 na UI.
+3. Subir a app (`dotnet run --project src/KYC.Web`) e percorrer [OPERACOES_E_HOMOLOGACAO.md](../../pt/OPERACOES_E_HOMOLOGACAO.md) §4 cenários 1–10 na UI.
 4. Preencher tabela de assinatura no E2E e anexar screenshots.
 
 ## Ficheiros adicionados para automação

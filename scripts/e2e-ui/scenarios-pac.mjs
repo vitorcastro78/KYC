@@ -1,5 +1,5 @@
 /**
- * E2E UI — cenários PAC (docs/E2E_HOMOLOGACAO.md #1 e #6)
+ * E2E UI — cenários PAC (docs/pt/OPERACOES_E_HOMOLOGACAO.md §4 #1 e #6)
  * Evidências: docs/dossier/01-pac/
  */
 import { chromium } from 'playwright';

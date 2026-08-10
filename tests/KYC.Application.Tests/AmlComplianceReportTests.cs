@@ -38,6 +38,6 @@ public class AmlComplianceReportTests
         Assert.DoesNotContain("gpt", json, StringComparison.OrdinalIgnoreCase);
 
         using var doc = JsonDocument.Parse(json);
-        Assert.Equal("qwen3.5:9b", doc.RootElement.GetProperty("local").GetString());
+        Assert.Equal("qwen3.5:9b", doc.RootElement.GetProperty("model").GetString());
     }
 }

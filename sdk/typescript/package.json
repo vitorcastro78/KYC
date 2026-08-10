@@ -1,0 +1,28 @@
+{
+  "name": "kyc-ai-platform",
+  "version": "0.0.1-beta.1",
+  "description": "Thin client helpers for the KYC AI Platform (health + HTTP API base URL)",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitorcastro78/KYC.git",
+    "directory": "sdk/typescript"
+  },
+  "homepage": "https://github.com/vitorcastro78/KYC",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

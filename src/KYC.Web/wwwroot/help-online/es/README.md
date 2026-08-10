@@ -1,9 +1,9 @@
-# Manual en línea (fuente)
+# Manual online (español)
 
-Contenido seleccionado para el centro de ayuda en `/help` de la aplicación KYC.
+Contenido para el centro de ayuda en `/help` de la aplicación KYC.
 
 - **Público:** analistas y supervisores de compliance.
-- **Sincronización:** durante la compilación, los archivos `.md` se copian en `src/KYC.Web/wwwroot/help-online/`.
-- **Documentación técnica** (homologación, arquitectura) permanece en `docs/` y solo aparece en el menú Ayuda para administradores.
+- **Idioma:** español (paquete canónico en `help-online/es/`).
+- Otros idiomas: [`../pt/`](../pt/), [`../en/`](../en/).
 
-Para modificar el manual, edite los archivos numerados del `01-` al `08-` y actualice `HelpDocManifest` en `KYC.Web/Services/Help/HelpDocEntry.cs` si añade nuevas páginas.
+Edite los ficheros `01-`–`08-` aquí; el build sincroniza a `wwwroot/help-online/es/`.

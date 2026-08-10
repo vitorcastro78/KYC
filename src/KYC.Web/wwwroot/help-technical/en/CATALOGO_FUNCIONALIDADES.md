@@ -48,7 +48,7 @@
 | SCR-05 | OFAC / EU lists | Download and local index | Workers | ✅ | |
 | SCR-06 | Signal confirmation | Analyst confirms match | SignalCard | ✅ | |
 | SCR-07 | Sanctions asset freeze | BdP notification + UnderReview | Pipeline | ✅ | Law 97/2017 |
-| SCR-08 | Ollama scoring | 0–100 + level | RiskScoreBadge | ✅ | No Claude |
+| SCR-08 | ContextMemory scoring | 0–100 + level | RiskScoreBadge | ✅ | Via ContextMemory |
 | SCR-09 | Automated DDC | Simplified / Standard / Enhanced | Compliance section | ✅ | Notice 1/2022 |
 | SCR-10 | Adverse media window | 2 years / 5 years EDD | Pipeline | ✅ | |
 
@@ -58,10 +58,10 @@
 
 | ID | Feature | Description | UI / API | Status | Legal basis / note |
 |----|---------|-------------|----------|--------|--------------------|
-| RPT-01 | Narrative report, 8 sections | Ollama LLM | `/cases/{id}/report` | ✅ | |
+| RPT-01 | Narrative report, 8 sections | ContextMemory LLM | `/cases/{id}/report` | ✅ | |
 | RPT-02 | GDPR Art. 22 section | Explainability in prompt | Report | ✅ | GDPR |
 | RPT-03 | PDF export | Puppeteer | `/api/cases/{id}/report.pdf` | ✅ | |
-| RPT-04 | pgvector embeddings | Semantic report search | Infrastructure | ✅ | |
+| RPT-04 | ContextMemory Global Wiki | Semantic report search | Infrastructure | ✅ | |
 | RPT-05 | Document consistency | Checker vs GLEIF/case | Ingestion | ✅ | |
 | RPT-06 | Claude narrative API | Cloud routing | — | 🔴 | Intentional deviation |
 
@@ -77,7 +77,7 @@
 | DOC-04 | Image extraction | Qwen vision | Infrastructure | ✅ | |
 | DOC-05 | Facts and parties in DB | Structured tables | DB | ✅ | |
 | DOC-06 | Post-ingestion re-screening | Command | ✅ | |
-| DOC-07 | Azure Blob Storage | Cloud storage | — | 🔴 | Blueprint phase 2 |
+| DOC-07 | Azure Blob Storage | Cloud storage | — | 🔴 | phase 2 |
 | DOC-08 | Azure Document Intelligence | Cloud OCR | — | 🔴 | |
 
 ---
@@ -190,4 +190,3 @@
 
 - Technical documentation: [DOCUMENTACAO_APLICACAO.md](DOCUMENTACAO_APLICACAO.md)
 - Operations: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md)
-- Blueprint status: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md)

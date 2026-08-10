@@ -28,7 +28,7 @@
             <p class="mb-1">
                 Provider: <strong>@_provider</strong>
                 · Modelo activo:
-                <strong>@(_activeModel ?? Config["LLM:LocalModel"] ?? "—")</strong>
+                <strong>@(_activeModel ?? Config["LLM:Model"] ?? "—")</strong>
             </p>
             <p class="small text-muted mb-2">
                 Via ContextMemory o activo vem da config do app no Admin CM (<code>owned_by=active</code>).
@@ -60,16 +60,16 @@
 @if (_active is not null)
 {
     <div class="alert alert-success">
-        Versão activa: <strong>@_active.Version</strong> — modelo registado: <strong>@_active.LocalModelName</strong>
+        Versão activa: <strong>@_active.Version</strong> — modelo registado: <strong>@_active.ModelName</strong>
     </div>
 }
 
 <table class="table table-sm">
-    <thead><tr><th>Versão</th><th>Activo desde</th><th>Modelo local</th><th>Hash prompt</th></tr></thead>
+    <thead><tr><th>Versão</th><th>Activo desde</th><th>Modelo</th><th>Hash prompt</th></tr></thead>
     <tbody>
     @foreach (var c in _configs)
     {
-        <tr><td>@c.Version</td><td>@c.ActiveFrom.ToLocalTime()</td><td>@c.LocalModelName</td><td class="small font-monospace">@c.SystemPromptHash[..Math.Min(16, c.SystemPromptHash.Length)]…</td></tr>
+        <tr><td>@c.Version</td><td>@c.ActiveFrom.ToLocalTime()</td><td>@c.ModelName</td><td class="small font-monospace">@c.SystemPromptHash[..Math.Min(16, c.SystemPromptHash.Length)]…</td></tr>
     }
     </tbody>
 </table>
@@ -91,7 +91,7 @@
                 }
                 else
                 {
-                    <input class="form-control" placeholder="Modelo Ollama" @bind="_newModel" />
+                    <input class="form-control" placeholder="Modelo ContextMemory" @bind="_newModel" />
                 }
             </div>
             <div class="col-md-4"><input class="form-control" placeholder="Hash prompt (SHA256)" @bind="_newHash" /></div>

@@ -17,7 +17,7 @@ public sealed class DocumentVisionExtractor(
             return string.Empty;
         }
 
-        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var model = LlmOptions.GetModel(configuration);
         var timeoutSeconds = Math.Clamp(configuration.GetValue("LLM:DocumentExtractionTimeoutSeconds", 120), 30, 600);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
@@ -25,7 +25,7 @@ public sealed class DocumentVisionExtractor(
         var base64 = Convert.ToBase64String(imageBytes);
         var messages = new object[]
         {
-            OpenAiCompatibleClient.VisionUserMessage(
+            ContextMemoryChatClient.VisionUserMessage(
                 "Extrai todo o texto desta página de documento KYC, preservando números (NIF, IBAN). Responde só com o texto.",
                 base64,
                 string.IsNullOrWhiteSpace(mimeType) ? "image/png" : mimeType)
@@ -34,7 +34,7 @@ public sealed class DocumentVisionExtractor(
         try
         {
             var client = httpClientFactory.CreateClient("contextmemory");
-            return (await OpenAiCompatibleClient
+            return (await ContextMemoryChatClient
                 .ChatAsync(client, model, messages, ct: cts.Token)
                 .ConfigureAwait(false)).Trim();
         }
@@ -48,6 +48,6 @@ public sealed class DocumentVisionExtractor(
     private async Task<bool> IsContextMemoryReachableAsync(CancellationToken ct)
     {
         var client = httpClientFactory.CreateClient("contextmemory-health");
-        return await OpenAiCompatibleClient.IsReachableAsync(client, ct).ConfigureAwait(false);
+        return await ContextMemoryChatClient.IsReachableAsync(client, ct).ConfigureAwait(false);
     }
 }

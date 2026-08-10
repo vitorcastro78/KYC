@@ -1,7 +1,7 @@
 # Documentación de la aplicación: plataforma KYC AI
 
 > **Versión del documento:** Mayo 2026 · Rama `feature/kyc-document-ingestion`  
-> **Pila:** .NET 9 · Servidor Blazor · PostgreSQL 16 + pgvector · Ollama (Qwen) · Trabajadores  
+> **Pila:** .NET 9 · Servidor Blazor · PostgreSQL 16 · ContextMemory · Trabajadores  
 > **Alcance:** documentación unificada para equipos técnicos, cumplimiento y generación de manuales.
 
 ---
@@ -46,7 +46,7 @@ NIF + montante + relação (ocasional/continuada)
   → KycCase InProgress
   → Entity resolution (GLEIF / RCBE)
   → UBO graph (GLEIF Level 2 + partes do caso)
-  → Pipeline paralelo: sanções, media, AT, CITIUS, ICIJ, scoring Ollama
+  → Pipeline paralelo: sanções, media, AT, CITIUS, ICIJ, Scoring ContextMemory
   → RiskSignals + RiskScore
   → Relatório narrativo (8 secções + Art. 22)
   → Workflow: auto-approve (Low) | revisão | aprovação/rejeição
@@ -70,9 +70,9 @@ Upload UI/API → CaseDocument (Pending) → ficheiro em Data/cases/{caseId}/doc
 | Tiempo de ejecución | .NET 9 |
 | interfaz de usuario | Servidor Blazor, Bootstrap, SignalR (`KycHub`) |
 | API | API mínimas (`Program.cs`), webhook de identidad |
-| ORM | EF Core 9, PostgreSQL 16, pgvector |
+| ORM | EF Core 9, PostgreSQL 16 |
 | CQRS | MediatR |
-| LLM | Semantic Kernel + Ollama (Qwen3.5) — **sin Claude en producción actual** |
+| LLM | ContextMemory gateway (chat/scoring + Global Wiki) |
 | Autenticación | Microsoft Entra ID (OIDC) o identidad ASP.NET (dev) |
 | Secretos | `.env` / Bóveda de claves de Azure (`KYC_KEYVAULT_NAME`) |
 | Mensajería | Azure Service Bus, RabbitMQ o en memoria |
@@ -155,7 +155,7 @@ RCBE: `RcbeDiscrepancyDetected`, `RcbeDiscrepancyReported`.
 | GLEIF | `IEntityResolutionService` | API pública | ✅ |
 | RCBE | `IRcbeRegistryService` | URL configurable | Respaldo/simulacro |
 | Sanciones OFAC/UE | Trabajadores + índice local | `Data/ofac`, `Data/eu-fsf` | Descarga periódica |
-| Hola | `ILlmCompletionService` | `OLLAMA_ENDPOINT` | Ubicación |
+| ContextMemory | `IKycLlmEngine` / `IContextMemoryWikiClient` | `ContextMemory:*` | Gateway |
 | Identidad | `IIdentityVerificationService` | `IdentityVerification:*` | Código auxiliar si no hay URL |
 | UIF (SAR) | `IUifReportingService` | `Uif:*` | Ref. sintética. |
 | Congelación BdP | `IAssetFreezeNotificationService` | `BdpAssetFreeze:*` | Sólo iniciar sesión |
@@ -223,7 +223,7 @@ Cargar documentos: multiparte a través de Aplicación/Web (ver controladores de
 ### 11.1 Variables esenciales (`.env.example`)
 ```env
 KYC_DB_CONNECTION=Host=...;Database=...;Username=...;Password=...
-OLLAMA_ENDPOINT=http://host.docker.internal:11434
+CONTEXT_MEMORY_BASE_URL=http://host.docker.internal:11434
 AzureAd__Enabled=true|false
 IdentityVerification__BaseUrl=...
 IdentityVerification__WebhookSecret=...
@@ -246,7 +246,7 @@ Compliance__SupervisorGroupObjectId=<guid-grupo-AD>
 - **AuthDbContext** — Usuarios de identidad (desarrollador)
 - Migraciones en `src/KYC.Infrastructure/Migrations/`
 - **Auditoría inmutable:** activa `tr_audit_entries_immutable`
-- **pgvector:** incrustaciones de informes
+- **ContextMemory Global Wiki:** conocimiento de informes (sin pgvector local)
 
 Aplicar: `dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web`
 
@@ -274,19 +274,7 @@ CI: compilación, migración EF, pruebas en servicio PostgreSQL.
 
 ---
 
-## 15. Desviaciones de Blueprint.md v1.1
-
-| Plano original | Implementación | Razón |
-|--------------------|--------------------------|--------|
-| Soneto de Claudio | Sólo Ollama Qwen | RGPD local / BdP |
-| Documentos de Azure Blob | Sitio `Data/cases` | Fase 5b; Blob planificado |
-| Interfaz de usuario básica de UBO | `UboGraphView` rico | Mayo 2026 |
-
-Estado detallado: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md).
-
----
-
-## 16. Glosario
+## 15. Glosario
 
 | Término | Significado |
 |-------|-------------|
@@ -301,9 +289,7 @@ Estado detallado: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.m
 
 ---
 
-## 17. Referencias cruzadas
+## 16. Referencias cruzadas
 
 - Catálogo de características: [CATALOGO_FUNCIONALIDADES.md](CATALOGO_FUNCIONALIDADES.md)
 - Operaciones y homologación: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md)
-- Especificación técnica: [../Blueprint.md](../Blueprint.md)
-- Especificación de BdP: [../BLUEPRINT_BdP_Compliance_Addendum.md](../BLUEPRINT_BdP_Compliance_Addendum.md)

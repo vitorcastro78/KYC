@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Gera documentação oficial KYC Platform em formato .docx
- * a partir dos ficheiros Markdown em docs/
+ * a partir do pack canónico docs/pt/ (+ dossier / help-online/pt).
  */
 import fs from "fs";
 import path from "path";
@@ -34,6 +34,8 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const DOCS = path.join(REPO_ROOT, "docs");
+const DOCS_PT = path.join(DOCS, "pt");
+const HELP_PT = path.join(DOCS, "help-online", "pt");
 const OUTPUT = path.join(DOCS, "docx");
 
 const META = [
@@ -42,8 +44,8 @@ const META = [
   ["Data de geração", new Date().toISOString().slice(0, 10)],
 ];
 
-function readMd(relativePath) {
-  return fs.readFileSync(path.join(DOCS, relativePath), "utf8");
+function readMd(relativePath, base = DOCS_PT) {
+  return fs.readFileSync(path.join(base, relativePath), "utf8");
 }
 
 function sectionHeader(text) {
@@ -56,12 +58,12 @@ function sectionSub(text) {
 
 /** Documento 5: Relatório de testes E2E e automatizados */
 async function generateTestReport() {
-  const e2eMd = readMd("E2E_HOMOLOGACAO.md");
+  const e2eMd = readMd("OPERACOES_E_HOMOLOGACAO.md");
   const registoAuto = fs.existsSync(path.join(DOCS, "dossier/09-e2e/REGISTO_EXECUCAO_20260531-021829.md"))
-    ? readMd("dossier/09-e2e/REGISTO_EXECUCAO_20260531-021829.md")
+    ? readMd("dossier/09-e2e/REGISTO_EXECUCAO_20260531-021829.md", DOCS)
     : "";
   const registoUi = fs.existsSync(path.join(DOCS, "dossier/09-e2e/REGISTO_UI_CENARIOS_2-5_20260531-024650.md"))
-    ? readMd("dossier/09-e2e/REGISTO_UI_CENARIOS_2-5_20260531-024650.md")
+    ? readMd("dossier/09-e2e/REGISTO_UI_CENARIOS_2-5_20260531-024650.md", DOCS)
     : "";
 
   const testSummary = [
@@ -198,8 +200,10 @@ dotnet test tests/KYC.Web.Integration.Tests --filter HomologationE2e
 
 /** Documento 8: Dossier de evidências com capturas de ecrã */
 async function generateEvidenceDossier() {
-  const dossierReadme = readMd("dossier/README.md");
-  const checklist = readMd("CHECKLIST_HOMOLOGACAO_BDP.md");
+  const dossierReadme = readMd("dossier/README.md", DOCS);
+  const ops = readMd("OPERACOES_E_HOMOLOGACAO.md");
+  const checklistMatch = ops.match(/## 5\.[\s\S]*?(?=\n## \d+\.|\n*$)/);
+  const checklist = checklistMatch ? checklistMatch[0] : ops;
 
   const evidenceSets = [
     {
@@ -329,11 +333,29 @@ async function generateEvidenceDossier() {
   await writeDocument(doc, path.join(OUTPUT, "08_Dossier_Evidencias_Homologacao.docx"));
 }
 
-/** Documento 9: Manual combinado analista + troubleshooting */
+/** Documento 7: Manual a partir de help-online/pt + quick start em OPERACOES §8 */
 async function generateUserManual() {
-  const quickStart = readMd("ANALISTA_QUICK_START.md");
-  const manual = readMd("MANUAL_UTILIZADOR_TROUBLESHOOTING.md");
-  const combined = `# Manual do Utilizador — KYC AI Platform\n\n${manual.replace(/^#.*\n\n>.*\n\n/s, "")}\n\n---\n\n# Quick Start Analista AML\n\n${quickStart.replace(/^#.*\n\n/s, "")}`;
+  const helpFiles = [
+    "01-acesso-perfis.md",
+    "02-novo-caso-triagem.md",
+    "03-conformidade-bdp.md",
+    "04-decisoes-relatorios.md",
+    "05-guia-ecras.md",
+    "06-funcionalidades.md",
+    "07-resolucao-problemas.md",
+    "08-perguntas-frequentes.md",
+  ];
+  const helpBody = helpFiles
+    .map((f) => {
+      const p = path.join(HELP_PT, f);
+      return fs.existsSync(p) ? fs.readFileSync(p, "utf8") : "";
+    })
+    .filter(Boolean)
+    .join("\n\n---\n\n");
+  const ops = readMd("OPERACOES_E_HOMOLOGACAO.md");
+  const quickMatch = ops.match(/## 8\.[\s\S]*?(?=\n## \d+\.|\n*$)/);
+  const quickStart = quickMatch ? quickMatch[0] : "";
+  const combined = `# Manual do Utilizador — KYC AI Platform\n\n${helpBody}\n\n---\n\n${quickStart}`;
 
   const tmpPath = path.join(OUTPUT, "_tmp_manual.md");
   fs.mkdirSync(OUTPUT, { recursive: true });
@@ -341,7 +363,7 @@ async function generateUserManual() {
 
   const doc = createStandardDocument({
     title: "Manual do Utilizador",
-    subtitle: "Analistas AML, supervisores e administradores",
+    subtitle: "Analistas AML, supervisores e administradores (help-online + OPERACOES §8)",
     meta: META,
     mdPath: tmpPath,
     repoRoot: REPO_ROOT,
@@ -351,7 +373,7 @@ async function generateUserManual() {
   fs.unlinkSync(tmpPath);
 }
 
-/** Documento 10: Governança e segurança */
+/** Documento 9: Governança e segurança */
 async function generateGovernanceDoc() {
   const files = [
     ["governanca/POLITICA_CRIPTOGRAFIA.md", "Política de Criptografia"],
@@ -359,7 +381,6 @@ async function generateGovernanceDoc() {
     ["governanca/LIVENESS_ISO_30107.md", "Liveness ISO/IEC 30107-3"],
     ["governanca/MATRIZ_RISCOS_TI.md", "Matriz de Riscos TI"],
     ["governanca/RTO_RPO_METRICAS.md", "RTO/RPO e Métricas"],
-    ["SECURITY_PEN_TEST_CHECKLIST.md", "Checklist Pen Test"],
   ];
 
   const children = [
@@ -371,11 +392,19 @@ async function generateGovernanceDoc() {
   ];
 
   for (const [relPath, sectionTitle] of files) {
-    const fullPath = path.join(DOCS, relPath);
+    const fullPath = path.join(DOCS_PT, relPath);
     if (!fs.existsSync(fullPath)) continue;
     children.push(new Paragraph({ children: [new PageBreak()] }));
     children.push(sectionHeader(sectionTitle));
     children.push(...markdownToChildren(fs.readFileSync(fullPath, "utf8")));
+  }
+
+  const ops = readMd("OPERACOES_E_HOMOLOGACAO.md");
+  const penMatch = ops.match(/## 6\.[\s\S]*?(?=\n## \d+\.|\n*$)/);
+  if (penMatch) {
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(sectionHeader("Checklist Pen Test (OPERACOES §6)"));
+    children.push(...markdownToChildren(penMatch[0]));
   }
 
   const doc = new Document({
@@ -408,19 +437,13 @@ async function main() {
       file: "03_Operacoes_e_Homologacao.docx",
       md: "OPERACOES_E_HOMOLOGACAO.md",
       title: "Operações e Homologação",
-      subtitle: "Deploy, runbooks, E2E e dossier",
+      subtitle: "Deploy, runbooks, E2E, checklists e dossier",
     },
     {
       file: "04_Matriz_Requisitos_Institucionais.docx",
       md: "MATRIZ_REQUISITOS_INSTITUCIONAIS.md",
       title: "Matriz de Requisitos Institucionais",
       subtitle: "Checklist §2.1–2.6 COMEX / BdP",
-    },
-    {
-      file: "06_Checklist_Homologacao_BDP.docx",
-      md: "CHECKLIST_HOMOLOGACAO_BDP.md",
-      title: "Checklist de Homologação BdP",
-      subtitle: "Lei 83/2017, Aviso 1/2022, Instr. 8/2024, RGPD",
     },
   ];
 
@@ -429,7 +452,7 @@ async function main() {
       title: spec.title,
       subtitle: spec.subtitle,
       meta: META,
-      mdPath: path.join(DOCS, spec.md),
+      mdPath: path.join(DOCS_PT, spec.md),
       repoRoot: REPO_ROOT,
     });
     await writeDocument(doc, path.join(OUTPUT, spec.file));
@@ -443,19 +466,18 @@ async function main() {
   // Índice README
   const indexMd = `# Índice — Documentação Oficial (.docx)
 
-Documentos gerados automaticamente a partir de \`docs/\` em ${new Date().toISOString().slice(0, 10)}.
+Documentos gerados automaticamente a partir de \`docs/pt/\` (+ help-online/pt, dossier) em ${new Date().toISOString().slice(0, 10)}.
 
 | # | Ficheiro | Conteúdo |
 |---|----------|----------|
 | 01 | 01_Documentacao_Aplicacao_KYC.docx | Arquitectura, stack, fluxos, APIs, UI |
 | 02 | 02_Catalogo_Funcionalidades.docx | Catálogo completo de features |
-| 03 | 03_Operacoes_e_Homologacao.docx | Deploy, runbooks, homologação |
+| 03 | 03_Operacoes_e_Homologacao.docx | Deploy, runbooks, E2E, checklists |
 | 04 | 04_Matriz_Requisitos_Institucionais.docx | Requisitos COMEX/BdP |
 | 05 | 05_Relatorio_Testes_E2E_Homologacao.docx | Testes auto + registo E2E |
-| 06 | 06_Checklist_Homologacao_BDP.docx | Checklist regulatório |
-| 07 | 07_Manual_Utilizador_Troubleshooting.docx | Manual analistas + troubleshooting |
+| 07 | 07_Manual_Utilizador_Troubleshooting.docx | help-online/pt + OPERACOES §8 |
 | 08 | 08_Dossier_Evidencias_Homologacao.docx | Evidências visuais + assinaturas |
-| 09 | 09_Governanca_Seguranca.docx | Políticas, riscos, pen test |
+| 09 | 09_Governanca_Seguranca.docx | Políticas pt/governanca + pen test §6 |
 
 ## Regenerar
 

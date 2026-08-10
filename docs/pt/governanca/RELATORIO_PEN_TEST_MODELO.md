@@ -36,7 +36,7 @@ _[Parágrafo para COMEX]_
 
 ## 5. Checklist interno cruzado
 
-Executado em paralelo: [SECURITY_PEN_TEST_CHECKLIST.md](../SECURITY_PEN_TEST_CHECKLIST.md)
+Executado em paralelo: [OPERACOES_E_HOMOLOGACAO.md](../OPERACOES_E_HOMOLOGACAO.md) §6
 
 ## 6. Conclusão
 

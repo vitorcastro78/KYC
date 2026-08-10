@@ -19,7 +19,7 @@ public class KycCasePipelineRunner(
     IKycLlmEngine llm,
     IKycCaseScanProgressRepository progress,
     IKycCaseRealtimeNotifier notifier,
-    IReportEmbeddingWriter embeddingWriter,
+    IReportWikiWriter reportWiki,
     IDocumentConsistencyChecker documentConsistency,
     ICustomerAcceptancePolicyRepository policyRepo,
     IScoringEngineConfigRepository scoringRepo,
@@ -43,7 +43,7 @@ public class KycCasePipelineRunner(
         {
             kyc.PrepareForAutomaticRescreen(actorId);
             EnsureTargetPartyExists(kyc);
-            await embeddingWriter.ClearEmbeddingsAsync(caseId, ct);
+            await reportWiki.ClearReportAsync(caseId, ct);
             await cases.UpdateAsync(kyc, ct);
             await KycCaseScanProgressReporter.ReportAsync(progress, notifier, caseId, "A iniciar", 0, ct);
         }
@@ -93,8 +93,8 @@ public class KycCasePipelineRunner(
                 scoringConfig.Version,
                 System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    scoringConfig.LocalModelName,
-                    scoringConfig.LocalModelVersion,
+                    scoringConfig.ModelName,
+                    scoringConfig.ModelVersion,
                     scoringConfig.SystemPromptHash,
                     scoringConfig.WeightsJson
                 }));
@@ -238,7 +238,7 @@ public class KycCasePipelineRunner(
 
         try
         {
-            await embeddingWriter.EmbedReportTextAsync(caseId, report.NarrativeHtml, ct);
+            await reportWiki.UpsertReportAsync(caseId, report.NarrativeHtml, ct);
         }
         catch (Exception ex)
         {
@@ -396,7 +396,7 @@ public class KycCasePipelineRunner(
         string? detail,
         ScoringEngineConfig? scoringConfig)
     {
-        var model = scoringConfig?.LocalModelName ?? "unknown";
+        var model = scoringConfig?.ModelName ?? "unknown";
         var promptHash = scoringConfig?.SystemPromptHash ?? "n/a";
         var version = scoringConfig?.Version ?? "n/a";
         var details = scoreOverall is { } s

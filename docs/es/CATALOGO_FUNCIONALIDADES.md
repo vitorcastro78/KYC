@@ -48,7 +48,7 @@
 | SCR-05 | Listas OFAC / EU | Descarga e índice local | Workers | ✅ | |
 | SCR-06 | Confirmación de señales | El analista confirma la coincidencia | SignalCard | ✅ | |
 | SCR-07 | Congelación por sanción | Notificación BdP + UnderReview | Pipeline | ✅ | Ley 97/2017 |
-| SCR-08 | Scoring Ollama | 0–100 + nivel | RiskScoreBadge | ✅ | Sin Claude |
+| SCR-08 | Scoring ContextMemory | 0–100 + nivel | RiskScoreBadge | ✅ | Via ContextMemory |
 | SCR-09 | DDC automática | Simplified / Standard / Enhanced | Sección de conformidad | ✅ | Aviso 1/2022 |
 | SCR-10 | Ventana adverse media | 2 años / 5 años EDD | Pipeline | ✅ | |
 
@@ -58,10 +58,10 @@
 
 | ID | Funcionalidad | Descripción | UI / API | Estado | Base legal / nota |
 |----|----------------|-------------|----------|--------|-------------------|
-| RPT-01 | Informe narrativo de 8 secciones | LLM Ollama | `/cases/{id}/report` | ✅ | |
+| RPT-01 | Informe narrativo de 8 secciones | LLM ContextMemory | `/cases/{id}/report` | ✅ | |
 | RPT-02 | Sección Art. 22 GDPR | Explainability en el prompt | Informe | ✅ | RGPD |
 | RPT-03 | Export PDF | Puppeteer | `/api/cases/{id}/report.pdf` | ✅ | |
-| RPT-04 | Embeddings pgvector | Búsqueda semántica en informe | Infra | ✅ | |
+| RPT-04 | ContextMemory Global Wiki | Búsqueda semántica en informe | Infra | ✅ | |
 | RPT-05 | Consistencia de documentos | Checker vs GLEIF/caso | Ingesta | ✅ | |
 | RPT-06 | API narrativa Claude | Enrutamiento cloud | — | 🔴 | Desviación intencionada |
 
@@ -77,7 +77,7 @@
 | DOC-04 | Extracción de imágenes | Visión Qwen | Infra | ✅ | |
 | DOC-05 | Facts y parties en la BD | Tablas estructuradas | BD | ✅ | |
 | DOC-06 | Recribado post-ingesta | Command | ✅ | |
-| DOC-07 | Azure Blob Storage | Almacenamiento cloud | — | 🔴 | Blueprint fase 2 |
+| DOC-07 | Azure Blob Storage | Almacenamiento cloud | — | 🔴 | fase 2 |
 | DOC-08 | Azure Document Intelligence | OCR cloud | — | 🔴 | |
 
 ---
@@ -190,4 +190,3 @@
 
 - Documentación técnica: [DOCUMENTACAO_APLICACAO.md](DOCUMENTACAO_APLICACAO.md)
 - Operaciones: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md)
-- Estado del Blueprint: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md)

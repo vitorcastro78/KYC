@@ -7,7 +7,7 @@
 | S1 | KYC.Web | 4 | 60 | Tempo desde incidente até `/health` OK |
 | S2 | PostgreSQL | 4 | 15 | Tempo restore + integridade audit trail |
 | S3 | Documentos | 8 | 1440 | Restore volume + checksum amostra |
-| S4 | Ollama | 8 | — | Tempo até scoring disponível |
+| S4 | ContextMemory | 8 | — | Tempo até scoring disponível |
 
 ## Registo de simulações (preencher em homologação/prod)
 
@@ -15,7 +15,7 @@
 |---|------|---------|------------|------------|-------------------|-----------|
 | 1 | | Restore BD backup D-1 | | | ☐ Sim ☐ Não | `dossier/09-e2e/` |
 | 2 | | Failover app (redeploy) | | | ☐ Sim ☐ Não | |
-| 3 | | Perda Ollama — modo degradado | | | ☐ Sim ☐ Não | |
+| 3 | | Perda ContextMemory — modo degradado | | | ☐ Sim ☐ Não | |
 
 ## Estado actual
 

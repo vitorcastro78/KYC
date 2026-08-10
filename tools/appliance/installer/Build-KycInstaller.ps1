@@ -79,5 +79,5 @@ Write-Host ""
 Write-Host "Instalador criado:" -ForegroundColor Green
 Write-Host "  $setupExe ($([math]::Round((Get-Item $setupExe).Length / 1MB, 1)) MB)" -ForegroundColor White
 Write-Host ""
-Write-Host "Distribuir este ficheiro como o OllamaSetup.exe / postgresql-installer.exe" -ForegroundColor Cyan
+Write-Host "Distribuir este ficheiro como o postgresql-installer.exe" -ForegroundColor Cyan
 Write-Host "Silencioso: $(Split-Path $setupExe -Leaf) /VERYSILENT /SUPPRESSMSGBOXES" -ForegroundColor Gray

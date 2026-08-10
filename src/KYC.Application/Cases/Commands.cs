@@ -110,7 +110,7 @@ public record SubmitAmlReportToBdpCommand(Guid ReportId, string SubmittedBy) : I
 
 public record CreateScoringEngineConfigCommand(
     string Version,
-    string LocalModelName,
+    string ModelName,
     string SystemPromptHash,
     string ApprovedBy) : IRequest<Guid>;
 

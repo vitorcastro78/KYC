@@ -1,5 +1,5 @@
 /**
- * E2E UI — cenários 2–5 (docs/E2E_HOMOLOGACAO.md)
+ * E2E UI — cenários 2–5 (docs/pt/OPERACOES_E_HOMOLOGACAO.md §4)
  * Evidências: docs/dossier/06-identidade, 05-sar-uif, 08-audit, 04-rpb
  */
 import { chromium } from 'playwright';

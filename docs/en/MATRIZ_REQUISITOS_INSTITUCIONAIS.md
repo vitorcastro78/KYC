@@ -9,9 +9,9 @@
 
 | # | Requirement | Status | Evidence / notes |
 |---|-------------|--------|------------------|
-| 1.1 | Overview, scope, and high-level diagrams | ✅ | [DOCUMENTACAO_APLICACAO.md](DOCUMENTACAO_APLICACAO.md) §1–2; Mermaid flows in the blueprint |
+| 1.1 | Overview, scope, and high-level diagrams | ✅ | [DOCUMENTACAO_APLICACAO.md](DOCUMENTACAO_APLICACAO.md) §1–2; Mermaid flows in the application documentation |
 | 1.2 | API technical documentation (Swagger / OpenAPI) | ✅ | `/swagger`, `/swagger/v1/swagger.json`, `OpenApi:Enable`; [api/README.md](api/README.md) |
-| 1.3 | User manuals and troubleshooting | ✅ | [MANUAL_UTILIZADOR_TROUBLESHOOTING.md](MANUAL_UTILIZADOR_TROUBLESHOOTING.md), [ANALISTA_QUICK_START.md](ANALISTA_QUICK_START.md) |
+| 1.3 | User manuals and troubleshooting | ✅ | [../help-online/en/](../help-online/en/), [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md) §8 |
 
 ---
 
@@ -20,7 +20,7 @@
 | # | Requirement | Status | Evidence / notes |
 |---|-------------|--------|------------------|
 | 2.1 | Written and approved information-security policy | 🟡 | Template: [governanca/POLITICA_SEGURANCA_INFORMACAO.md](governanca/POLITICA_SEGURANCA_INFORMACAO.md) — **requires DPO/CISO signature** |
-| 2.2 | External pen-test report | 🟡 | Checklist: [SECURITY_PEN_TEST_CHECKLIST.md](SECURITY_PEN_TEST_CHECKLIST.md); report template: [governanca/RELATORIO_PEN_TEST_MODELO.md](governanca/RELATORIO_PEN_TEST_MODELO.md) — **run OWASP ZAP + auditor** |
+| 2.2 | External pen-test report | 🟡 | Checklist: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md) §6; report template: [governanca/RELATORIO_PEN_TEST_MODELO.md](governanca/RELATORIO_PEN_TEST_MODELO.md) — **run OWASP ZAP + auditor** |
 | 2.3 | Encryption policy (in transit and at rest) | ✅ | [governanca/POLITICA_CRIPTOGRAFIA.md](governanca/POLITICA_CRIPTOGRAFIA.md); TLS, HSTS, cookies, PostgreSQL |
 | 2.4 | Strong authentication (MFA/SCA) for operators | ✅ | Entra ID + Conditional Access (MFA); dev Identity with password policy — see policy §4 |
 
@@ -55,7 +55,7 @@
 | 5.2 | Sanction and PEP-list integration | ✅ | OFAC/EU workers, pipeline, UI signals |
 | 5.3 | Liveness proof ISO/IEC 30107-3 | 🟡 | Provider + `LivenessScore` in `CaseParty`; [governanca/LIVENESS_ISO_30107.md](governanca/LIVENESS_ISO_30107.md) — **provider certificate** |
 | 5.4 | Biometric FAR/FRR report | 🟡 | Metrics API + [governanca/METRICAS_BIOMETRIA_FAR_FRR.md](governanca/METRICAS_BIOMETRIA_FAR_FRR.md); FAR=0 until provider lab |
-| 5.5 | Manual contingency (APIs unavailable) | ✅ | BdP asset freeze, UIF SAR, identity, signals, legal name at start — [MANUAL_UTILIZADOR_TROUBLESHOOTING.md](MANUAL_UTILIZADOR_TROUBLESHOOTING.md) §2 |
+| 5.5 | Manual contingency (APIs unavailable) | ✅ | BdP asset freeze, UIF SAR, identity, signals, legal name at start — [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md) §4 (scenarios 6–9), [../help-online/en/07-resolucao-problemas.md](../help-online/en/07-resolucao-problemas.md) |
 
 ---
 

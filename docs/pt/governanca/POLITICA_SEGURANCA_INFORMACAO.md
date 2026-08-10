@@ -10,7 +10,7 @@ Definir princípios e controlos de segurança para a plataforma KYC (dados pesso
 
 ## 2. Âmbito
 
-- Aplicação KYC.Web, Workers, PostgreSQL, Ollama, integrações UIF/BdP/identidade
+- Aplicação KYC.Web, Workers, PostgreSQL, ContextMemory, integrações UIF/BdP/identidade
 - Utilizadores: analistas, supervisores, administradores, auditores
 - Ambientes: desenvolvimento, homologação, produção
 

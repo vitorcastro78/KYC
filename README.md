@@ -1,14 +1,17 @@
 # KYC AI Platform
 
 [![.NET](https://img.shields.io/badge/.NET-9-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![CI](https://github.com/vitorcastro78/KYC/actions/workflows/ci.yml/badge.svg)](https://github.com/vitorcastro78/KYC/actions/workflows/ci.yml)
+[![GHCR](https://img.shields.io/badge/GHCR-kyc-2496ED?logo=github)](https://github.com/vitorcastro78/KYC/pkgs/container/kyc)
+[![npm](https://img.shields.io/npm/v/kyc-ai-platform?logo=npm)](https://www.npmjs.com/package/kyc-ai-platform)
+[![PyPI](https://img.shields.io/pypi/v/kyc-ai-platform?logo=pypi)](https://pypi.org/project/kyc-ai-platform/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Automate corporate KYC in Portugal — entity resolution, sanctions/PEP/adverse media, document ingestion, and risk scoring with a local LLM.**
+**Automate corporate KYC in Portugal — entity resolution, sanctions/PEP/adverse media, document ingestion, and risk scoring via ContextMemory.**
 
-KYC AI Platform is an on-prem Know Your Customer stack for corporate credit: Blazor UI + workers, PostgreSQL + pgvector, and Ollama for scoring and narrative reports. Designed with **BdP** compliance workflows in mind (analyst/supervisor review, audit trail, PAC gates).
+KYC AI Platform is an on-prem Know Your Customer stack for corporate credit: Blazor UI + workers, PostgreSQL, and ContextMemory for scoring and narrative reports. Designed with **BdP** compliance workflows in mind (analyst/supervisor review, audit trail, PAC gates).
 
-**Contents:** [Why](#why-it-exists) · [Quick start — Docker](#quick-start--self-host) · [dotnet run](#prerequisites-dotnet-run) · [Architecture](#architecture-in-30-seconds) · [Features](#features) · [Configuration](#configuration) · [Docs](#documentation) · [Tests](#tests) · [License](#licensing)
+**Contents:** [Why](#why-it-exists) · [Quick start — Docker](#quick-start--self-host) · [dotnet run](#prerequisites-dotnet-run) · [Architecture](#architecture-in-30-seconds) · [Features](#features) · [Configuration](#configuration) · [Release](#release) · [Docs](#documentation) · [Tests](#tests) · [License](#licensing)
 
 ---
 
@@ -26,18 +29,18 @@ KYC AI Platform is an on-prem Know Your Customer stack for corporate credit: Bla
 
 ## Quick start — self-host
 
-Run the full stack yourself — **on-prem or fully local**. You point the apps at **your own Ollama** (or disable LLM features). Secrets stay in `.env`.
+Run the full stack yourself — **on-prem or fully local**. LLM traffic goes through **ContextMemory** (`CONTEXT_MEMORY_*` in `.env`).
 
 ### Fastest: Docker Compose (build from source)
 
-Requires [Docker](https://docs.docker.com/get-docker/) and Ollama on the host.
+Requires [Docker](https://docs.docker.com/get-docker/) and a reachable ContextMemory gateway.
 
 ```bash
 git clone https://github.com/vitorcastro78/KYC.git
 cd KYC
 
 cp .env.example .env
-# edit POSTGRES_PASSWORD, RABBITMQ_PASSWORD, KYC_ADMIN_PASSWORD
+# edit POSTGRES_PASSWORD, RABBITMQ_PASSWORD, KYC_ADMIN_PASSWORD, CONTEXT_MEMORY_*
 
 docker compose up --build -d
 ```
@@ -62,21 +65,15 @@ Then open **http://localhost:8080** — Health: **http://localhost:8080/health**
 | Postgres (host) | `localhost:5433` |
 | Admin seed | `admin@kyc.local` / `ChangeMe@1234` (override via `.env`) |
 
-**Ollama on the host**
-
-```bash
-ollama pull qwen3.5:9b
-# Compose default: LLM__LocalEndpoint=http://host.docker.internal:11434
-```
-
 **Useful Compose env vars** (see [`.env.example`](.env.example)):
 
 | Variable | Default | Meaning |
 | -------- | ------- | ------- |
 | `KYC_WEB_PORT` | `8080` | Host port for the Web UI |
 | `POSTGRES_HOST_PORT` | `5433` | Host port for Postgres |
-| `OLLAMA_ENDPOINT` | `http://host.docker.internal:11434` | LLM from inside containers |
-| `DEFAULT_LLM_MODEL` | `qwen3.5:9b` | Ollama model id |
+| `CONTEXT_MEMORY_BASE_URL` | `https://context.kortexio.io` | LLM / Global Wiki gateway |
+| `CONTEXT_MEMORY_API_KEY` | _(see .env.example)_ | Gateway API key |
+| `DEFAULT_LLM_MODEL` | `qwen3.5:9b` | Model id for chat/scoring |
 | `KYC_ADMIN_PASSWORD` | `ChangeMe@1234` | Seed admin password |
 | `OPENSANCTIONS_API_KEY` / `NEWSAPI_KEY` | _(empty)_ | Optional integrations |
 
@@ -110,8 +107,8 @@ docker compose -f docker-compose.db.yml up -d
 ## Prerequisites (dotnet run)
 
 - .NET 9 SDK
-- PostgreSQL 16+ with pgvector (or `docker-compose.db.yml`)
-- Ollama (optional, for scoring / narrative)
+- PostgreSQL 16+ (or `docker-compose.db.yml`)
+- ContextMemory gateway (for scoring / narrative)
 
 ### 1. Configure
 
@@ -166,7 +163,7 @@ Deploy layout matches the open-source style used in [Kortexio/ContextMemory](htt
 - Sanctions & lists: OFAC SDN, EU FSF, OpenSanctions
 - Adverse media (NewsAPI), ICIJ, optional CITIUS / AT debtors
 - Document upload + extraction (PDF/DOCX/images)
-- LLM scoring & narrative via **local Ollama** (no cloud required)
+- LLM scoring & narrative via **ContextMemory** gateway
 - Analyst / supervisor workflow and append-only audit
 - Data retention hooks (RGPD-oriented)
 
@@ -180,16 +177,32 @@ Deploy layout matches the open-source style used in [Kortexio/ContextMemory](htt
 
 ---
 
+## Release
+
+Versioning and publish match [ContextMemory](https://github.com/Kortexio/ContextMemory): **release-please** on `main`, then on GitHub Release → **GHCR** images, **PyPI** / **npm** thin SDKs, Windows appliance assets, and optional **LinkedIn** / **dev.to** posts.
+
+Details: [`docs/RELEASE.md`](docs/RELEASE.md).
+
+```bash
+# Consume published images
+docker compose -f docker-compose.ghcr.yml up -d
+pip install kyc-ai-platform   # optional helpers
+npm install kyc-ai-platform
+```
+
+---
+
 ## Documentation
 
-Index: [`docs/README.md`](docs/README.md)
+Index (EN hub → PT / EN / ES): [`docs/README.md`](docs/README.md)
 
 | Document | Purpose |
 | -------- | ------- |
-| [`docs/DOCUMENTACAO_APLICACAO.md`](docs/DOCUMENTACAO_APLICACAO.md) | Architecture & stack |
-| [`docs/OPERACOES_E_HOMOLOGACAO.md`](docs/OPERACOES_E_HOMOLOGACAO.md) | Ops & homologation |
-| [`docs/DEPLOY_ONPREM.md`](docs/DEPLOY_ONPREM.md) | On-prem deploy |
-| [`docs/CATALOGO_FUNCIONALIDADES.md`](docs/CATALOGO_FUNCIONALIDADES.md) | Feature catalogue |
+| [`docs/RELEASE.md`](docs/RELEASE.md) | Release / GHCR / npm / PyPI / social |
+| [`docs/en/DOCUMENTACAO_APLICACAO.md`](docs/en/DOCUMENTACAO_APLICACAO.md) | Architecture & stack |
+| [`docs/en/OPERACOES_E_HOMOLOGACAO.md`](docs/en/OPERACOES_E_HOMOLOGACAO.md) | Ops & UAT (deploy, E2E, checklists) |
+| [`docs/en/CATALOGO_FUNCIONALIDADES.md`](docs/en/CATALOGO_FUNCIONALIDADES.md) | Feature catalogue |
+| [`docs/pt/`](docs/pt/) · [`docs/es/`](docs/es/) | Portuguese / Spanish packs |
 
 ---
 
@@ -209,6 +222,8 @@ docker-compose.yml      Full stack (build)
 docker-compose.ghcr.yml Full stack (GHCR images)
 docker-compose.db.yml   Postgres only
 scripts/docker-run.*    One-command helpers
+sdk/                    Thin Python + TypeScript helpers (PyPI / npm)
+tools/                  Appliance + LinkedIn/dev.to announcers
 docs/                   Homologation & product docs
 src/                    Application code
 tests/                  Unit / integration / E2E

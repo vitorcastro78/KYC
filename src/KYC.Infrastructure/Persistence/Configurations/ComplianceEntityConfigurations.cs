@@ -25,8 +25,8 @@ public class ScoringEngineConfigConfiguration : IEntityTypeConfiguration<Scoring
         builder.ToTable("scoring_engine_configs");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Version).HasMaxLength(32).IsRequired();
-        builder.Property(x => x.LocalModelName).HasMaxLength(128);
-        builder.Property(x => x.CloudModelName).HasMaxLength(128);
+        builder.Property(x => x.ModelName).HasMaxLength(128);
+        builder.Property(x => x.ModelVersion).HasMaxLength(64);
         builder.Property(x => x.SystemPromptHash).HasMaxLength(128);
         builder.Property(x => x.WeightsJson).HasMaxLength(4000);
         builder.Property(x => x.ApprovedBy).HasMaxLength(256);

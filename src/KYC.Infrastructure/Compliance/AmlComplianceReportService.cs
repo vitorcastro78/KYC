@@ -78,8 +78,8 @@ public sealed class AmlComplianceReportService(
         JsonSerializer.Serialize(new
         {
             provider = "contextmemory",
-            local = scoring?.LocalModelName ?? "qwen3.5:9b",
-            localVersion = scoring?.LocalModelVersion ?? "latest",
+            model = scoring?.ModelName ?? "qwen3.5:9b",
+            modelVersion = scoring?.ModelVersion ?? "latest",
             scoringVersion = scoring?.Version,
             promptHash = scoring?.SystemPromptHash
         });

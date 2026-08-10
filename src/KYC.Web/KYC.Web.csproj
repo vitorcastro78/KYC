@@ -35,13 +35,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <HelpOnlineFile Include="$(HelpOnlineRoot)*.md" />
     <HelpOnlineFilePt Include="$(HelpOnlineRoot)pt\*.md" />
     <HelpOnlineFileEn Include="$(HelpOnlineRoot)en\*.md" />
     <HelpOnlineFileEs Include="$(HelpOnlineRoot)es\*.md" />
-    <HelpTechnicalFile Include="$(DocsRoot)CATALOGO_FUNCIONALIDADES.md" />
-    <HelpTechnicalFile Include="$(DocsRoot)DOCUMENTACAO_APLICACAO.md" />
-    <HelpTechnicalFile Include="$(DocsRoot)OPERACOES_E_HOMOLOGACAO.md" />
     <HelpTechnicalFilePt Include="$(DocsRoot)pt\CATALOGO_FUNCIONALIDADES.md" />
     <HelpTechnicalFilePt Include="$(DocsRoot)pt\DOCUMENTACAO_APLICACAO.md" />
     <HelpTechnicalFilePt Include="$(DocsRoot)pt\OPERACOES_E_HOMOLOGACAO.md" />
@@ -54,19 +50,15 @@
   </ItemGroup>
 
   <Target Name="SyncHelpDocsToWwwroot" BeforeTargets="Build">
-    <MakeDir Directories="$(ProjectDir)wwwroot\help-online" />
     <MakeDir Directories="$(ProjectDir)wwwroot\help-online\pt" />
     <MakeDir Directories="$(ProjectDir)wwwroot\help-online\en" />
     <MakeDir Directories="$(ProjectDir)wwwroot\help-online\es" />
-    <MakeDir Directories="$(ProjectDir)wwwroot\help-technical" />
     <MakeDir Directories="$(ProjectDir)wwwroot\help-technical\pt" />
     <MakeDir Directories="$(ProjectDir)wwwroot\help-technical\en" />
     <MakeDir Directories="$(ProjectDir)wwwroot\help-technical\es" />
-    <Copy SourceFiles="@(HelpOnlineFile)" DestinationFolder="$(ProjectDir)wwwroot\help-online\" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(HelpOnlineFilePt)" DestinationFolder="$(ProjectDir)wwwroot\help-online\pt\" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(HelpOnlineFileEn)" DestinationFolder="$(ProjectDir)wwwroot\help-online\en\" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(HelpOnlineFileEs)" DestinationFolder="$(ProjectDir)wwwroot\help-online\es\" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(HelpTechnicalFile)" DestinationFolder="$(ProjectDir)wwwroot\help-technical\" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(HelpTechnicalFilePt)" DestinationFolder="$(ProjectDir)wwwroot\help-technical\pt\" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(HelpTechnicalFileEn)" DestinationFolder="$(ProjectDir)wwwroot\help-technical\en\" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(HelpTechnicalFileEs)" DestinationFolder="$(ProjectDir)wwwroot\help-technical\es\" SkipUnchangedFiles="true" />

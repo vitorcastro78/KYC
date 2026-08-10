@@ -10,7 +10,7 @@ name: kyc
 
 services:
   kyc-postgres:
-    image: pgvector/pgvector:pg17
+    image: postgres:17
     container_name: kyc-postgres
     restart: unless-stopped
     ports:
@@ -62,7 +62,7 @@ services:
       ConnectionStrings__KycDatabase: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
-      LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
+      LLM__Model: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
       ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
@@ -103,7 +103,7 @@ services:
       ConnectionStrings__KycDatabase: Host=kyc-postgres;Port=5432;Database=${POSTGRES_DB:-kyc_dev};Username=${POSTGRES_USER:-kyc};Password=${POSTGRES_PASSWORD:-CHANGE_ME}
       KYC_RABBITMQ_CONNECTION: amqp://${RABBITMQ_USER:-kyc}:${RABBITMQ_PASSWORD:-CHANGE_ME}@kyc-rabbitmq:5672/
       Messaging__Provider: RabbitMq
-      LLM__LocalModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
+      LLM__Model: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
       ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}

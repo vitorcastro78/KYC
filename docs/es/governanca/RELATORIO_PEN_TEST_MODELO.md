@@ -36,7 +36,7 @@ _[Párrafo para el Comité Ejecutivo]_
 
 ## 5. Checklist interno cruzado
 
-Ejecutado en paralelo: [SECURITY_PEN_TEST_CHECKLIST.md](../SECURITY_PEN_TEST_CHECKLIST.md)
+Ejecutado en paralelo: [OPERACOES_E_HOMOLOGACAO.md](../OPERACOES_E_HOMOLOGACAO.md) §6
 
 ## 6. Conclusión
 

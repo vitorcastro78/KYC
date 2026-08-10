@@ -48,7 +48,7 @@
 | SCR-05 | Listas OFAC / EU | Download e índice local | Workers | ✅ | |
 | SCR-06 | Confirmação de sinais | Analista confirma correspondência | SignalCard | ✅ | |
 | SCR-07 | Congelamento por sanção | Notificação BdP + UnderReview | Pipeline | ✅ | Lei 97/2017 |
-| SCR-08 | Scoring Ollama | 0–100 + nível | RiskScoreBadge | ✅ | Sem Claude |
+| SCR-08 | Scoring ContextMemory | 0–100 + nível | RiskScoreBadge | ✅ | Via ContextMemory |
 | SCR-09 | DDC automática | Simplified / Standard / Enhanced | Compliance section | ✅ | Aviso 1/2022 |
 | SCR-10 | Adverse media janela | 2 anos / 5 anos EDD | Pipeline | ✅ | |
 
@@ -58,10 +58,10 @@
 
 | ID | Funcionalidade | Descrição | UI / API | Estado | Base legal / nota |
 |----|----------------|-----------|----------|--------|-------------------|
-| RPT-01 | Relatório narrativo 8 secções | LLM Ollama | `/cases/{id}/report` | ✅ | |
+| RPT-01 | Relatório narrativo 8 secções | LLM ContextMemory | `/cases/{id}/report` | ✅ | |
 | RPT-02 | Secção Art. 22 GDPR | Explainability no prompt | Relatório | ✅ | RGPD |
 | RPT-03 | Export PDF | Puppeteer | `/api/cases/{id}/report.pdf` | ✅ | |
-| RPT-04 | Embeddings pgvector | Pesquisa semântica relatório | Infra | ✅ | |
+| RPT-04 | ContextMemory Global Wiki | Pesquisa semântica relatório | Infra | ✅ | |
 | RPT-05 | Consistência documentos | Checker vs GLEIF/caso | Ingestão | ✅ | |
 | RPT-06 | Claude API narrativa | Roteamento cloud | — | 🔴 | Desvio intencional |
 
@@ -77,7 +77,7 @@
 | DOC-04 | Extração imagem | Qwen visão | Infra | ✅ | |
 | DOC-05 | Facts e parties na BD | Tabelas estruturadas | BD | ✅ | |
 | DOC-06 | Re-triagem pós-ingestão | Command | ✅ | |
-| DOC-07 | Azure Blob Storage | Armazenamento cloud | — | 🔴 | Blueprint fase 2 |
+| DOC-07 | Azure Blob Storage | Armazenamento cloud | — | 🔴 | fase 2 |
 | DOC-08 | Azure Document Intelligence | OCR cloud | — | 🔴 | |
 
 ---
@@ -190,4 +190,3 @@
 
 - Documentação técnica: [DOCUMENTACAO_APLICACAO.md](DOCUMENTACAO_APLICACAO.md)
 - Operações: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md)
-- Estado blueprint: [BLUEPRINT_COMPLETION_STATUS.md](BLUEPRINT_COMPLETION_STATUS.md)

@@ -8,14 +8,14 @@
 |---------|----------|----------|------------|
 | KYC.Web (triagem casos) | 4 h | 1 h | P1 |
 | PostgreSQL (casos + audit) | 4 h | 15 min | P1 |
-| Ollama (scoring/relatório) | 8 h | N/A | P2 |
+| ContextMemory (scoring/relatório) | 8 h | N/A | P2 |
 | Workers (sanções OFAC/EU) | 24 h | 24 h | P3 |
 
 ## 2. Cenários de interrupção
 
 1. Indisponibilidade aplicação (crash, deploy falhado)
 2. Indisponibilidade BD
-3. Indisponibilidade Ollama (degradação — triagem manual)
+3. Indisponibilidade ContextMemory (degradação — triagem manual)
 4. Indisponibilidade prestador identidade (fallback presencial)
 
 ## 3. Estratégias

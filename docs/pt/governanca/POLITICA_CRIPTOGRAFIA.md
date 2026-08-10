@@ -9,7 +9,7 @@
 | Browser ↔ aplicação | TLS 1.2+ | HTTPS obrigatório homologação/prod; HSTS |
 | API externas (UIF, BdP, identidade) | TLS 1.2+ | HttpClient .NET com validação certificado |
 | PostgreSQL | TLS opcional | `KYC_DB_CONNECTION` com `SSL Mode` conforme infra |
-| Ollama | TLS recomendado | Rede interna ou TLS no reverse proxy |
+| ContextMemory | TLS recomendado | Rede interna ou TLS no reverse proxy |
 
 ## 2. Criptografia em repouso
 
@@ -40,4 +40,4 @@
 ## 6. Evidência
 
 - Configuração: `Program.cs` (cookies Secure), `_Host`, nginx TLS
-- Pen test: validar TLS e headers — `docs/SECURITY_PEN_TEST_CHECKLIST.md`
+- Pen test: validar TLS e headers — `docs/pt/OPERACOES_E_HOMOLOGACAO.md` §6

@@ -6,7 +6,7 @@ Guía para analistas y supervisores. Los problemas de infraestructura (servidor,
 
 | Qué ve | Causa probable | Qué hacer |
 |--------|----------------|-----------|
-| Barra de progreso detenida durante mucho tiempo | Motor de IA (Ollama) o cola de trabajo no disponible | Espere 2–3 min.; use **Rehacer cribado**; si persiste, contacte con TI |
+| Barra de progreso detenida durante mucho tiempo | Motor de IA (ContextMemory) o cola de trabajo no disponible | Espere 2–3 min.; use **Rehacer cribado**; si persiste, contacte con TI |
 | El progreso no se actualiza, pero el cribado continúa | Conexión WebSocket interrumpida | Actualice la página (F5); el porcentaje se sincroniza mediante la base de datos |
 | «El cribado ha fallado» en pantalla | Error en el pipeline | Consulte con TI los logs de la aplicación; pruebe el recribado |
 | Sin señales después del cribado | Entidad sin coincidencias o error parcial | Registre una señal manual; verifique las partes y el NIF |
@@ -64,7 +64,7 @@ Guía para analistas y supervisores. Los problemas de infraestructura (servidor,
 
 | Síntoma | Verificación |
 |---------|--------------|
-| Ollama / scoring | Variable `OLLAMA_ENDPOINT`, servicio Ollama activo |
+| ContextMemory / scoring | Variable `CONTEXT_MEMORY_BASE_URL`, gateway ContextMemory accesible |
 | Base de datos | PostgreSQL, migrations aplicadas |
 | SignalR detrás de proxy | Cabeceras `Upgrade` y `Connection` en `/hubs/` |
 | PDF | Chromium/Puppeteer en el contenedor `kyc-web` |

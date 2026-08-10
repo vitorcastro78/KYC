@@ -33,36 +33,24 @@ public sealed class HelpDocumentationService(
     private string? ResolveHelpFilePath(HelpDocEntry entry)
     {
         var subfolder = entry.Technical ? "help-technical" : "help-online";
-        var cultureFolder = ResolveCultureFolder();
+        var cultureFolder = ResolveCultureFolder() ?? "pt";
         var candidates = new List<string>();
 
-        void AddCandidates(string? culture)
+        void AddCandidates(string culture)
         {
-            if (!string.IsNullOrEmpty(culture))
-            {
-                candidates.Add(Path.Combine(environment.WebRootPath, subfolder, culture, entry.FileName));
-                candidates.Add(Path.GetFullPath(Path.Combine(environment.ContentRootPath, "..", "..", "docs",
-                    entry.Technical ? culture : Path.Combine("help-online", culture), entry.FileName)));
-            }
+            candidates.Add(Path.Combine(environment.WebRootPath, subfolder, culture, entry.FileName));
+            candidates.Add(Path.GetFullPath(Path.Combine(environment.ContentRootPath, "..", "..", "docs",
+                entry.Technical ? culture : Path.Combine("help-online", culture), entry.FileName)));
         }
 
         AddCandidates(cultureFolder);
-        candidates.Add(Path.Combine(environment.WebRootPath, subfolder, entry.FileName));
-        candidates.Add(Path.Combine(environment.WebRootPath, "help", entry.FileName));
-        candidates.Add(Path.GetFullPath(Path.Combine(environment.ContentRootPath, "..", "..", "docs",
-            entry.Technical ? "" : "help-online", entry.FileName)));
+        if (!string.Equals(cultureFolder, "pt", StringComparison.OrdinalIgnoreCase))
+            AddCandidates("pt");
 
         foreach (var path in candidates)
         {
             if (File.Exists(path))
                 return path;
-        }
-
-        if (entry.Technical)
-        {
-            var docsRoot = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "..", "..", "docs", entry.FileName));
-            if (File.Exists(docsRoot))
-                return docsRoot;
         }
 
         return null;

@@ -29,4 +29,4 @@ else {
 
 Write-Host "Deploy concluído. Web: http://localhost:$((Get-Content $EnvFile | Where-Object { $_ -match '^KYC_WEB_PORT=' }) -replace 'KYC_WEB_PORT=','' | Select-Object -First 1)"
 Write-Host "Health: http://localhost:8080/health (ou KYC_WEB_PORT)"
-Write-Host "Migrations: aplicar via EF se necessário (ver docs/DEPLOY_ONPREM.md)."
+Write-Host "Migrations: aplicar via EF se necessário (ver docs/pt/OPERACOES_E_HOMOLOGACAO.md §1)."

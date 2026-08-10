@@ -30,7 +30,7 @@
 - Usar CancellationToken em todos os métodos de infra
 - Testes unitários para todos os Use Cases e Value Objects
 
-## Conformidade BdP (`BLUEPRINT_BdP_Compliance_Addendum.md` §13–22)
+## Conformidade BdP (`docs/pt/OPERACOES_E_HOMOLOGACAO.md` §5, `docs/pt/MATRIZ_REQUISITOS_INSTITUCIONAIS.md`)
 
 ### Identificação e diligência (Aviso 1/2022)
 - SEMPRE verificar DueDiligenceLevelEvaluator após entity resolution no pipeline
@@ -55,13 +55,13 @@
 ### Reproducibilidade e IA
 - SEMPRE snapshot scoring (`SetScoringEngineSnapshot`) antes do LLM
 - SEMPRE `LlmPromptHash` em `AuditEntry` para acções `LlmRiskScored` / `LlmReportGenerated`
-- RPB: apenas modelos Ollama locais em `aiModelsJson`
+- RPB: `aiModelsJson` com `provider=contextmemory` (sem providers cloud directos)
 
 ### RGPD / explainability
 - NUNCA auto-approve fora de Low + score ≤30 sem High/Critical/sanções
 - Relatório: secções Art. 22 e limitações do modelo (`KycStructuredReportComposer`)
 
 ### Documentação operacional
-- PAC: `docs/PAC_RUNBOOK.md`
-- Analistas: `docs/ANALISTA_QUICK_START.md`
-- Homologação: `docs/E2E_HOMOLOGACAO.md`, `docs/dossier/`
+- Operações / PAC / E2E / analistas: `docs/pt/OPERACOES_E_HOMOLOGACAO.md`
+- Help UX: `docs/help-online/pt/`
+- Evidências: `docs/dossier/`

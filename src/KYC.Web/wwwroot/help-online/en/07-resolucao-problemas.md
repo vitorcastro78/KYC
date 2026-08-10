@@ -6,7 +6,7 @@ Guide for analysts and supervisors. Infrastructure issues (server, database) mus
 
 | What you see | Likely cause | What to do |
 |--------------|--------------|------------|
-| Progress bar stopped for a long time | AI engine (Ollama) or work queue unavailable | Wait 2–3 min.; use **Rerun screening**; if it persists, contact IT |
+| Progress bar stopped for a long time | AI engine (ContextMemory) or work queue unavailable | Wait 2–3 min.; use **Rerun screening**; if it persists, contact IT |
 | Progress does not update but screening runs | WebSocket connection interrupted | Refresh the page (F5); the percentage syncs through the database |
 | “Screening failed” on screen | Pipeline error | Ask IT to check the application logs; try re-screening |
 | No signals after screening | Entity has no matches or a partial failure | Record manual signal; check parties and NIF |
@@ -64,7 +64,7 @@ Guide for analysts and supervisors. Infrastructure issues (server, database) mus
 
 | Symptom | Check |
 |---------|-------|
-| Ollama / scoring | `OLLAMA_ENDPOINT` variable, Ollama service active |
+| ContextMemory / scoring | `CONTEXT_MEMORY_BASE_URL` variable, ContextMemory service active |
 | Database | PostgreSQL, migrations applied |
 | SignalR behind proxy | `Upgrade` and `Connection` headers on `/hubs/` |
 | PDF | Chromium/Puppeteer in the `kyc-web` container |

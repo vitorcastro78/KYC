@@ -1,49 +1,62 @@
 # Operações e Homologação — KYC AI Platform
 
 > Documento unificado: deploy, runbooks, testes E2E, checklists regulatórios e segurança, dossier de evidências.
+> Pacote de idioma: **português**. Hub: [`../README.md`](../README.md).
 
 ---
 
 ## 1. Deploy on-prem
 
+Layout alinhado a [ContextMemory](https://github.com/Kortexio/ContextMemory): `docker-compose.yml` (build), `docker-compose.ghcr.yml` (imagens), `.env.example`, `scripts/docker-run.*`.
+
 ### 1.1 Pré-requisitos
 
 - Docker e Docker Compose
-- Ollama acessível (`OLLAMA_ENDPOINT`, ex. `http://host.docker.internal:11434`)
+- ContextMemory acessível (`CONTEXT_MEMORY_BASE_URL`, ex. `https://context.kortexio.io`)
 - Ficheiro `.env` (copiar de `.env.example`) — **nunca commitar**
 
-### 1.2 Arranque
+### 1.2 Arranque (build local)
 
 ```bash
 cp .env.example .env
-# Editar passwords e KYC_DB_CONNECTION (compose: Host=kyc-postgres)
+# Editar POSTGRES_PASSWORD, RABBITMQ_PASSWORD, KYC_ADMIN_PASSWORD, CONTEXT_MEMORY_*
 
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up --build -d
+# ou: ./scripts/docker-run.sh --build
+# ou: .\scripts\docker-run.ps1 -Build
 ```
 
-### 1.3 Migrations
+### 1.3 Arranque (imagens GHCR)
 
 ```bash
-docker compose -f docker-compose.prod.yml exec kyc-web \
-  dotnet ef database update --project /src/KYC.Infrastructure --startup-project /src/KYC.Web
+docker compose -f docker-compose.ghcr.yml up -d
+# ou: ./scripts/docker-run.sh
 ```
 
-No host:
+### 1.4 Apenas base de dados (dotnet run no host)
+
+```bash
+docker compose -f docker-compose.db.yml up -d
+```
+
+### 1.5 Migrations
+
+No host (connection string para Postgres):
 
 ```bash
 dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web
 ```
 
-### 1.4 Verificação pós-deploy
+### 1.6 Verificação pós-deploy
 
 | Verificação | Comando / URL |
 |-------------|---------------|
 | UI | `http://localhost:8080` (ou `KYC_WEB_PORT`) |
 | Health | `GET /health` |
-| Admin dev | `KYC_ADMIN_EMAIL` / `KYC_ADMIN_PASSWORD` |
+| Admin | `KYC_ADMIN_EMAIL` / `KYC_ADMIN_PASSWORD` |
 | Workers | Volumes `Data/ofac`, `Data/eu-fsf` após arranque |
 
-### 1.5 Variáveis compliance críticas
+### 1.7 Variáveis compliance críticas
 
 ```env
 IDENTITY_VERIFICATION_WEBHOOK_SECRET=...
@@ -71,8 +84,6 @@ Confirmar trigger audit:
 SELECT tgname FROM pg_trigger WHERE tgname = 'tr_audit_entries_immutable';
 ```
 
-Teste opcional:
-
 ```powershell
 dotnet test tests/KYC.Web.Integration.Tests --filter AuditImmutability
 ```
@@ -99,11 +110,11 @@ dotnet test
 dotnet test tests/KYC.Web.Integration.Tests
 ```
 
-Cobertura compliance: `ComplianceHandlersIntegrationTests`, `ComplianceFlowTests`, `SarEligibilityTests`, `IdentityWebhookHttpTests`, `UboGraphViewBuilderTests`.
+Cobertura: `ComplianceHandlersIntegrationTests`, `ComplianceFlowTests`, `SarEligibilityTests`, `IdentityWebhookHttpTests`, `UboGraphViewBuilderTests`.
 
 ### 2.4 CI
 
-Push/PR para `main`, `develop` ou `feature/*` → `.github/workflows/ci.yml` (PostgreSQL + migrations + testes).
+Push/PR para `main`, `develop` ou `feature/*` → `.github/workflows/ci.yml`.
 
 ---
 
@@ -137,57 +148,111 @@ Push/PR para `main`, `develop` ou `feature/*` → `.github/workflows/ci.yml` (Po
 
 ## 4. Cenários E2E — Homologação BdP
 
-> Ambiente com BD migrada (`BdpComplianceAndGtm` + posteriores).  
-> Pré-requisitos: `KYC_DB_CONNECTION`, Ollama, PAC activa.
+> Ambiente com BD migrada. Objectivo: preencher a tabela §4.12 e anexar evidências em `docs/dossier/`.
 
-### Cenário 1 — PAC no arranque
+### 4.1 Pré-requisitos
 
-1. Caso CAE `92000` (jogos) → falha PAC
+| Item | Verificação |
+|------|-------------|
+| BD | `KYC_DB_CONNECTION` + `dotnet ef database update` |
+| ContextMemory | `CONTEXT_MEMORY_BASE_URL` acessível |
+| PAC | Activa (seed ou Admin → Settings) |
+| Utilizadores | Analista + Supervisor + Admin |
+| Testes auto | `dotnet test` — 0 falhas antes de E2E manual |
+
+**Simular falha de API (cenários 6–9):** `Compliance:RequireLiveIntegrations=true` sem URLs UIF/BdP/identidade, URLs inválidas, ou mock desligado.
+
+### 4.2 Cenário 1 — PAC no arranque
+
+1. Caso CAE `92000` (jogos) → falha PAC; caso **não** criado
 2. Caso válido → `InProgress` + `LegalBasisRef`
+3. Evidência: print erro PAC + caso criado; audit `CaseStarted` → `docs/dossier/01-pac/`
 
-### Cenário 2 — Identidade (Aviso 1/2022)
+### 4.3 Cenário 2 — Identidade (Aviso 1/2022)
 
 1. Conformidade → «Verificar identidade» → método
-2. Webhook HMAC ou polling → `Verified`
-3. Aprovar sem UBO verificado → botão desactivado + mensagem
+2. Webhook HMAC (§2.2) ou polling → `Verified`
+3. Aprovar com outro UBO pendente → botão desactivado + `CanApproveMessage`
+4. Pasta: `docs/dossier/06-identidade/`
 
-### Cenário 3 — SAR / UIF
+### 4.4 Cenário 3 — SAR / UIF
 
 1. Caso alto risco → banner SAR → narrativa ≥200 → submeter
 2. «Não aplicável» → justificação ≥50 → `NotRequired`
 3. Lista casos → badges SAR/DDC
+4. Pasta: `docs/dossier/05-sar-uif/`
 
-### Cenário 4 — EDD 4-eyes
+### 4.5 Cenário 4 — EDD 4-eyes
 
 1. Enhanced + origem fundos + verificação
 2. Aprovar com segundo supervisor → `SecondApproverId`
+3. Pasta: `docs/dossier/08-audit/`
 
-### Cenário 5 — RPB
+### 4.6 Cenário 5 — RPB
 
 1. Admin → Gerar RPB ano corrente
 2. Export `?format=bdp` → XML
 3. Submeter → referência BdP
+4. Pasta: `docs/dossier/04-rpb/`
 
-### Cenários 6–10 — Contingência manual (APIs indisponíveis)
+### 4.7 Cenário 6 — Denominação social manual (sem RCBE/GLEIF)
 
-Detalhe passo-a-passo em **[E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)**:
+1. NIF sem RCBE/GLEIF (ou endpoint em falha)
+2. Preview em **Novo caso** → aviso «indique denominação manual»
+3. Iniciar sem nome → erro; preencher denominação manual → caso criado
+4. Pasta: `docs/dossier/01-pac/` ou `09-e2e/`
 
-| # | Tema |
-|---|------|
-| 6 | Denominação social manual (sem RCBE/GLEIF) |
-| 7 | SAR urgente → Pending → ref. UIF manual |
-| 8 | Congelamento BdP manual pós-sanção |
-| 9 | Identidade manual (sem API) |
-| 10 | Sinais manuais + confirmar/descartar |
+### 4.8 Cenário 7 — SAR urgente → Pending → ref. UIF manual
 
-### Registo de execução
+1. API UIF indisponível
+2. Submeter SAR **urgente** → `Pending` + toast
+3. Registo manual UIF (ref. ≥5) → `SarSubmitted` + audit `SarManualRegistered`
+4. Pasta: `docs/dossier/05-sar-uif/`
 
-> Tabela completa (10 linhas) e assinatura compliance: **[E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)** §Registo.
+### 4.9 Cenário 8 — Congelamento BdP manual pós-sanção
 
-| # | Cenário | Evidência |
-|---|---------|-----------|
-| 1–5 | Ver acima | `dossier/` conforme E2E |
-| 6–10 | Contingência manual | `01-pac/`, `05-sar-uif/`, `07-congelamento/`, `06-identidade/`, `09-e2e/` |
+1. Confirmar correspondência de sanção
+2. API BdP em falha → alerta + `AssetFreezeNotificationFailed`
+3. Ref. BdP manual → `AssetFreezeNotified` + `AssetFreezeManualRegistered`
+4. Pasta: `docs/dossier/07-congelamento/`
+
+### 4.10 Cenário 9 — Identidade manual (sem API)
+
+1. Parte UBO pendente; prestador indisponível
+2. **Verificado manualmente** → justificação ≥20 + ref. opcional
+3. Audit `IdentityManualVerified`
+4. Pasta: `docs/dossier/06-identidade/`
+
+### 4.11 Cenário 10 — Sinais manuais + confirmar/descartar
+
+1. Registar sinal manual (descrição ≥10)
+2. Confirmar ou descartar sinal automático
+3. Audit `ManualRiskSignalAdded` / `AnalystOverride`
+4. Pasta: `docs/dossier/09-e2e/`
+
+### 4.12 Registo de execução
+
+| # | Cenário | Data | Executor | Resultado | Evidência |
+|---|---------|------|----------|-----------|-----------|
+| 1 | PAC arranque | | | ☐ OK ☐ Falha | `01-pac/` |
+| 2 | Identidade + webhook | | | ☐ OK ☐ Falha | `06-identidade/` |
+| 3 | SAR | | | ☐ OK ☐ Falha | `05-sar-uif/` |
+| 4 | EDD 4-eyes | | | ☐ OK ☐ Falha | `08-audit/` |
+| 5 | RPB Admin | | | ☐ OK ☐ Falha | `04-rpb/` |
+| 6 | Nome legal manual | | | ☐ OK ☐ Falha | `09-e2e/` |
+| 7 | SAR manual pós-falha UIF | | | ☐ OK ☐ Falha | `05-sar-uif/` |
+| 8 | Congelamento manual BdP | | | ☐ OK ☐ Falha | `07-congelamento/` |
+| 9 | Identidade manual | | | ☐ OK ☐ Falha | `06-identidade/` |
+| 10 | Sinais manuais + override | | | ☐ OK ☐ Falha | `09-e2e/` |
+
+**Assinatura compliance:** _________________________ Data: __________
+
+### 4.13 Execução automatizada
+
+```powershell
+.\scripts\generate-e2e-evidence.ps1
+.\scripts\run-e2e-ui-scenarios-2-5.ps1 -SkipAppStart   # KYC.Web em http://localhost:5299
+```
 
 ---
 
@@ -280,35 +345,19 @@ Detalhe passo-a-passo em **[E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)**:
 |------|----------|------------|----------|-------|--------|----------|
 | | | | 0 | | | ☐ Sim ☐ Não |
 
-**Evidência:** `docs/dossier/10-seguranca/`
+**Evidência:** `docs/dossier/10-seguranca/` · modelo: [`governanca/RELATORIO_PEN_TEST_MODELO.md`](governanca/RELATORIO_PEN_TEST_MODELO.md)
 
 ---
 
 ## 7. Dossier de evidências (go-live)
 
-### Estrutura de pastas
-
 ```
 docs/dossier/
-  01-pac/           PAC activa (print Admin)
-  02-dpia/          DPIA + documento
-  03-scoring/       Versão scoring + hash prompt
-  04-rpb/           XML BdP + JSON + ref. submissão
-  05-sar-uif/       SAR + ref. UIF
-  06-identidade/    Webhook + verificação party
-  07-congelamento/  Notificação BdP
-  08-audit/         Extract audit caso teste
-  09-e2e/           Checklist E2E assinado
-  10-seguranca/     Pen test preenchido
+  01-pac/  02-dpia/  03-scoring/  04-rpb/  05-sar-uif/
+  06-identidade/  07-congelamento/  08-audit/  09-e2e/  10-seguranca/
 ```
 
-### Como gerar
-
-1. Executar cenários da secção 4
-2. Admin → Settings: captura PAC, scoring, DPIA
-3. Admin → RPB: gerar, exportar, submeter
-4. Caso com sanção: print congelamento + audit
-5. Nomear ficheiros com data: `RPB-2025-20260530.xml`
+Ver também [`../dossier/README.md`](../dossier/README.md).
 
 ### Responsáveis
 
@@ -325,10 +374,10 @@ docs/dossier/
 
 1. **Acesso** — URL homologação; roles Analyst / Supervisor / Admin
 2. **Novo caso** — Casos → Novo; aguardar triagem
-3. **Conformidade** — Identidade UBO; EDD origem fundos; SAR se banner; RCBE
+3. **Conformidade** — Identidade UBO; EDD origem fundos; SAR se banner
 4. **Aprovar** — Só se sem bloqueio `CanApproveMessage`
 5. **Alertas** — SignalR; supervisores no grupo SAR
-6. **Referência** — Este documento + [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)
+6. **Ajuda na app** — [`../help-online/pt/`](../help-online/pt/)
 
 ---
 
@@ -345,25 +394,10 @@ docs/dossier/
 
 ---
 
-## 10. Próximos passos operacionais (ordem)
+## 10. Próximos passos operacionais
 
-1. Executar E2E (secção 4) e preencher tabela
-2. Preencher pen test (secção 6) → `dossier/10-seguranca/`
+1. Executar E2E (§4) e preencher tabela §4.12
+2. Preencher pen test (§6) → `dossier/10-seguranca/`
 3. Credenciais X2–X4 em staging
 4. Template RPB X1 → actualizar `BdpRpbExporter.cs`
 5. Go-live com `Compliance:RequireLiveIntegrations=true`
-
----
-
-## Documentos fonte (detalhe histórico)
-
-Os ficheiros abaixo permanecem no repositório; o conteúdo operacional relevante foi consolidado **neste documento**:
-
-- [DEPLOY_ONPREM.md](DEPLOY_ONPREM.md)
-- [HOMOLOGACAO_RUNBOOK.md](HOMOLOGACAO_RUNBOOK.md)
-- [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)
-- [CHECKLIST_HOMOLOGACAO_BDP.md](CHECKLIST_HOMOLOGACAO_BDP.md)
-- [PAC_RUNBOOK.md](PAC_RUNBOOK.md)
-- [SECURITY_PEN_TEST_CHECKLIST.md](SECURITY_PEN_TEST_CHECKLIST.md)
-- [ANALISTA_QUICK_START.md](ANALISTA_QUICK_START.md)
-- [dossier/README.md](dossier/README.md)

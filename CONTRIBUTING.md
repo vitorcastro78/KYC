@@ -38,3 +38,7 @@ cp .env.example .env
 1. Keep changes focused; match existing naming and DI patterns.
 2. Run tests before opening a PR.
 3. Do not commit secrets, `Data/cases/`, or downloaded OFAC/EU list XML blobs.
+
+## Releases
+
+Use conventional commits on `main`. See [`docs/RELEASE.md`](docs/RELEASE.md) for release-please, GHCR, PyPI, npm, and social announcements.

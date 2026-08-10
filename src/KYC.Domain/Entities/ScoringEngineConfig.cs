@@ -7,9 +7,8 @@ public class ScoringEngineConfig
     public DateTime ActiveFrom { get; private set; }
     public DateTime? ActiveTo { get; private set; }
     public bool IsActive { get; private set; }
-    public string LocalModelName { get; private set; } = string.Empty;
-    public string LocalModelVersion { get; private set; } = string.Empty;
-    public string CloudModelName { get; private set; } = string.Empty;
+    public string ModelName { get; private set; } = string.Empty;
+    public string ModelVersion { get; private set; } = string.Empty;
     public string SystemPromptHash { get; private set; } = string.Empty;
     public string WeightsJson { get; private set; } = "{}";
     public string ApprovedBy { get; private set; } = string.Empty;
@@ -24,7 +23,7 @@ public class ScoringEngineConfig
 
     public static ScoringEngineConfig CreateVersion(
         string version,
-        string localModelName,
+        string modelName,
         string promptHash,
         string approvedBy)
     {
@@ -34,9 +33,8 @@ public class ScoringEngineConfig
             Version = version,
             ActiveFrom = DateTime.UtcNow,
             IsActive = true,
-            LocalModelName = localModelName,
-            LocalModelVersion = "latest",
-            CloudModelName = "(ContextMemory)",
+            ModelName = modelName,
+            ModelVersion = "latest",
             SystemPromptHash = promptHash,
             WeightsJson = "{\"sanctions\":0.25,\"pep\":0.15,\"adverse\":0.15,\"financial\":0.15,\"judicial\":0.15,\"ubo\":0.15}",
             ApprovedBy = approvedBy,

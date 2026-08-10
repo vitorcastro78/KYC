@@ -4,11 +4,11 @@
     Instala o KYC a partir de um release GitHub (instalador .exe gerado pelo CI).
 
 .EXAMPLE
-    # Setup completo (Postgres + Ollama + IIS + KYC do GitHub)
+    # Setup completo (Postgres + IIS + KYC do GitHub; LLM via ContextMemory)
     .\Install-FromGitHubRelease.ps1 -ConfigPath .\install-config.json
 
 .EXAMPLE
-    # So actualizar KYC (Postgres/Ollama ja instalados)
+    # So actualizar KYC (Postgres ja instalado)
     .\Install-FromGitHubRelease.ps1 -UpdateOnly -Tag v1.0.0
 
 .EXAMPLE

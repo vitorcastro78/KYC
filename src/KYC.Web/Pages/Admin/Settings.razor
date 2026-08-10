@@ -48,7 +48,7 @@
                 else
                 {
                     <p>Versão <strong>@_scoring.Version</strong></p>
-                    <p class="small mb-1">Modelo registado: @_scoring.LocalModelName (@_scoring.LocalModelVersion)</p>
+                    <p class="small mb-1">Modelo registado: @_scoring.ModelName (@_scoring.ModelVersion)</p>
                     <p class="small mb-1 font-monospace">Prompt hash: @(_scoring.SystemPromptHash[..Math.Min(16, _scoring.SystemPromptHash.Length)])…</p>
                     <p class="small text-muted mb-0">Aprovado por @_scoring.ApprovedBy em @_scoring.ApprovedAt.ToLocalTime().ToString("dd/MM/yyyy")</p>
                 }

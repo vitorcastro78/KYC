@@ -1,4 +1,4 @@
-# Postgres + pgvector only — for local `dotnet run` (Web / Workers on the host).
+# Postgres only — for local `dotnet run` (Web / Workers on the host).
 # Usage:  docker compose -f docker-compose.db.yml up -d
 # Full stack: docker compose up --build
 
@@ -6,8 +6,8 @@ name: kyc-db
 
 services:
   kyc-postgres:
-    image: pgvector/pgvector:pg17
-    container_name: kyc-postgres-pgvector
+    image: postgres:17
+    container_name: kyc-postgres
     ports:
       - "${POSTGRES_HOST_PORT:-5433}:5432"
     environment:

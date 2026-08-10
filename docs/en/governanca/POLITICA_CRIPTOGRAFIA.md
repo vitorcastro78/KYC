@@ -9,7 +9,7 @@
 | Browser ↔ application | TLS 1.2+ | Mandatory HTTPS in staging/production; HSTS |
 | External APIs (FIU, BdP, identity) | TLS 1.2+ | .NET HttpClient with certificate validation |
 | PostgreSQL | Optional TLS | `KYC_DB_CONNECTION` with `SSL Mode` according to infrastructure |
-| Ollama | TLS recommended | Internal network or TLS at the reverse proxy |
+| ContextMemory | TLS recommended | Internal network or TLS at the reverse proxy |
 
 ## 2. Encryption at rest
 
@@ -40,4 +40,4 @@
 ## 6. Evidence
 
 - Configuration: `Program.cs` (Secure cookies), `_Host`, nginx TLS
-- Pen test: validate TLS and headers — `docs/SECURITY_PEN_TEST_CHECKLIST.md`
+- Pen test: validate TLS and headers — `docs/en/OPERACOES_E_HOMOLOGACAO.md` §6

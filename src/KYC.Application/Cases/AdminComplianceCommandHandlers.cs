@@ -11,7 +11,7 @@ public class CreateScoringEngineConfigCommandHandler(IScoringEngineConfigReposit
     {
         var config = ScoringEngineConfig.CreateVersion(
             request.Version,
-            request.LocalModelName,
+            request.ModelName,
             request.SystemPromptHash,
             request.ApprovedBy);
         await repo.AddAsync(config, cancellationToken);

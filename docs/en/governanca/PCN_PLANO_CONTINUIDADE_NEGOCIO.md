@@ -8,14 +8,14 @@
 |---------|------------|------------|----------|
 | KYC.Web (case triage) | 4 h | 1 h | P1 |
 | PostgreSQL (cases + audit) | 4 h | 15 min | P1 |
-| Ollama (scoring/report) | 8 h | N/A | P2 |
+| ContextMemory (scoring/report) | 8 h | N/A | P2 |
 | Workers (OFAC/EU sanctions) | 24 h | 24 h | P3 |
 
 ## 2. Disruption scenarios
 
 1. Application unavailability (crash, failed deployment)
 2. Database unavailability
-3. Ollama unavailability (degradation — manual triage)
+3. ContextMemory unavailability (degradation — manual triage)
 4. Identity provider unavailability (in-person fallback)
 
 ## 3. Strategies

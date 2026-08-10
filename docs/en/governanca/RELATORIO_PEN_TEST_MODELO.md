@@ -36,7 +36,7 @@ _[Paragraph for the Executive Committee]_
 
 ## 5. Cross-referenced internal checklist
 
-Performed in parallel: [SECURITY_PEN_TEST_CHECKLIST.md](../SECURITY_PEN_TEST_CHECKLIST.md)
+Performed in parallel: [OPERACOES_E_HOMOLOGACAO.md](../OPERACOES_E_HOMOLOGACAO.md) §6
 
 ## 6. Conclusion
 

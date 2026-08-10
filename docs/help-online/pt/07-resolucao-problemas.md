@@ -6,7 +6,7 @@ Guia para analistas e supervisores. Problemas de infraestrutura (servidor, base 
 
 | O que vê | Provável causa | O que fazer |
 |----------|----------------|-------------|
-| Barra de progresso parada durante muito tempo | Motor de IA (Ollama) ou fila de trabalho indisponível | Aguarde 2–3 min.; use **Refazer triagem**; se persistir, contacte TI |
+| Barra de progresso parada durante muito tempo | Motor de IA (ContextMemory) ou fila de trabalho indisponível | Aguarde 2–3 min.; use **Refazer triagem**; se persistir, contacte TI |
 | Progresso não actualiza mas triagem corre | Ligação WebSocket interrompida | Actualize a página (F5); a percentagem sincroniza pela base de dados |
 | «Triagem falhou» no ecrã | Erro no pipeline | Consulte com TI os logs da aplicação; tente re-triagem |
 | Sem sinais após triagem | Entidade sem correspondências ou falha parcial | Registar sinal manual; verificar partes e NIF |
@@ -64,7 +64,7 @@ Guia para analistas e supervisores. Problemas de infraestrutura (servidor, base 
 
 | Sintoma | Verificação |
 |---------|-------------|
-| Ollama / scoring | Variável `OLLAMA_ENDPOINT`, serviço Ollama activo |
+| ContextMemory / scoring | Variável `CONTEXT_MEMORY_BASE_URL`, serviço ContextMemory activo |
 | Base de dados | PostgreSQL, migrations aplicadas |
 | SignalR atrás de proxy | Headers `Upgrade` e `Connection` em `/hubs/` |
 | PDF | Chromium/Puppeteer no contentor `kyc-web` |

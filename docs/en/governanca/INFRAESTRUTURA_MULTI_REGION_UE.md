@@ -9,7 +9,7 @@ Primary region (e.g. West Europe)
   ├── AKS / VM: kyc-web, kyc-workers
   ├── PostgreSQL Flexible (zone-redundant HA)
   ├── Blob Storage (documents — phase 2)
-  └── Ollama (GPU node or dedicated service)
+  └── ContextMemory (GPU node or dedicated service)
 
 DR region (e.g. North Europe)
   ├── PostgreSQL read replica / geo-restore

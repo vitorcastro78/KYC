@@ -20,9 +20,9 @@ Pasta para evidências do go-live regulatório (Instrução BdP 8/2024, Lei 83/2
 ## Como executar
 
 1. `dotnet test` (0 falhas).
-2. Seguir [E2E_HOMOLOGACAO.md](../E2E_HOMOLOGACAO.md) — **10 cenários** (inclui contingência manual).
+2. Seguir [OPERACOES_E_HOMOLOGACAO.md](../pt/OPERACOES_E_HOMOLOGACAO.md) §4 — **10 cenários** (inclui contingência manual).
 3. Guardar ficheiros com data: `RPB-2025-20260530.xml`, `sar-manual-20260530.png`, etc.
-4. Marcar [CHECKLIST_HOMOLOGACAO_BDP.md](../CHECKLIST_HOMOLOGACAO_BDP.md) secção «Execução homologação».
+4. Marcar checklist em [OPERACOES_E_HOMOLOGACAO.md](../pt/OPERACOES_E_HOMOLOGACAO.md) §5 e registo E2E §4.12.
 
 ## Simular APIs em falha
 

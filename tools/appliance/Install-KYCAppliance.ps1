@@ -1,6 +1,7 @@
 #Requires -RunAsAdministrator
 <#
-  Instala KYC + PostgreSQL + Ollama no Windows (sem Docker).
+  Instala KYC + PostgreSQL no Windows (sem Docker).
+  LLM via ContextMemory gateway (configurar ContextMemory).
   HTTPS via IIS (porta 443) com dominio interno (ex: kyc.empresa.local).
 
   Outros PCs na LAN acedem: https://kyc.empresa.local
@@ -44,7 +45,7 @@ if ([string]::IsNullOrWhiteSpace($domain)) {
     throw "Defina Hosting.InternalDomain (ex: kyc.empresa.local)"
 }
 
-foreach ($d in @($root, $downloads, "$root\App", "$root\Workers", "$root\Models", "$root\Config", $certsDir, $iisSitePath)) {
+foreach ($d in @($root, $downloads, "$root\App", "$root\Workers", "$root\Config", $certsDir, $iisSitePath)) {
     New-Item -ItemType Directory -Path $d -Force | Out-Null
 }
 
@@ -176,16 +177,13 @@ $env:PGPASSWORD = $pgSuper
 $env:PGPASSWORD = $null
 $pgService = (Get-Service postgresql* | Select-Object -First 1).Name
 
-# --- Ollama ---
-Write-Step "Ollama"
-if (-not (Test-Path "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe")) {
-    $ollamaExe = Join-Path $downloads "OllamaSetup.exe"
-    if (-not $SkipDownloads) { Invoke-WebRequest $config.Downloads.OllamaInstallerUrl -OutFile $ollamaExe -UseBasicParsing }
-    Start-Process $ollamaExe -ArgumentList "/S" -Wait
+# --- ContextMemory (LLM gateway) ---
+Write-Step "ContextMemory"
+$cm = $config.ContextMemory
+if (-not $cm -or [string]::IsNullOrWhiteSpace([string]$cm.BaseUrl) -or [string]::IsNullOrWhiteSpace([string]$cm.ApiKey)) {
+    throw "Defina ContextMemory.BaseUrl e ContextMemory.ApiKey em install-config.json"
 }
-[Environment]::SetEnvironmentVariable("OLLAMA_MODELS", "$root\Models", "Machine")
-Set-Service OllamaService -StartupType Automatic -ErrorAction SilentlyContinue
-Start-Service OllamaService -ErrorAction SilentlyContinue
+Write-Host "Gateway: $($cm.BaseUrl) (app=$($cm.AppId))" -ForegroundColor Gray
 
 # --- KYC ---
 Write-Step "KYC (Web + Workers)"
@@ -217,10 +215,21 @@ if ($installer -and (Test-Path $installer)) {
 }
 
 $conn = "Host=127.0.0.1;Port=5432;Database=$dbName;Username=$dbUser;Password=$dbPass"
+$llmModel = if ($config.LLM -and $config.LLM.Model) { [string]$config.LLM.Model } else { "qwen3.5:9b" }
 $appSettings = @{
     Hosting = @{ BehindReverseProxy = $true }
     ConnectionStrings = @{ KycDatabase = $conn }
-    LLM = @{ UseOllamaForScoring = $true; LocalEndpoint = "http://127.0.0.1:11434" }
+    LLM = @{
+        Model = $llmModel
+        UseLlmForScoring = $true
+        EnrichReportsWithLlm = $true
+    }
+    ContextMemory = @{
+        BaseUrl = [string]$cm.BaseUrl
+        AppId = if ($cm.AppId) { [string]$cm.AppId } else { "kyc" }
+        ApiKey = [string]$cm.ApiKey
+        UserId = if ($cm.UserId) { [string]$cm.UserId } else { "kyc-jobs" }
+    }
     Auth = @{ AdminEmail = $config.Auth.AdminEmail; AdminPassword = $config.Auth.AdminPassword }
     DataProtection = @{ KeysPath = "$root\App\DataProtection-Keys" }
 } | ConvertTo-Json -Depth 5

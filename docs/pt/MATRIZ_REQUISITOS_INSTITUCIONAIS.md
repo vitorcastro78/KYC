@@ -9,9 +9,9 @@
 
 | # | Requisito | Estado | Evidência / notas |
 |---|-----------|--------|-------------------|
-| 1.1 | Visão geral, escopo e diagramas de alto nível | ✅ | [DOCUMENTACAO_APLICACAO.md](DOCUMENTACAO_APLICACAO.md) §1–2; fluxos Mermaid no blueprint |
+| 1.1 | Visão geral, escopo e diagramas de alto nível | ✅ | [DOCUMENTACAO_APLICACAO.md](DOCUMENTACAO_APLICACAO.md) §1–2; fluxos Mermaid na documentação da aplicação |
 | 1.2 | Documentação técnica APIs (Swagger / OpenAPI) | ✅ | `/swagger`, `/swagger/v1/swagger.json`, `OpenApi:Enable`; [api/README.md](api/README.md) |
-| 1.3 | Manuais utilizador e troubleshooting | ✅ | [MANUAL_UTILIZADOR_TROUBLESHOOTING.md](MANUAL_UTILIZADOR_TROUBLESHOOTING.md), [ANALISTA_QUICK_START.md](ANALISTA_QUICK_START.md) |
+| 1.3 | Manuais utilizador e troubleshooting | ✅ | [../help-online/pt/](../help-online/pt/), [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md) §8 |
 
 ---
 
@@ -20,7 +20,7 @@
 | # | Requisito | Estado | Evidência / notas |
 |---|-----------|--------|-------------------|
 | 2.1 | Política de segurança da informação escrita e aprovada | 🟡 | Modelo: [governanca/POLITICA_SEGURANCA_INFORMACAO.md](governanca/POLITICA_SEGURANCA_INFORMACAO.md) — **requer assinatura DPO/CISO** |
-| 2.2 | Relatório pen test externo | 🟡 | Checklist: [SECURITY_PEN_TEST_CHECKLIST.md](SECURITY_PEN_TEST_CHECKLIST.md); modelo relatório: [governanca/RELATORIO_PEN_TEST_MODELO.md](governanca/RELATORIO_PEN_TEST_MODELO.md) — **executar OWASP ZAP + auditor** |
+| 2.2 | Relatório pen test externo | 🟡 | Checklist: [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md) §6; modelo relatório: [governanca/RELATORIO_PEN_TEST_MODELO.md](governanca/RELATORIO_PEN_TEST_MODELO.md) — **executar OWASP ZAP + auditor** |
 | 2.3 | Política de criptografia (trânsito e repouso) | ✅ | [governanca/POLITICA_CRIPTOGRAFIA.md](governanca/POLITICA_CRIPTOGRAFIA.md); TLS, HSTS, cookies, PostgreSQL |
 | 2.4 | Autenticação forte (MFA/SCA) para operadores | ✅ | Entra ID + Conditional Access (MFA); dev Identity com password policy — ver política §4 |
 
@@ -55,7 +55,7 @@
 | 5.2 | Integração listas sanções e PEP | ✅ | OFAC/EU workers, pipeline, UI sinais |
 | 5.3 | Prova de vida (Liveness) ISO/IEC 30107-3 | 🟡 | Prestador + `LivenessScore` em `CaseParty`; [governanca/LIVENESS_ISO_30107.md](governanca/LIVENESS_ISO_30107.md) — **certificado prestador** |
 | 5.4 | Relatório FAR/FRR biométrico | 🟡 | API métricas + [governanca/METRICAS_BIOMETRIA_FAR_FRR.md](governanca/METRICAS_BIOMETRIA_FAR_FRR.md); FAR=0 até lab prestador |
-| 5.5 | Contingência manual (APIs indisponíveis) | ✅ | Congelamento BdP, SAR UIF, identidade, sinais, denominação no arranque — [MANUAL_UTILIZADOR_TROUBLESHOOTING.md](MANUAL_UTILIZADOR_TROUBLESHOOTING.md) §2 |
+| 5.5 | Contingência manual (APIs indisponíveis) | ✅ | Congelamento BdP, SAR UIF, identidade, sinais, denominação no arranque — [OPERACOES_E_HOMOLOGACAO.md](OPERACOES_E_HOMOLOGACAO.md) §4 (cenários 6–9), [../help-online/pt/07-resolucao-problemas.md](../help-online/pt/07-resolucao-problemas.md) |
 
 ---
 

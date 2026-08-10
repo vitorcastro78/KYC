@@ -9,7 +9,7 @@
 | PostgreSQL KYC | 4 h | 15 min | Restauración de backup + `dotnet ef database update` |
 | KYC.Web + Workers | 2 h | 0 (sin estado) | Redesplegar la última imagen Docker estable |
 | Documentos `Data/cases/` | 8 h | 24 h | Restaurar volumen de backup |
-| Ollama | 8 h | N/A | Reinstalar modelo Qwen |
+| ContextMemory | 8 h | N/A | Reconfigurar modelo no ContextMemory |
 
 ## 2. Copias de seguridad
 

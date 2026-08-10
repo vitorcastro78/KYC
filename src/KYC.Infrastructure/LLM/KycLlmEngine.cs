@@ -45,19 +45,19 @@ public class KycLlmEngine(
         var system = "Senior KYC Risk Analyst EU. Responde APENAS JSON: {\"overall\":0-100,\"sanctions\":null,\"pep\":null,\"adverse\":null,\"financial\":null,\"judicial\":null,\"ubo\":null,\"justification\":\"pt\"}";
         var user = JsonSerializer.Serialize(BuildScoringPayload(context));
         var promptHash = Sha256(system + user);
-        logger.LogInformation("LLM scoring hash={Hash} model=local", promptHash);
+        logger.LogInformation("LLM scoring hash={Hash} model={Model}", promptHash, LlmOptions.GetModel(configuration));
 
         var client = httpClientFactory.CreateClient("contextmemory-scoring");
-        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var model = LlmOptions.GetModel(configuration);
         var messages = new object[]
         {
-            OpenAiCompatibleClient.TextMessage("system", system),
-            OpenAiCompatibleClient.TextMessage("user", user)
+            ContextMemoryChatClient.TextMessage("system", system),
+            ContextMemoryChatClient.TextMessage("user", user)
         };
 
         try
         {
-            var content = await OpenAiCompatibleClient
+            var content = await ContextMemoryChatClient
                 .ChatAsync(client, model, messages, temperature: 0.1f, maxTokens: 256, ct)
                 .ConfigureAwait(false);
             return ParseRiskScore(content);
@@ -120,7 +120,7 @@ public class KycLlmEngine(
     private async Task<bool> IsContextMemoryReachableAsync(CancellationToken ct)
     {
         var client = httpClientFactory.CreateClient("contextmemory-health");
-        return await OpenAiCompatibleClient.IsReachableAsync(client, ct).ConfigureAwait(false);
+        return await ContextMemoryChatClient.IsReachableAsync(client, ct).ConfigureAwait(false);
     }
 
     private static RiskScore ParseRiskScore(string content)
@@ -173,15 +173,15 @@ public class KycLlmEngine(
         var system = "Fornece APENAS HTML interno de <section class=\"ai-summary\"> com 1-3 paragrafos. Menciona factores de risco e que a decisao final e humana (Art. 22 RGPD). Sem markdown.";
         var user = JsonSerializer.Serialize(new { context, score });
         var hash = Sha256(system + user);
-        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var model = LlmOptions.GetModel(configuration);
         logger.LogInformation("LLM report enrich model={Model} risk={Risk} hash={Hash}", model, score.Level, hash);
 
         try
         {
-            var local = await CallContextMemoryHtmlAsync(system, user, ct);
-            if (IsUsefulLlmSection(local))
+            var enriched = await CallContextMemoryHtmlAsync(system, user, ct);
+            if (IsUsefulLlmSection(enriched))
             {
-                var section = LlmChatOutputSanitizer.ExtractReportHtmlFragment(local);
+                var section = LlmChatOutputSanitizer.ExtractReportHtmlFragment(enriched);
                 return KycReport.Create(context.CaseId, AppendLlmHtmlSection(baselineHtml, section),
                     $"{templateModel}+{model}");
             }
@@ -225,13 +225,13 @@ public class KycLlmEngine(
     private async Task<string> CallContextMemoryHtmlAsync(string system, string user, CancellationToken ct)
     {
         var client = httpClientFactory.CreateClient("contextmemory");
-        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var model = LlmOptions.GetModel(configuration);
         var messages = new object[]
         {
-            OpenAiCompatibleClient.TextMessage("system", system),
-            OpenAiCompatibleClient.TextMessage("user", user)
+            ContextMemoryChatClient.TextMessage("system", system),
+            ContextMemoryChatClient.TextMessage("user", user)
         };
-        var raw = await OpenAiCompatibleClient.ChatAsync(client, model, messages, ct: ct).ConfigureAwait(false);
+        var raw = await ContextMemoryChatClient.ChatAsync(client, model, messages, ct: ct).ConfigureAwait(false);
         return LlmChatOutputSanitizer.StripChatArtifacts(raw);
     }
 

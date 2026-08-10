@@ -1,4 +1,4 @@
-# Executa E2E de homologação (docs/E2E_HOMOLOGACAO.md)
+# Executa E2E de homologação (docs/pt/OPERACOES_E_HOMOLOGACAO.md §4)
 # Pré-requisito: KYC_DB_CONNECTION em .env (ex.: PostgreSQL homologação remoto :5433)
 
 $ErrorActionPreference = "Stop"

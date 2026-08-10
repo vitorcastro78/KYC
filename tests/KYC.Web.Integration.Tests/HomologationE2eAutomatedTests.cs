@@ -15,7 +15,7 @@ using Moq;
 namespace KYC.Web.Integration.Tests;
 
 /// <summary>
-/// Automatiza os 10 cenários de docs/E2E_HOMOLOGACAO.md (handlers + PostgreSQL).
+/// Automatiza os 10 cenários de docs/pt/OPERACOES_E_HOMOLOGACAO.md §4 (handlers + PostgreSQL).
 /// UI Blazor não coberta — evidência técnica para dossier/09-e2e/.
 /// </summary>
 public class HomologationE2eAutomatedTests
@@ -342,7 +342,7 @@ public class HomologationE2eAutomatedTests
         var dir = AppContext.BaseDirectory;
         while (!string.IsNullOrEmpty(dir))
         {
-            if (File.Exists(Path.Combine(dir, "KYC.sln")) || File.Exists(Path.Combine(dir, "docs", "E2E_HOMOLOGACAO.md")))
+            if (File.Exists(Path.Combine(dir, "KYC.sln")) || File.Exists(Path.Combine(dir, "docs", "pt", "OPERACOES_E_HOMOLOGACAO.md")))
                 return dir;
             dir = Directory.GetParent(dir)?.FullName ?? "";
         }

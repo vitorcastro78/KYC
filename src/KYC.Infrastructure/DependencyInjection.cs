@@ -55,7 +55,7 @@ public static class DependencyInjection
         services.AddScoped<IIcijOffshoreService, IcijOffshoreService>();
         services.AddScoped<IKycLlmEngine, KycLlmEngine>();
         services.AddSingleton<IKycReportComposer, KycStructuredReportComposer>();
-        services.AddScoped<IReportEmbeddingWriter, ReportEmbeddingWriter>();
+        services.AddScoped<IReportWikiWriter, ReportWikiWriter>();
         services.AddScoped<ILlmModelCatalog, LlmModelCatalog>();
         services.AddHttpClient<IContextMemoryWikiClient, ContextMemoryWikiClient>((sp, client) =>
         {

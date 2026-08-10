@@ -10,7 +10,7 @@ Define security principles and controls for the KYC platform (personal data, fin
 
 ## 2. Scope
 
-- KYC.Web application, Workers, PostgreSQL, Ollama, FIU/BdP/identity integrations
+- KYC.Web application, Workers, PostgreSQL, ContextMemory, FIU/BdP/identity integrations
 - Users: analysts, supervisors, administrators, auditors
 - Environments: development, staging, production
 

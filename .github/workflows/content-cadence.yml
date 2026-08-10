@@ -1,0 +1,47 @@
+name: content-cadence
+
+# Suggests a short social hook (manual approve via issue).
+# Does not auto-publish to social — safer for brand voice.
+
+on:
+  schedule:
+    - cron: "0 14 * * 2" # Tuesday 14:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  suggest:
+    if: github.repository == 'vitorcastro78/KYC'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open hook suggestion issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HOOKS=(
+            "Corporate KYC that keeps the human in the loop — Art. 22 by design."
+            "Sanctions, PEP, adverse media, documents — one on-prem pipeline."
+            "Risk scoring via ContextMemory. Your data stays where you host it."
+            "BdP-ready audit trail: every LLM decision has a prompt hash."
+            "From NIF to narrative report without shipping PII to a cloud LLM."
+            "Self-host KYC: Docker Compose or Windows appliance — your choice."
+            "PAC gates before the case moves. Compliance is not a checkbox at the end."
+            "Open-source KYC for Portuguese corporate credit — try the GHCR images."
+          )
+          HOOK="${HOOKS[$RANDOM % ${#HOOKS[@]}]}"
+          BODY=$(printf '%s\n\n%s\n\n%s\n' \
+            "## Suggested post" \
+            "$HOOK" \
+            "Copy to LinkedIn/dev.to after editing. CTA: https://github.com/vitorcastro78/KYC")
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Content cadence: social hook suggestion" \
+            --label "content-hook" \
+            --body "$BODY" || \
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Content cadence: social hook suggestion" \
+            --body "$BODY"

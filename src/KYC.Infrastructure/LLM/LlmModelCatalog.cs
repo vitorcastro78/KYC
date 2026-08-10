@@ -15,7 +15,7 @@ public sealed class LlmModelCatalog(
 {
     public async Task<LlmModelsListResult> ListAsync(CancellationToken cancellationToken = default)
     {
-        var configured = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var configured = LlmOptions.GetModel(configuration);
 
         if (cmOptions.Value.IsConfigured)
         {

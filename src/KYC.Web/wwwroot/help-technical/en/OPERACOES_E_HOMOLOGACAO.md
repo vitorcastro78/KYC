@@ -1,42 +1,57 @@
 # Operations and UAT — KYC AI Platform
 
-> Consolidated document: deployment, runbooks, E2E tests, regulatory and security checklists, evidence dossier.
+> Consolidated: deployment, runbooks, E2E tests, regulatory and security checklists, evidence dossier.
+> Language pack: **English**. Hub: [`../README.md`](../README.md).
 
 ---
 
 ## 1. On-prem deployment
 
-### 1.1 Prerequisites
-- Docker and Docker Compose
-- Accessible Ollama (`OLLAMA_ENDPOINT`, e.g. `http://host.docker.internal:11434`)
-- `.env` file (copy `.env.example`) — **never commit**
+Layout matches [ContextMemory](https://github.com/Kortexio/ContextMemory): `docker-compose.yml` (build), `docker-compose.ghcr.yml` (images), `.env.example`, `scripts/docker-run.*`.
 
-### 1.2 Start-up
+### 1.1 Prerequisites
+
+- Docker and Docker Compose
+- Reachable ContextMemory (`CONTEXT_MEMORY_BASE_URL`, e.g. `https://context.kortexio.io`)
+- `.env` file (copy from `.env.example`) — **never commit**
+
+### 1.2 Start (local build)
+
 ```bash
 cp .env.example .env
-# Edit passwords and KYC_DB_CONNECTION (compose: Host=kyc-postgres)
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up --build -d
+# or: ./scripts/docker-run.sh --build
 ```
 
-### 1.3 Migrations
+### 1.3 Start (GHCR images)
+
 ```bash
-docker compose -f docker-compose.prod.yml exec kyc-web \
-  dotnet ef database update --project /src/KYC.Infrastructure --startup-project /src/KYC.Web
+docker compose -f docker-compose.ghcr.yml up -d
 ```
-On the host:
+
+### 1.4 Database only (dotnet run on host)
+
+```bash
+docker compose -f docker-compose.db.yml up -d
+```
+
+### 1.5 Migrations
+
 ```bash
 dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web
 ```
 
-### 1.4 Post-deployment verification
+### 1.6 Post-deployment checks
+
 | Check | Command / URL |
 |-------|---------------|
 | UI | `http://localhost:8080` (or `KYC_WEB_PORT`) |
 | Health | `GET /health` |
-| Dev admin | `KYC_ADMIN_EMAIL` / `KYC_ADMIN_PASSWORD` |
-| Workers | `Data/ofac`, `Data/eu-fsf` volumes after start-up |
+| Admin | `KYC_ADMIN_EMAIL` / `KYC_ADMIN_PASSWORD` |
+| Workers | `Data/ofac`, `Data/eu-fsf` volumes after start |
 
-### 1.5 Critical compliance variables
+### 1.7 Critical compliance variables
+
 ```env
 IDENTITY_VERIFICATION_WEBHOOK_SECRET=...
 IdentityVerification__BaseUrl=...
@@ -51,21 +66,18 @@ Compliance__RequireLiveIntegrations=true
 ## 2. Runbook — Technical UAT
 
 ### 2.1 Database
+
 ```powershell
 $env:KYC_DB_CONNECTION="Host=...;Port=5433;Database=...;Username=...;Password=..."
 dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web
 ```
-Confirm the audit trigger:
+
 ```sql
 SELECT tgname FROM pg_trigger WHERE tgname = 'tr_audit_entries_immutable';
 ```
-Optional test:
-```powershell
-dotnet test tests/KYC.Web.Integration.Tests --filter AuditImmutability
-```
 
 ### 2.2 Identity webhook (HMAC)
-Configure `IdentityVerification:WebhookSecret` or `IDENTITY_VERIFICATION_WEBHOOK_SECRET`.
+
 ```powershell
 $body = '{"partyId":"<GUID>","sessionId":"sess-abc","verified":true}'
 $secret = "your-secret"
@@ -78,37 +90,40 @@ Invoke-RestMethod -Method Post -Uri "https://<host>/api/identity/webhook" `
 ```
 
 ### 2.3 Automated tests
+
 ```powershell
 dotnet test
 dotnet test tests/KYC.Web.Integration.Tests
 ```
-Compliance coverage: `ComplianceHandlersIntegrationTests`, `ComplianceFlowTests`, `SarEligibilityTests`, `IdentityWebhookHttpTests`, `UboGraphViewBuilderTests`.
 
 ### 2.4 CI
-Push/PR to `main`, `develop`, or `feature/*` → `.github/workflows/ci.yml` (PostgreSQL + migrations + tests).
+
+Push/PR to `main`, `develop`, or `feature/*` → `.github/workflows/ci.yml`.
 
 ---
 
-## 3. Runbook — PAC (Customer Acceptance Policy)
+## 3. Runbook — CAP (Customer Acceptance Policy)
 
 **Legal basis:** Law 83/2017, Art. 24.
 
 ### Active version
-1. Admin → **Settings** — “Active PAC” card
+
+1. Admin → **Settings** — “Active CAP” card
 2. DB: `customer_acceptance_policies` with `IsActive = true`
-3. Seed: `ComplianceSeedHostedService` creates PAC `1.0.0` if empty
+3. Seed creates CAP `1.0.0` if empty
 
 ### New version
-1. Admin → Settings → version (e.g. `1.1.0`) → **Activate**
-2. `CreateCustomerAcceptancePolicyCommand` deactivates the previous version
-3. New cases: `LegalBasisRef` = `PAC/{version}/Lei83/2017-Art24`
 
-### Rules at start-up
+1. Admin → Settings → version → **Activate**
+2. Previous policy deactivated; new cases get `LegalBasisRef = PAC/{version}/Lei83/2017-Art24`
+
+### Start rules
+
 | Rule | Effect |
 |------|--------|
-| CAE in prohibited list | `PolicyViolationException` |
+| Prohibited CAE | `PolicyViolationException` |
 | Prohibited / offshore jurisdiction | Auto-reject or violation |
-| PEP in the structure | Auto-reject (PAC configuration) |
+| PEP in structure | Auto-reject (CAP config) |
 
 **Evidence:** `docs/dossier/01-pac/`
 
@@ -116,203 +131,160 @@ Push/PR to `main`, `develop`, or `feature/*` → `.github/workflows/ci.yml` (Pos
 
 ## 4. E2E scenarios — BdP UAT
 
-> Environment with migrated DB (`BdpComplianceAndGtm` + subsequent migrations).  
-> Prerequisites: `KYC_DB_CONNECTION`, Ollama, active PAC.
+### 4.1 Prerequisites
 
-### Scenario 1 — PAC at start-up
-1. CAE case `92000` (gambling) → PAC failure
-2. Valid case → `InProgress` + `LegalBasisRef`
+| Item | Check |
+|------|-------|
+| DB | `KYC_DB_CONNECTION` + migrations |
+| ContextMemory | Reachable `CONTEXT_MEMORY_BASE_URL` |
+| CAP | Active |
+| Users | Analyst + Supervisor + Admin |
+| Tests | `dotnet test` — 0 failures before manual E2E |
 
-### Scenario 2 — Identity (Notice 1/2022)
-1. Compliance → “Verify identity” → method
-2. HMAC webhook or polling → `Verified`
-3. Approve without a verified UBO → disabled button + message
+**Simulate API failure (scenarios 6–9):** `Compliance:RequireLiveIntegrations=true` without UIF/BdP/identity URLs, invalid URLs, or mock off.
 
-### Scenario 3 — SAR / UIF
-1. High-risk case → SAR banner → narrative ≥200 → submit
-2. “Not applicable” → justification ≥50 → `NotRequired`
-3. Case list → SAR/DDC badges
+### 4.2–4.6 Scenarios 1–5 (mandatory)
 
-### Scenario 4 — EDD 4-eyes
-1. Enhanced + source of funds + verification
-2. Approve with second supervisor → `SecondApproverId`
+1. **CAP at start** — CAE `92000` rejected; valid case → `InProgress` + `LegalBasisRef` → `01-pac/`
+2. **Identity** — verify + HMAC webhook (§2.2); approve blocked if UBO pending → `06-identidade/`
+3. **SAR** — narrative ≥200 submit; “not applicable” ≥50 → `05-sar-uif/`
+4. **EDD 4-eyes** — funds origin + distinct second approver → `08-audit/`
+5. **RPB** — generate, `?format=bdp`, submit → `04-rpb/`
 
-### Scenario 5 — RPB
-1. Admin → Generate current-year RPB
-2. Export `?format=bdp` → XML
-3. Submit → BdP reference
+### 4.7–4.11 Scenarios 6–10 (manual contingency)
 
-### Scenarios 6–10 — Manual contingency (APIs unavailable)
-Step-by-step details in **[E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)**:
-| # | Subject |
-|---|---------|
-| 6 | Manual company name (without RCBE/GLEIF) |
-| 7 | Urgent SAR → Pending → manual UIF reference |
-| 8 | Manual BdP asset freeze after sanction |
-| 9 | Manual identity (without API) |
-| 10 | Manual signals + confirm/discard |
+6. **Manual legal name** without RCBE/GLEIF → `01-pac/` or `09-e2e/`
+7. **Urgent SAR** UIF down → Pending → manual UIF ref → `05-sar-uif/`
+8. **BdP freeze** API fail → manual BdP ref → `07-congelamento/`
+9. **Manual identity** (no API) justification ≥20 → `06-identidade/`
+10. **Manual risk signals** + confirm/dismiss → `09-e2e/`
 
-### Execution record
-> Complete table (10 rows) and compliance signature: **[E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)** §Record.
-| # | Scenario | Evidence |
-|---|----------|----------|
-| 1–5 | See above | `dossier/` according to E2E |
-| 6–10 | Manual contingency | `01-pac/`, `05-sar-uif/`, `07-congelamento/`, `06-identidade/`, `09-e2e/` |
+### 4.12 Execution record
+
+| # | Scenario | Date | Executor | Result | Evidence |
+|---|----------|------|----------|--------|----------|
+| 1–10 | (fill during UAT) | | | ☐ OK ☐ Fail | see folders above |
+
+**Compliance signature:** _________________________ Date: __________
+
+### 4.13 Automated execution
+
+```powershell
+.\scripts\generate-e2e-evidence.ps1
+.\scripts\run-e2e-ui-scenarios-2-5.ps1 -SkipAppStart
+```
 
 ---
 
-## 5. Regulatory checklist — Capabilities (Law 83/2017, BdP, GDPR)
-
-> **Code** status — UAT execution evidence is separate.
+## 5. Regulatory checklist — Capabilities
 
 ### Law 83/2017 — AML/CFT
-- [x] Versioned PAC active at case start
-- [x] Simplified / Standard / Enhanced DDC
+
+- [x] Versioned CAP at case start
+- [x] Simplified / Standard / Enhanced DD
 - [x] EDD: source of funds before approval
 - [x] Periodic review (`NextReviewDue`)
 - [x] SAR/UIF with audit trail
 
 ### BdP Notice 1/2022
+
 - [x] Identity verification (webhook + polling + UI)
-- [x] Approval blocked if UBO/director is unverified
-- [x] EDD 4-eyes
+- [x] Approval blocked if UBO/admin unverified
+- [x] 4-eyes on EDD
 
 ### Law 97/2017 — Asset freeze
-- [x] Automatic notification when sanction is confirmed
+
+- [x] Auto notification on confirmed sanction
 - [x] `AssetFreezeNotified` recorded
 
 ### BdP Instruction 8/2024 — RPB
-- [x] Annual `AmlComplianceReport` generation
-- [x] JSON + BdP XML export (`?format=bdp`)
+
+- [x] Annual `AmlComplianceReport`
+- [x] JSON + BdP XML export
 
 ### GDPR
+
 - [x] Active DPIA (Admin)
-- [x] Immutable audit trail (PostgreSQL trigger)
-- [x] Auto-approve only for Low risk
+- [x] Immutable audit trail
+- [x] Auto-approve Low risk only
 - [x] Report explainability (Art. 22)
 
-### Operations
+### Operational
+
 - [x] Health `/health`
-- [x] Secrets outside the repo (`.env.example` template)
-- [x] Documented on-prem deployment
+- [x] Secrets outside repo
+- [x] On-prem deploy documented
 - [x] CI pipeline
 
 ---
 
-## 6. Pen test — UAT checklist
+## 6. Pen-test checklist (UAT only)
 
-> Suggested tool: OWASP ZAP baseline or manual review. **UAT only.**
+### AuthZ
 
-### Authentication and authorization
 - [ ] `/admin/*` without `KYC.Admin` → 403
-- [ ] Admin AML APIs → `KYC.Admin`
-- [ ] Identity webhook requires HMAC when a secret is set
-- [ ] Other user's case IDOR → 401/403
+- [ ] Admin AML APIs require `KYC.Admin`
+- [ ] Identity webhook requires HMAC
+- [ ] Cross-case IDOR → 401/403
 
-### Input and injection
-- [ ] SAR narrative &lt; 200 chars rejected server-side
-- [ ] Upload: MIME and maximum size
-- [ ] Invalid NIF → validation (no 500)
+### Input
 
-### Sensitive data
-- [ ] Secrets only in env/Key Vault
-- [ ] Logs without API keys / complete PII
-- [ ] PDF without IDOR between cases
+- [ ] SAR narrative &lt; 200 rejected server-side
+- [ ] Upload MIME/size limits
+- [ ] Invalid NIF validated (no 500)
 
-### Transport
-- [ ] HTTPS in UAT/prod
-- [ ] HttpOnly/Secure cookies
-- [ ] Restricted CORS
+### Sensitive data / transport / deps
 
-### Dependencies
-- [ ] `dotnet list package --vulnerable` with no criticals
-- [ ] Updated Docker image
+- [ ] Secrets only env/Key Vault; no keys/PII in logs
+- [ ] HTTPS; HttpOnly/Secure cookies; restricted CORS
+- [ ] `dotnet list package --vulnerable` clean; fresh Docker image
 
 ### Regulatory smoke
-- [ ] Immutable audit trigger
-- [ ] Active PAC/scoring/DPIA not deletable (EF interceptor)
 
-### Result
-| Date | Executor | Tool | Critical | High | Medium | Approved |
-|------|----------|------|----------|------|--------|----------|
+- [ ] Immutable audit trigger
+- [ ] Active CAP/scoring/DPIA not deletable
+
+| Date | Tester | Tool | Critical | High | Medium | Pass |
+|------|--------|------|----------|------|--------|------|
 | | | | 0 | | | ☐ Yes ☐ No |
 
-**Evidence:** `docs/dossier/10-seguranca/`
+**Evidence:** `docs/dossier/10-seguranca/` · template: [`governanca/RELATORIO_PEN_TEST_MODELO.md`](governanca/RELATORIO_PEN_TEST_MODELO.md)
 
 ---
 
-## 7. Evidence dossier (go-live)
+## 7. Evidence dossier
 
-### Folder structure
-```
-docs/dossier/
-  01-pac/           Active PAC (Admin screenshot)
-  02-dpia/          DPIA + document
-  03-scoring/       Scoring version + prompt hash
-  04-rpb/           BdP XML + JSON + submission reference
-  05-sar-uif/       SAR + UIF reference
-  06-identidade/    Webhook + party verification
-  07-congelamento/  BdP notification
-  08-audit/         Test-case audit extract
-  09-e2e/           Signed E2E checklist
-  10-seguranca/     Completed pen test
-```
-
-### How to generate
-1. Run the scenarios in section 4
-2. Admin → Settings: capture PAC, scoring, DPIA
-3. Admin → RPB: generate, export, submit
-4. Case with sanction: asset-freeze screenshot + audit
-5. Name files with the date: `RPB-2025-20260530.xml`
-
-### Owners
-| Area | Owner |
-|------|-------|
-| Compliance / PAC | Compliance team |
-| RPB | `KYC.Admin` |
-| Security | Infrastructure + pen test |
-| E2E | AML analyst + QA |
+See [`../dossier/README.md`](../dossier/README.md) (`01-pac` … `10-seguranca`).
 
 ---
 
-## 8. Quick start — AML analyst
-1. **Access** — UAT URL; Analyst / Supervisor / Admin roles
-2. **New case** — Cases → New; wait for screening
-3. **Compliance** — UBO identity; EDD source of funds; SAR if banner; RCBE
-4. **Approve** — Only when no `CanApproveMessage` block
-5. **Alerts** — SignalR; supervisors in SAR group
-6. **Reference** — This document + [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)
+## 8. Analyst quick start
+
+1. Open UAT URL (Analyst / Supervisor / Admin)
+2. **Cases → New** — wait for screening
+3. Compliance: UBO identity; EDD funds; SAR if banner
+4. Approve only if `CanApproveMessage` is clear
+5. In-app help: [`../help-online/en/`](../help-online/en/)
 
 ---
 
 ## 9. External dependencies (go-live)
-| ID | Delivery | Owner | Blocks |
-|----|----------|-------|--------|
-| X1 | Official BdP RPB template | Compliance | Final XML export |
-| X2 | UIF API / MOU | Institution | Production SAR |
-| X3 | Identity contract (DigitalSign/CMD) | Provider | Production verification |
-| X4 | BdP asset-freeze API | Institution | Actual notification |
-| X5 | Signed PAC v1 | Compliance | Formal UAT |
-| X6 | DPO DPIA PDF | DPO | GDPR |
+
+| ID | Deliverable | Blocks |
+|----|-------------|--------|
+| X1 | Official BdP RPB template | Final XML export |
+| X2 | UIF API / MOU | Production SAR |
+| X3 | Identity provider contract | Production verification |
+| X4 | BdP freeze API | Real notifications |
+| X5 | Signed CAP v1 | Formal UAT |
+| X6 | DPIA PDF (DPO) | GDPR |
 
 ---
 
-## 10. Next operational steps (order)
-1. Run E2E (section 4) and complete the table
-2. Complete pen test (section 6) → `dossier/10-seguranca/`
-3. X2–X4 credentials in staging
-4. X1 RPB template → update `BdpRpbExporter.cs`
-5. Go live with `Compliance:RequireLiveIntegrations=true`
+## 10. Next operational steps
 
----
-
-## Source documents (historical detail)
-The files below remain in the repository; the relevant operational content was consolidated **in this document**:
-- [DEPLOY_ONPREM.md](DEPLOY_ONPREM.md)
-- [HOMOLOGACAO_RUNBOOK.md](HOMOLOGACAO_RUNBOOK.md)
-- [E2E_HOMOLOGACAO.md](E2E_HOMOLOGACAO.md)
-- [CHECKLIST_HOMOLOGACAO_BDP.md](CHECKLIST_HOMOLOGACAO_BDP.md)
-- [PAC_RUNBOOK.md](PAC_RUNBOOK.md)
-- [SECURITY_PEN_TEST_CHECKLIST.md](SECURITY_PEN_TEST_CHECKLIST.md)
-- [ANALISTA_QUICK_START.md](ANALISTA_QUICK_START.md)
-- [dossier/README.md](dossier/README.md)
+1. Run E2E (§4) and fill §4.12
+2. Complete pen test (§6) → `dossier/10-seguranca/`
+3. Staging credentials X2–X4
+4. RPB template X1 → `BdpRpbExporter.cs`
+5. Go-live with `Compliance:RequireLiveIntegrations=true`

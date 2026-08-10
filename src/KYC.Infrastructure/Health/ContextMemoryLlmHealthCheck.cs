@@ -13,7 +13,7 @@ public sealed class ContextMemoryLlmHealthCheck(string endpoint, IHttpClientFact
         {
             var client = httpClientFactory.CreateClient("contextmemory-health");
             client.BaseAddress = new Uri(endpoint.TrimEnd('/') + "/");
-            var ok = await OpenAiCompatibleClient.IsReachableAsync(client, cancellationToken);
+            var ok = await ContextMemoryChatClient.IsReachableAsync(client, cancellationToken);
             return ok
                 ? HealthCheckResult.Healthy("ContextMemory LLM reachable")
                 : HealthCheckResult.Degraded("ContextMemory /v1/models unreachable");

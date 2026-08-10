@@ -1,12 +1,15 @@
-name: KYC Release
+name: KYC Release (Windows appliance)
+
+# Builds the Inno installer + ZIP and attaches them to the GitHub Release
+# created by release-please (or an existing tag release).
 
 on:
-  push:
-    tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: "Versao semver (ex: 1.0.0, sem prefixo v)"
+        description: "Versao semver (ex: 1.0.0, sem prefixo v) — so para dispatch manual"
         required: true
         type: string
 
@@ -15,6 +18,7 @@ permissions:
 
 jobs:
   build-installer:
+    if: github.repository == 'vitorcastro78/KYC'
     runs-on: windows-latest
 
     steps:
@@ -35,8 +39,8 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          if ("${{ github.ref_type }}" -eq "tag") {
-            $v = "${{ github.ref_name }}" -replace '^v', ''
+          if ("${{ github.event_name }}" -eq "release") {
+            $v = "${{ github.event.release.tag_name }}" -replace '^v', ''
           } else {
             $v = "${{ inputs.version }}"
           }
@@ -58,17 +62,16 @@ jobs:
             tools/appliance/dist/KycPlatform-*-setup.exe
             tools/appliance/dist/kyc-platform-*.zip
 
-      - name: Create GitHub Release
-        if: github.ref_type == 'tag'
+      - name: Attach to GitHub Release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $ver = "${{ steps.version.outputs.version }}"
-          $tag = "${{ github.ref_name }}"
+          $tag = "${{ github.event.release.tag_name }}"
           $dist = "tools/appliance/dist"
-          gh release create $tag `
-            --title "KYC Platform $ver" `
-            --notes "Instalador Windows (KycPlatform-$ver-setup.exe) e pacote ZIP para appliance." `
+          gh release upload $tag `
             "$dist/KycPlatform-$ver-setup.exe" `
-            "$dist/kyc-platform-$ver.zip"
+            "$dist/kyc-platform-$ver.zip" `
+            --clobber

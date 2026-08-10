@@ -10,7 +10,7 @@ Definir principios y controles de seguridad para la plataforma KYC (datos person
 
 ## 2. Ámbito
 
-- Aplicación KYC.Web, Workers, PostgreSQL, Ollama, integraciones UIF/BdP/identidad
+- Aplicación KYC.Web, Workers, PostgreSQL, ContextMemory, integraciones UIF/BdP/identidad
 - Usuarios: analistas, supervisores, administradores, auditores
 - Entornos: desarrollo, homologación, producción
 

@@ -57,7 +57,7 @@ public sealed class DocumentIngestionService(
             document.MarkCompleted(
                 text,
                 rawJson,
-                configuration["LLM:LocalModel"] ?? "qwen3.5:9b",
+                LlmOptions.GetModel(configuration),
                 promptHash);
 
             await documents.UpdateAsync(document, ct);
@@ -122,7 +122,7 @@ public sealed class DocumentIngestionService(
         if (!await IsContextMemoryReachableAsync(ct))
             return null;
 
-        var model = configuration["LLM:LocalModel"] ?? "qwen3.5:9b";
+        var model = LlmOptions.GetModel(configuration);
         var timeoutSeconds = Math.Clamp(configuration.GetValue("LLM:DocumentExtractionTimeoutSeconds", 120), 30, 600);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
@@ -135,8 +135,8 @@ public sealed class DocumentIngestionService(
             max_tokens = 1024,
             messages = new object[]
             {
-                OpenAiCompatibleClient.TextMessage("system", system),
-                OpenAiCompatibleClient.TextMessage("user", user)
+                ContextMemoryChatClient.TextMessage("system", system),
+                ContextMemoryChatClient.TextMessage("user", user)
             }
         };
 
@@ -144,12 +144,12 @@ public sealed class DocumentIngestionService(
         using var response = await client.PostAsJsonAsync("v1/chat/completions", payload, cts.Token);
         response.EnsureSuccessStatusCode();
         var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cts.Token);
-        return OpenAiCompatibleClient.ExtractAssistantContent(doc);
+        return ContextMemoryChatClient.ExtractAssistantContent(doc);
     }
 
     private async Task<bool> IsContextMemoryReachableAsync(CancellationToken ct)
     {
         var client = httpClientFactory.CreateClient("contextmemory-health");
-        return await OpenAiCompatibleClient.IsReachableAsync(client, ct);
+        return await ContextMemoryChatClient.IsReachableAsync(client, ct);
     }
 }
