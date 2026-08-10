@@ -111,7 +111,9 @@ jobs:
           if (-not $ok) {
             Write-Host "--- docker compose ps ---"
             docker compose ps -a
-            Write-Host "--- web logs (tail) ---"
-            docker compose logs --tail 80 web 2>$null
+            Write-Host "--- kyc-web logs (tail) ---"
+            docker logs --tail 120 network-kyc-web 2>&1 | Out-String | Write-Host
+            Write-Host "--- kyc-workers logs (tail) ---"
+            docker logs --tail 80 network-kyc-workers 2>&1 | Out-String | Write-Host
             throw "Health check falhou apos espera (porta $port)"
           }
