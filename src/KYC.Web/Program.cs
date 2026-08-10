@@ -198,7 +198,10 @@ if (!useEntra && !app.Environment.IsEnvironment("Testing"))
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using var migrateScope = app.Services.CreateScope();
-    await migrateScope.ServiceProvider.GetRequiredService<KycDbContext>().Database.MigrateAsync();
+    var kycDb = migrateScope.ServiceProvider.GetRequiredService<KycDbContext>();
+    var migrateLog = migrateScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("KycMigrationBaseline");
+    await KYC.Infrastructure.Persistence.KycMigrationBaseline.EnsureSquashBaselineAsync(kycDb, migrateLog);
+    await kycDb.Database.MigrateAsync();
 }
 
 app.MapGet("/", (HttpContext ctx) =>
@@ -336,7 +339,10 @@ app.MapGet("/api/cases/{caseId:guid}/documents/{documentId:guid}/text", async (
 if (args.Contains("--migrate-only", StringComparer.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
-    await scope.ServiceProvider.GetRequiredService<KycDbContext>().Database.MigrateAsync();
+    var kycDb = scope.ServiceProvider.GetRequiredService<KycDbContext>();
+    var migrateLog = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("KycMigrationBaseline");
+    await KYC.Infrastructure.Persistence.KycMigrationBaseline.EnsureSquashBaselineAsync(kycDb, migrateLog);
+    await kycDb.Database.MigrateAsync();
     if (!useEntra)
     {
         await scope.ServiceProvider.GetRequiredService<AuthDbContext>().Database.MigrateAsync();

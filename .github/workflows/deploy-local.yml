@@ -112,8 +112,8 @@ jobs:
             Write-Host "--- docker compose ps ---"
             docker compose ps -a
             Write-Host "--- kyc-web logs (tail) ---"
-            docker logs --tail 120 network-kyc-web 2>&1 | Out-String | Write-Host
+            cmd /c "docker logs --tail 120 network-kyc-web 2>&1"
             Write-Host "--- kyc-workers logs (tail) ---"
-            docker logs --tail 80 network-kyc-workers 2>&1 | Out-String | Write-Host
+            cmd /c "docker logs --tail 80 network-kyc-workers 2>&1"
             throw "Health check falhou apos espera (porta $port)"
           }
