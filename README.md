@@ -5,7 +5,7 @@
 [![GHCR](https://img.shields.io/badge/GHCR-kyc-2496ED?logo=github)](https://github.com/vitorcastro78/KYC/pkgs/container/kyc)
 [![npm](https://img.shields.io/npm/v/kyc-ai-platform?logo=npm)](https://www.npmjs.com/package/kyc-ai-platform)
 [![PyPI](https://img.shields.io/pypi/v/kyc-ai-platform?logo=pypi)](https://pypi.org/project/kyc-ai-platform/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](LICENSE)
 
 **Automate corporate KYC in Portugal — entity resolution, sanctions/PEP/adverse media, document ingestion, and risk scoring via ContextMemory.**
 
@@ -233,7 +233,7 @@ tests/                  Unit / integration / E2E
 
 ## Licensing
 
-MIT — see [LICENSE](LICENSE).
+**AGPL-3.0** for this open-source core. Commercial / hosted offerings: [kortexio.io](https://kortexio.io). See [docs/license-and-support.md](docs/license-and-support.md).
 
 ## Support
 

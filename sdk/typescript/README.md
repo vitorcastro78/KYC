@@ -14,3 +14,7 @@ const res = await fetch(healthUrl(baseUrl), { headers });
 ```
 
 See the repo README for Docker / GHCR quick start.
+
+## License
+
+AGPL-3.0-or-later — see [`LICENSE`](../../LICENSE) in the repository root.

@@ -4,7 +4,7 @@ version = "0.0.1b1"
 description = "Thin client helpers for the KYC AI Platform (health + HTTP API base URL)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-or-later" }
 urls = { Homepage = "https://github.com/vitorcastro78/KYC", Repository = "https://github.com/vitorcastro78/KYC" }
 
 [build-system]

@@ -21,7 +21,7 @@
     "directory": "sdk/typescript"
   },
   "homepage": "https://github.com/vitorcastro78/KYC",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "publishConfig": {
     "access": "public"
   }

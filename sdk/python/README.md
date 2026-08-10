@@ -17,3 +17,7 @@ with httpx.Client(**client_kwargs(base_url=base)) as client:
 ```
 
 See the repo README for Docker / GHCR quick start.
+
+## License
+
+AGPL-3.0-or-later — see [`LICENSE`](../../LICENSE) in the repository root.
