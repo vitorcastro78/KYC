@@ -88,6 +88,8 @@ jobs:
           git checkout main
           git reset --hard origin/main
           docker compose up -d --build
+          Write-Host "Applying EF migrations (explicit --migrate-only)..."
+          docker compose run --rm --no-deps kyc-web --migrate-only
           docker compose ps
           $port = "8083"
           if (Test-Path .env) {

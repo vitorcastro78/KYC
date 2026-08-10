@@ -41,10 +41,16 @@ docker compose -f docker-compose.db.yml up -d
 
 ### 1.5 Migrations
 
-No host (connection string para Postgres):
+As migrations **não** correm no arranque da app. Aplicar explicitamente:
 
 ```bash
+# Host (connection string para Postgres)
 dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web
+
+# Ou via container / appliance
+dotnet KYC.Web.dll --migrate-only
+# Docker Compose:
+docker compose run --rm --no-deps kyc-web --migrate-only
 ```
 
 ### 1.6 Verificação pós-deploy

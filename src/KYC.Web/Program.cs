@@ -193,15 +193,16 @@ if (!useEntra)
     app.UseAntiforgery();
 
 if (!useEntra && !app.Environment.IsEnvironment("Testing"))
-    await SeedIdentityAsync(app.Services, app.Configuration);
-
-if (!app.Environment.IsEnvironment("Testing"))
 {
-    using var migrateScope = app.Services.CreateScope();
-    var kycDb = migrateScope.ServiceProvider.GetRequiredService<KycDbContext>();
-    var migrateLog = migrateScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("KycMigrationBaseline");
-    await KYC.Infrastructure.Persistence.KycMigrationBaseline.EnsureSquashBaselineAsync(kycDb, migrateLog);
-    await kycDb.Database.MigrateAsync();
+    try
+    {
+        await SeedIdentityAsync(app.Services, app.Configuration);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex,
+            "Identity seed skipped (DB may need migrations). Run: dotnet KYC.Web.dll --migrate-only");
+    }
 }
 
 app.MapGet("/", (HttpContext ctx) =>
@@ -356,9 +357,6 @@ app.Run();
 static async Task SeedIdentityAsync(IServiceProvider services, IConfiguration configuration)
 {
     using var scope = services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-    await db.Database.MigrateAsync();
-
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 

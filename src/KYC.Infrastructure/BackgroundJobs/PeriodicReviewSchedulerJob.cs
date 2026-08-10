@@ -55,11 +55,16 @@ public sealed class ComplianceSeedHostedService(
         var db = scope.ServiceProvider.GetRequiredService<KycDbContext>();
         try
         {
-            await db.Database.MigrateAsync(cancellationToken);
+            if (!await db.Database.CanConnectAsync(cancellationToken))
+            {
+                log.LogWarning("KYC DB not reachable yet; ComplianceSeed skipped.");
+                return;
+            }
         }
         catch (Exception ex)
         {
-            log.LogWarning(ex, "KYC DB migrate skipped/failed in ComplianceSeed; will retry queries.");
+            log.LogWarning(ex, "KYC DB connect failed in ComplianceSeed; will retry on next start.");
+            return;
         }
 
         var policyRepo = scope.ServiceProvider.GetRequiredService<ICustomerAcceptancePolicyRepository>();

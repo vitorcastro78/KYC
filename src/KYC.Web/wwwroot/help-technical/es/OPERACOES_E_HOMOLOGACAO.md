@@ -36,8 +36,13 @@ docker compose -f docker-compose.db.yml up -d
 
 ### 1.5 Migraciones
 
+Las migraciones **no** se ejecutan al arrancar la app. Aplicar explícitamente:
+
 ```bash
 dotnet ef database update --project src/KYC.Infrastructure --startup-project src/KYC.Web
+# o
+dotnet KYC.Web.dll --migrate-only
+docker compose run --rm --no-deps kyc-web --migrate-only
 ```
 
 ### 1.6 Verificación
