@@ -7,12 +7,12 @@
 
 ## 1. Deploy on-prem
 
-Layout alinhado a [ContextMemory](https://github.com/Kortexio/ContextMemory): `docker-compose.yml` (build), `docker-compose.ghcr.yml` (imagens), `.env.example`, `scripts/docker-run.*`.
+Layout alinhado a [ContextMemory](https://github.com/Kortexio/ContextMemory): `docker-compose.yml` (build), `docker-compose.ghcr.yml` (imagens), `docker-compose.contextmemory.yml` (CM opcional via GHCR), `.env.example`, `scripts/docker-run.*`.
 
 ### 1.1 Pré-requisitos
 
 - Docker e Docker Compose
-- ContextMemory acessível (`CONTEXT_MEMORY_BASE_URL`, ex. `https://context.kortexio.io`)
+- ContextMemory acessível (`CONTEXT_MEMORY_BASE_URL`, ex. `http://localhost:5100`) — self-host via [Kortexio/ContextMemory](https://github.com/Kortexio/ContextMemory) ou o overlay abaixo
 - Ficheiro `.env` (copiar de `.env.example`) — **nunca commitar**
 
 ### 1.2 Arranque (build local)
@@ -22,6 +22,8 @@ cp .env.example .env
 # Editar POSTGRES_PASSWORD, RABBITMQ_PASSWORD, KYC_ADMIN_PASSWORD, CONTEXT_MEMORY_*
 
 docker compose up --build -d
+# ou com ContextMemory a partir do GHCR:
+# docker compose -f docker-compose.yml -f docker-compose.contextmemory.yml up --build -d
 # ou: ./scripts/docker-run.sh --build
 # ou: .\scripts\docker-run.ps1 -Build
 ```

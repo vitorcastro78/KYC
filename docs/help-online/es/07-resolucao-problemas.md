@@ -64,7 +64,7 @@ Guía para analistas y supervisores. Los problemas de infraestructura (servidor,
 
 | Síntoma | Verificación |
 |---------|--------------|
-| ContextMemory / scoring | Variable `CONTEXT_MEMORY_BASE_URL`, gateway ContextMemory accesible |
+| ContextMemory / scoring | `CONTEXT_MEMORY_BASE_URL` (p. ej. `http://localhost:5100`); self-host [ContextMemory](https://github.com/Kortexio/ContextMemory) o `docker-compose.contextmemory.yml` |
 | Base de datos | PostgreSQL, migrations aplicadas |
 | SignalR detrás de proxy | Cabeceras `Upgrade` y `Connection` en `/hubs/` |
 | PDF | Chromium/Puppeteer en el contenedor `kyc-web` |

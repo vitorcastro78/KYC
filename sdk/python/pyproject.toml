@@ -5,6 +5,7 @@ description = "Thin client helpers for the KYC AI Platform (health + HTTP API ba
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "AGPL-3.0-or-later" }
+keywords = ["kyc", "aml", "contextmemory", "dotnet", "self-hosted", "agpl"]
 urls = { Homepage = "https://github.com/vitorcastro78/KYC", Repository = "https://github.com/vitorcastro78/KYC" }
 
 [build-system]

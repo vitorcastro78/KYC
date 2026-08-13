@@ -1,4 +1,6 @@
 # KYC on network-local — expects shared Postgres (network-postgres) + ContextMemory gateway.
+# ContextMemory: self-host https://github.com/Kortexio/ContextMemory
+#   or: docker compose -f docker-compose.yml -f docker-compose.contextmemory.yml up --build
 # Usage:  cp .env.example .env && docker compose up --build
 # Standalone Postgres for `dotnet run`: docker compose -f docker-compose.db.yml up -d
 
@@ -43,7 +45,7 @@ services:
       LLM__Model: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
-      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://localhost:5100}
       ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
       ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
       ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}
@@ -80,7 +82,7 @@ services:
       LLM__Model: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       LLM__UseLlmForScoring: "true"
       LLM__EnrichReportsWithLlm: "true"
-      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-https://context.kortexio.io}
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://localhost:5100}
       ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
       ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
       ContextMemory__UserId: ${CONTEXT_MEMORY_USER_ID:-kyc-jobs}

@@ -22,6 +22,15 @@
   },
   "homepage": "https://github.com/vitorcastro78/KYC",
   "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "kyc",
+    "aml",
+    "contextmemory",
+    "dotnet",
+    "blazor",
+    "self-hosted",
+    "agpl"
+  ],
   "publishConfig": {
     "access": "public"
   }

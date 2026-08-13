@@ -64,7 +64,7 @@ Guide for analysts and supervisors. Infrastructure issues (server, database) mus
 
 | Symptom | Check |
 |---------|-------|
-| ContextMemory / scoring | `CONTEXT_MEMORY_BASE_URL` variable, ContextMemory service active |
+| ContextMemory / scoring | `CONTEXT_MEMORY_BASE_URL` (e.g. `http://localhost:5100`); self-host [ContextMemory](https://github.com/Kortexio/ContextMemory) or `docker-compose.contextmemory.yml` |
 | Database | PostgreSQL, migrations applied |
 | SignalR behind proxy | `Upgrade` and `Connection` headers on `/hubs/` |
 | PDF | Chromium/Puppeteer in the `kyc-web` container |

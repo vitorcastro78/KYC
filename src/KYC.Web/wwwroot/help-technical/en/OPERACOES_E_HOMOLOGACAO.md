@@ -7,12 +7,12 @@
 
 ## 1. On-prem deployment
 
-Layout matches [ContextMemory](https://github.com/Kortexio/ContextMemory): `docker-compose.yml` (build), `docker-compose.ghcr.yml` (images), `.env.example`, `scripts/docker-run.*`.
+Layout matches [ContextMemory](https://github.com/Kortexio/ContextMemory): `docker-compose.yml` (build), `docker-compose.ghcr.yml` (images), `docker-compose.contextmemory.yml` (optional CM from GHCR), `.env.example`, `scripts/docker-run.*`.
 
 ### 1.1 Prerequisites
 
 - Docker and Docker Compose
-- Reachable ContextMemory (`CONTEXT_MEMORY_BASE_URL`, e.g. `https://context.kortexio.io`)
+- Reachable ContextMemory (`CONTEXT_MEMORY_BASE_URL`, e.g. `http://localhost:5100`) — self-host via [Kortexio/ContextMemory](https://github.com/Kortexio/ContextMemory) or the overlay below
 - `.env` file (copy from `.env.example`) — **never commit**
 
 ### 1.2 Start (local build)
@@ -20,6 +20,8 @@ Layout matches [ContextMemory](https://github.com/Kortexio/ContextMemory): `dock
 ```bash
 cp .env.example .env
 docker compose up --build -d
+# or with ContextMemory from GHCR:
+# docker compose -f docker-compose.yml -f docker-compose.contextmemory.yml up --build -d
 # or: ./scripts/docker-run.sh --build
 ```
 

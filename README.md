@@ -29,11 +29,11 @@ KYC AI Platform is an on-prem Know Your Customer stack for corporate credit: Bla
 
 ## Quick start — self-host
 
-Run the full stack yourself — **on-prem or fully local**. LLM traffic goes through **ContextMemory** (`CONTEXT_MEMORY_*` in `.env`).
+Run the full stack yourself — **on-prem or fully local**. Scoring / narrative go through a [ContextMemory](https://github.com/Kortexio/ContextMemory) gateway (`CONTEXT_MEMORY_*` in `.env`).
 
 ### Fastest: Docker Compose (build from source)
 
-Requires [Docker](https://docs.docker.com/get-docker/) and a reachable ContextMemory gateway.
+Requires [Docker](https://docs.docker.com/get-docker/) and a ContextMemory gateway (self-host the OSS project, or use the overlay below).
 
 ```bash
 git clone https://github.com/vitorcastro78/KYC.git
@@ -42,10 +42,14 @@ cd KYC
 cp .env.example .env
 # edit POSTGRES_PASSWORD, RABBITMQ_PASSWORD, KYC_ADMIN_PASSWORD, CONTEXT_MEMORY_*
 
+# Option A — ContextMemory already running on the host (:5100)
 docker compose up --build -d
+
+# Option B — bring up ContextMemory from GHCR with this repo
+docker compose -f docker-compose.yml -f docker-compose.contextmemory.yml up --build -d
 ```
 
-Or the helper scripts (same as [ContextMemory](https://github.com/Kortexio/ContextMemory)):
+Or the helper scripts:
 
 ```bash
 ./scripts/docker-run.sh --build
@@ -71,11 +75,13 @@ Then open **http://localhost:8080** — Health: **http://localhost:8080/health**
 | -------- | ------- | ------- |
 | `KYC_WEB_PORT` | `8080` | Host port for the Web UI |
 | `POSTGRES_HOST_PORT` | `5433` | Host port for Postgres |
-| `CONTEXT_MEMORY_BASE_URL` | `https://context.kortexio.io` | LLM / Global Wiki gateway |
+| `CONTEXT_MEMORY_BASE_URL` | `http://localhost:5100` | ContextMemory gateway (self-host) |
 | `CONTEXT_MEMORY_API_KEY` | _(see .env.example)_ | Gateway API key |
 | `DEFAULT_LLM_MODEL` | `qwen3.5:9b` | Model id for chat/scoring |
 | `KYC_ADMIN_PASSWORD` | `ChangeMe@1234` | Seed admin password |
 | `OPENSANCTIONS_API_KEY` / `NEWSAPI_KEY` | _(empty)_ | Optional integrations |
+
+Self-host docs: [Kortexio/ContextMemory](https://github.com/Kortexio/ContextMemory) · overlay: [`docker-compose.contextmemory.yml`](docker-compose.contextmemory.yml).
 
 Stop with `docker compose down`.
 
@@ -108,7 +114,7 @@ docker compose -f docker-compose.db.yml up -d
 
 - .NET 9 SDK
 - PostgreSQL 16+ (or `docker-compose.db.yml`)
-- ContextMemory gateway (for scoring / narrative)
+- [ContextMemory](https://github.com/Kortexio/ContextMemory) gateway (for scoring / narrative; see `docker-compose.contextmemory.yml`)
 
 ### 1. Configure
 
@@ -234,6 +240,16 @@ tests/                  Unit / integration / E2E
 ## Licensing
 
 **AGPL-3.0** for this open-source core. Commercial / hosted offerings: [kortexio.io](https://kortexio.io). See [docs/license-and-support.md](docs/license-and-support.md).
+
+## Discoverability
+
+GitHub topics (apply after `gh auth login`):
+
+```powershell
+pwsh ./scripts/set-github-topics.ps1
+```
+
+Topics for this repo: `kyc`, `aml`, `know-your-customer`, `blazor`, `csharp`, `dotnet`, `postgresql`, `contextmemory`, `sanctions`, `pep`, `self-hosted`, `agpl`, `open-source`, `fintech`, `compliance`.
 
 ## Support
 

@@ -20,7 +20,7 @@
     "ArrMsiUrl": "https://download.microsoft.com/download/E/E/0/EE0CB74D-63B4-4FA4-AF13-5742F7560A44/requestRouter_amd64.msi"
   },
   "ContextMemory": {
-    "BaseUrl": "https://context.kortexio.io",
+    "BaseUrl": "http://localhost:5100",
     "AppId": "kyc",
     "ApiKey": "cm_kyc_local_key",
     "UserId": "kyc-jobs"

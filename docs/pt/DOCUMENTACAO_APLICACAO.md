@@ -78,7 +78,7 @@ Upload UI/API → CaseDocument (Pending) → ficheiro em Data/cases/{caseId}/doc
 | API | Minimal APIs (`Program.cs`), webhook identidade |
 | ORM | EF Core 9, PostgreSQL 16 |
 | CQRS | MediatR |
-| LLM | ContextMemory gateway (chat/scoring + Global Wiki) |
+| LLM | Gateway ContextMemory — OpenAI-compatible `POST /v1/chat/completions` + Global Wiki |
 | Auth | Microsoft Entra ID (OIDC) ou ASP.NET Identity (dev) |
 | Secrets | `.env` / Azure Key Vault (`KYC_KEYVAULT_NAME`) |
 | Messaging | Azure Service Bus, RabbitMQ ou in-memory |

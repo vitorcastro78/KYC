@@ -17,6 +17,7 @@ Canonical packs live under `pt/` / `en/` / `es/` only. Evidence under [`dossier/
 | Document | Purpose |
 |----------|---------|
 | [`license-and-support.md`](license-and-support.md) | AGPL-3.0 license & contributing |
+| [`../docker-compose.contextmemory.yml`](../docker-compose.contextmemory.yml) | Optional ContextMemory (GHCR) overlay — OpenAI-compatible gateway |
 | [`governanca/README.md`](governanca/README.md) | Governance hub → EN / PT / ES policy packs |
 | [`RELEASE.md`](RELEASE.md) | release-please, GHCR, PyPI, npm, LinkedIn / dev.to |
 | [`dossier/README.md`](dossier/README.md) | Go-live evidence layout |

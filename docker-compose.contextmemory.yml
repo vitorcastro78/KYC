@@ -1,0 +1,71 @@
+# Optional ContextMemory gateway (GHCR) for local KYC.
+# Prefer this over any private tunnel URL in docs.
+#
+# Usage (with KYC stack):
+#   docker compose -f docker-compose.yml -f docker-compose.contextmemory.yml up --build -d
+#
+# Or gateway only:
+#   docker compose -f docker-compose.contextmemory.yml up -d
+#
+# Upstream project: https://github.com/Kortexio/ContextMemory
+# Requires an OpenAI-compatible LLM reachable from the CM container (default host.docker.internal:8000).
+
+name: kyc
+
+services:
+  contextmemory:
+    image: ghcr.io/kortexio/contextmemory:${CM_TAG:-latest}
+    container_name: network-kyc-contextmemory
+    restart: unless-stopped
+    ports:
+      - "${CONTEXT_MEMORY_HOST_PORT:-5100}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ContextMemory__PersistenceProvider: File
+      ContextMemory__DataPath: /app/data
+      # Upstream CM property name (LLM OpenAI-compatible host):
+      ContextMemory__OllamaEndpoint: ${LLM_ENDPOINT:-http://host.docker.internal:8000}
+      ContextMemory__DefaultLlmModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
+      ContextMemory__MasterKey: ${CONTEXT_MEMORY_MASTER_KEY:-cm_master_dev_key_change_me}
+      ContextMemory__Apps__kyc__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
+      ContextMemory__Apps__kyc__LlmModel: ${DEFAULT_LLM_MODEL:-qwen3.5:9b}
+      ContextMemory__Apps__kyc__SystemPrompt: You are a KYC risk analyst assistant.
+    volumes:
+      - kyc_cm_data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - network-local
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+
+  kyc-web:
+    environment:
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://contextmemory:8080}
+      ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
+      ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
+    depends_on:
+      contextmemory:
+        condition: service_healthy
+
+  kyc-workers:
+    environment:
+      ContextMemory__BaseUrl: ${CONTEXT_MEMORY_BASE_URL:-http://contextmemory:8080}
+      ContextMemory__AppId: ${CONTEXT_MEMORY_APP_ID:-kyc}
+      ContextMemory__ApiKey: ${CONTEXT_MEMORY_API_KEY:-cm_kyc_local_key}
+    depends_on:
+      contextmemory:
+        condition: service_healthy
+
+volumes:
+  kyc_cm_data:
+
+networks:
+  network-local:
+    external: true
+    name: ${CM_DOCKER_NETWORK:-network-local}
